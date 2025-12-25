@@ -1,0 +1,59 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+temper
+
+# Test binary
+*.test
+
+# Output
+*.out
+coverage.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Dependencies
+vendor/
+
+# Node (for web frontend)
+node_modules/
+web/node_modules/
+web/dist/
+web/.astro/
+
+# Docker
+.docker/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Claude Code
+.claude/
+
+# Playwright MCP
+.playwright-mcp/

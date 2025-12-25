@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # Main API server
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DEBUG=true
+      - DATABASE_URL=postgres://temper:temper@postgres:5432/temper?sslmode=disable
+      - RABBITMQ_URL=amqp://temper:temper@rabbitmq:5672/
+      - RUNNER_POOL_SIZE=3
+      - LLM_PROVIDER=${LLM_PROVIDER:-claude}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-claude-sonnet-4-20250514}
+      - OLLAMA_URL=http://ollama:11434
+      - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-prod}
+      - EXERCISES_PATH=/app/exercises
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./exercises:/app/exercises:ro
+    networks:
+      - temper-net
+    restart: unless-stopped
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=temper
+      - POSTGRES_PASSWORD=temper
+      - POSTGRES_DB=temper
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temper -d temper"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - temper-net
+
+  # RabbitMQ message broker
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=temper
+      - RABBITMQ_DEFAULT_PASS=temper
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - temper-net
+
+  # Runner worker (consumes run queue, executes in Docker)
+  runner:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.runner
+    deploy:
+      replicas: 2
+    environment:
+      - DATABASE_URL=postgres://temper:temper@postgres:5432/temper?sslmode=disable
+      - RABBITMQ_URL=amqp://temper:temper@rabbitmq:5672/
+      - RUNNER_TIMEOUT=30
+      - RUNNER_MEMORY_MB=256
+      - RUNNER_CPU_LIMIT=0.5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    privileged: true
+    networks:
+      - temper-net
+    profiles:
+      - runner
+
+  # Ollama for local LLM (optional)
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - temper-net
+    profiles:
+      - local-llm
+
+  # Migration runner (one-shot)
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    command: ["./temper", "migrate", "up"]
+    environment:
+      - DATABASE_URL=postgres://temper:temper@postgres:5432/temper?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - temper-net
+    profiles:
+      - migrate
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  ollama_data:
+
+networks:
+  temper-net:
+    driver: bridge

@@ -1,0 +1,163 @@
+id: variables
+title: Variables and Types
+description: |
+  Practice declaring and using variables in Go.
+
+  ## Learning Objectives
+  - Understand Go's type system basics
+  - Learn different ways to declare variables
+  - Work with zero values
+
+  ## Instructions
+  Implement the functions that demonstrate variable usage patterns.
+
+difficulty: beginner
+tags:
+  - basics
+  - variables
+  - types
+
+prerequisites:
+  - basics/hello-world
+
+starter:
+  main.go: |
+    package main
+
+    // Sum returns the sum of two integers
+    func Sum(a, b int) int {
+        // TODO: Implement
+        return 0
+    }
+
+    // Swap returns two strings in reversed order
+    func Swap(a, b string) (string, string) {
+        // TODO: Implement - Go functions can return multiple values!
+        return "", ""
+    }
+
+    // ZeroValues returns the zero values for int, string, and bool
+    func ZeroValues() (int, string, bool) {
+        // TODO: Declare variables without initializing them
+        // Return their zero values
+        return 0, "", false
+    }
+
+    func main() {
+        // Test your implementations
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import "testing"
+
+    func TestSum(t *testing.T) {
+        tests := []struct {
+            a, b     int
+            expected int
+        }{
+            {1, 2, 3},
+            {0, 0, 0},
+            {-1, 1, 0},
+            {100, 200, 300},
+        }
+
+        for _, tc := range tests {
+            got := Sum(tc.a, tc.b)
+            if got != tc.expected {
+                t.Errorf("Sum(%d, %d) = %d; want %d", tc.a, tc.b, got, tc.expected)
+            }
+        }
+    }
+
+    func TestSwap(t *testing.T) {
+        a, b := Swap("hello", "world")
+        if a != "world" || b != "hello" {
+            t.Errorf("Swap(\"hello\", \"world\") = (%q, %q); want (\"world\", \"hello\")", a, b)
+        }
+    }
+
+    func TestZeroValues(t *testing.T) {
+        i, s, b := ZeroValues()
+        if i != 0 {
+            t.Errorf("zero value for int = %d; want 0", i)
+        }
+        if s != "" {
+            t.Errorf("zero value for string = %q; want \"\"", s)
+        }
+        if b != false {
+            t.Errorf("zero value for bool = %v; want false", b)
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+
+    - id: understanding
+      name: Understanding
+      description: Demonstrates understanding of variable declaration
+      weight: 0.4
+      signals:
+        - uses_short_declaration
+        - uses_multiple_return
+
+hints:
+  L0:
+    - "How do you add two numbers in Go?"
+    - "Can a function return more than one value in Go?"
+  L1:
+    - "For Sum, simply use the + operator"
+    - "For Swap, Go allows returning multiple values"
+    - "Zero values are automatically assigned to uninitialized variables"
+  L2:
+    - "Swap can be done in one line: return b, a"
+    - "Declare variables with 'var x int' to see zero values"
+  L3:
+    - |
+      ```go
+      func Sum(a, b int) int { return a + b }
+      func Swap(a, b string) (string, string) { return b, a }
+      func ZeroValues() (int, string, bool) {
+          var i int
+          var s string
+          var b bool
+          return i, s, b
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    func Sum(a, b int) int {
+        return a + b
+    }
+
+    func Swap(a, b string) (string, string) {
+        return b, a
+    }
+
+    func ZeroValues() (int, string, bool) {
+        var i int
+        var s string
+        var b bool
+        return i, s, b
+    }
+
+    func main() {}

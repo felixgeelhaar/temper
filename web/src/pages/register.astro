@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RegisterForm from '../components/auth/RegisterForm.vue';
+---
+
+<Layout title="Create Account">
+  <div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <a href="/" class="flex justify-center items-center gap-2">
+        <span class="text-3xl">🔥</span>
+        <span class="text-2xl font-bold text-gray-900">Temper</span>
+      </a>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Create your account
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Already have an account?{' '}
+        <a href="/login" class="font-medium text-blue-600 hover:text-blue-500">
+          Sign in
+        </a>
+      </p>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <RegisterForm client:load />
+      </div>
+    </div>
+  </div>
+</Layout>

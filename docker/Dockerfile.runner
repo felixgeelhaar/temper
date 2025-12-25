@@ -1,0 +1,24 @@
+# Runner service - executes code in isolated Docker containers
+FROM golang:1.23-alpine AS builder
+
+WORKDIR /build
+
+RUN apk add --no-cache git ca-certificates
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o temper-runner ./cmd/temper
+
+# Runtime stage with Docker client
+FROM docker:27-cli
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /app
+
+COPY --from=builder /build/temper-runner .
+
+# The runner needs Docker socket access (mounted via docker-compose)
+ENTRYPOINT ["./temper-runner", "runner"]

@@ -1,0 +1,201 @@
+package pairing
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/felixgeelhaar/temper/internal/domain"
+	"github.com/felixgeelhaar/temper/internal/llm"
+	"github.com/google/uuid"
+)
+
+// Service handles pairing engine operations
+type Service struct {
+	llmRegistry     *llm.Registry
+	defaultProvider string
+	selector        *Selector
+	prompter        *Prompter
+}
+
+// NewService creates a new pairing service
+func NewService(llmRegistry *llm.Registry, defaultProvider string) *Service {
+	return &Service{
+		llmRegistry:     llmRegistry,
+		defaultProvider: defaultProvider,
+		selector:        NewSelector(),
+		prompter:        NewPrompter(),
+	}
+}
+
+// InterventionRequest contains data for requesting an intervention
+type InterventionRequest struct {
+	SessionID   uuid.UUID
+	UserID      uuid.UUID
+	Intent      domain.Intent
+	Context     InterventionContext
+	Policy      domain.LearningPolicy
+	RunID       *uuid.UUID
+}
+
+// InterventionContext contains the context for intervention generation
+type InterventionContext struct {
+	Exercise    *domain.Exercise
+	Code        map[string]string
+	RunOutput   *domain.RunOutput
+	Profile     *domain.LearningProfile
+	CurrentFile string
+	CursorLine  int
+}
+
+// Intervene generates an intervention based on the request
+func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*domain.Intervention, error) {
+	// Select intervention level based on context
+	level := s.selector.SelectLevel(req.Intent, req.Context, req.Policy)
+
+	// Clamp level based on policy
+	level = req.Policy.ClampLevel(level)
+
+	// Select intervention type
+	interventionType := s.selector.SelectType(req.Intent, level)
+
+	// Build prompt for LLM
+	prompt := s.prompter.BuildPrompt(PromptRequest{
+		Intent:   req.Intent,
+		Level:    level,
+		Type:     interventionType,
+		Exercise: req.Context.Exercise,
+		Code:     req.Context.Code,
+		Output:   req.Context.RunOutput,
+		Profile:  req.Context.Profile,
+	})
+
+	// Get LLM provider
+	provider, err := s.llmRegistry.Default()
+	if err != nil {
+		return nil, fmt.Errorf("get LLM provider: %w", err)
+	}
+
+	// Generate intervention content
+	llmResp, err := provider.Generate(ctx, &llm.Request{
+		Messages: []llm.Message{
+			{Role: llm.RoleUser, Content: prompt},
+		},
+		System:      s.prompter.SystemPrompt(level),
+		MaxTokens:   1024,
+		Temperature: 0.7,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("generate intervention: %w", err)
+	}
+
+	// Build intervention
+	intervention := &domain.Intervention{
+		ID:          uuid.New(),
+		SessionID:   req.SessionID,
+		UserID:      req.UserID,
+		RunID:       req.RunID,
+		Intent:      req.Intent,
+		Level:       level,
+		Type:        interventionType,
+		Content:     llmResp.Content,
+		Targets:     s.extractTargets(req.Context),
+		Rationale:   fmt.Sprintf("Selected L%d based on intent=%s, profile signals", level, req.Intent),
+		RequestedAt: time.Now(),
+		DeliveredAt: time.Now(),
+	}
+
+	return intervention, nil
+}
+
+// IntervenStream generates an intervention with streaming response
+func (s *Service) IntervenStream(ctx context.Context, req InterventionRequest) (<-chan StreamChunk, error) {
+	level := s.selector.SelectLevel(req.Intent, req.Context, req.Policy)
+	level = req.Policy.ClampLevel(level)
+	interventionType := s.selector.SelectType(req.Intent, level)
+
+	prompt := s.prompter.BuildPrompt(PromptRequest{
+		Intent:   req.Intent,
+		Level:    level,
+		Type:     interventionType,
+		Exercise: req.Context.Exercise,
+		Code:     req.Context.Code,
+		Output:   req.Context.RunOutput,
+		Profile:  req.Context.Profile,
+	})
+
+	provider, err := s.llmRegistry.Default()
+	if err != nil {
+		return nil, fmt.Errorf("get LLM provider: %w", err)
+	}
+
+	llmStream, err := provider.GenerateStream(ctx, &llm.Request{
+		Messages: []llm.Message{
+			{Role: llm.RoleUser, Content: prompt},
+		},
+		System:      s.prompter.SystemPrompt(level),
+		MaxTokens:   1024,
+		Temperature: 0.7,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("generate stream: %w", err)
+	}
+
+	outCh := make(chan StreamChunk, 100)
+
+	go func() {
+		defer close(outCh)
+
+		// Send metadata first
+		outCh <- StreamChunk{
+			Type: "metadata",
+			Metadata: &InterventionMetadata{
+				Level: level,
+				Type:  interventionType,
+			},
+		}
+
+		// Stream content
+		for chunk := range llmStream {
+			if chunk.Error != nil {
+				outCh <- StreamChunk{Type: "error", Error: chunk.Error}
+				return
+			}
+			if chunk.Done {
+				outCh <- StreamChunk{Type: "done"}
+				return
+			}
+			outCh <- StreamChunk{Type: "content", Content: chunk.Content}
+		}
+	}()
+
+	return outCh, nil
+}
+
+// StreamChunk represents a streaming chunk
+type StreamChunk struct {
+	Type     string
+	Content  string
+	Metadata *InterventionMetadata
+	Error    error
+}
+
+// InterventionMetadata contains intervention metadata
+type InterventionMetadata struct {
+	Level domain.InterventionLevel
+	Type  domain.InterventionType
+}
+
+func (s *Service) extractTargets(ctx InterventionContext) []domain.Target {
+	if ctx.CurrentFile == "" {
+		return nil
+	}
+
+	return []domain.Target{
+		{
+			File:      ctx.CurrentFile,
+			StartLine: ctx.CursorLine,
+			EndLine:   ctx.CursorLine,
+		},
+	}
+}

@@ -1,0 +1,142 @@
+id: hello-world
+title: Hello World
+description: |
+  Write a function that returns a greeting message.
+
+  ## Learning Objectives
+  - Understand basic Go syntax
+  - Learn to use the fmt package
+  - Write a simple function with a return value
+
+  ## Instructions
+  Implement the `Hello` function that takes a name and returns a greeting.
+  If the name is empty, greet "World" instead.
+
+difficulty: beginner
+tags:
+  - basics
+  - fmt
+  - functions
+
+prerequisites: []
+
+starter:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    // Hello returns a greeting message for the given name.
+    // If name is empty, it should greet "World".
+    func Hello(name string) string {
+        // TODO: Implement this function
+        return ""
+    }
+
+    func main() {
+        // You can test your function here
+        fmt.Println(Hello(""))
+        fmt.Println(Hello("Go"))
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import "testing"
+
+    func TestHello(t *testing.T) {
+        tests := []struct {
+            name     string
+            input    string
+            expected string
+        }{
+            {"empty name greets World", "", "Hello, World!"},
+            {"greets by name", "Go", "Hello, Go!"},
+            {"greets another name", "Gopher", "Hello, Gopher!"},
+        }
+
+        for _, tc := range tests {
+            t.Run(tc.name, func(t *testing.T) {
+                got := Hello(tc.input)
+                if got != tc.expected {
+                    t.Errorf("Hello(%q) = %q; want %q", tc.input, got, tc.expected)
+                }
+            })
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: formatting
+      name: Code Formatting
+      description: Code follows gofmt conventions
+      weight: 0.2
+      signals:
+        - gofmt_clean
+
+    - id: idioms
+      name: Go Idioms
+      description: Uses idiomatic Go patterns
+      weight: 0.3
+      signals:
+        - uses_fmt_sprintf
+        - handles_empty_string
+
+hints:
+  L0:
+    - "What does the function need to return when the name is empty?"
+    - "Have you imported the necessary packages?"
+  L1:
+    - "Look at string formatting in Go - the fmt package has useful functions"
+    - "Consider using an if statement to check for empty input"
+  L2:
+    - "Use fmt.Sprintf to format strings with placeholders"
+    - "The format string should be 'Hello, %s!' where %s is replaced by the name"
+    - "Check if name == \"\" and set it to \"World\" in that case"
+  L3:
+    - |
+      Structure your solution like this:
+      ```go
+      func Hello(name string) string {
+          if name == "" {
+              name = "World"
+          }
+          return fmt.Sprintf("Hello, %s!", name)
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    // Hello returns a greeting message for the given name.
+    // If name is empty, it should greet "World".
+    func Hello(name string) string {
+        if name == "" {
+            name = "World"
+        }
+        return fmt.Sprintf("Hello, %s!", name)
+    }
+
+    func main() {
+        fmt.Println(Hello(""))
+        fmt.Println(Hello("Go"))
+    }

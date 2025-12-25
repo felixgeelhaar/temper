@@ -1,0 +1,207 @@
+id: functions
+title: Functions
+description: |
+  Learn about Go functions, including named returns and variadic functions.
+
+  ## Learning Objectives
+  - Understand function syntax in Go
+  - Learn about named return values
+  - Work with variadic functions
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - variadic
+
+prerequisites:
+  - basics/variables
+
+starter:
+  main.go: |
+    package main
+
+    // Divide performs integer division and returns quotient and remainder.
+    // Use named return values for clarity.
+    func Divide(dividend, divisor int) (quotient, remainder int) {
+        // TODO: Implement using named returns
+        return
+    }
+
+    // SumAll returns the sum of any number of integers.
+    // This is a variadic function - it can take any number of arguments.
+    func SumAll(numbers ...int) int {
+        // TODO: Implement
+        return 0
+    }
+
+    // Apply applies a function to each element and returns results.
+    // This demonstrates functions as values.
+    func Apply(numbers []int, fn func(int) int) []int {
+        // TODO: Implement
+        return nil
+    }
+
+    func main() {
+        // Test your implementations
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import "testing"
+
+    func TestDivide(t *testing.T) {
+        tests := []struct {
+            dividend, divisor int
+            wantQ, wantR      int
+        }{
+            {10, 3, 3, 1},
+            {20, 4, 5, 0},
+            {7, 2, 3, 1},
+        }
+
+        for _, tc := range tests {
+            q, r := Divide(tc.dividend, tc.divisor)
+            if q != tc.wantQ || r != tc.wantR {
+                t.Errorf("Divide(%d, %d) = (%d, %d); want (%d, %d)",
+                    tc.dividend, tc.divisor, q, r, tc.wantQ, tc.wantR)
+            }
+        }
+    }
+
+    func TestSumAll(t *testing.T) {
+        tests := []struct {
+            input    []int
+            expected int
+        }{
+            {[]int{}, 0},
+            {[]int{1}, 1},
+            {[]int{1, 2, 3}, 6},
+            {[]int{1, 2, 3, 4, 5}, 15},
+        }
+
+        for _, tc := range tests {
+            got := SumAll(tc.input...)
+            if got != tc.expected {
+                t.Errorf("SumAll(%v) = %d; want %d", tc.input, got, tc.expected)
+            }
+        }
+    }
+
+    func TestApply(t *testing.T) {
+        double := func(x int) int { return x * 2 }
+
+        input := []int{1, 2, 3}
+        expected := []int{2, 4, 6}
+
+        got := Apply(input, double)
+
+        if len(got) != len(expected) {
+            t.Fatalf("Apply length = %d; want %d", len(got), len(expected))
+        }
+
+        for i := range expected {
+            if got[i] != expected[i] {
+                t.Errorf("Apply result[%d] = %d; want %d", i, got[i], expected[i])
+            }
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: named_returns
+      name: Named Returns
+      description: Uses named return values in Divide
+      weight: 0.25
+      signals:
+        - uses_named_returns
+
+    - id: variadic
+      name: Variadic Functions
+      description: Correctly implements variadic function
+      weight: 0.25
+      signals:
+        - uses_variadic_syntax
+
+hints:
+  L0:
+    - "How do you get the remainder of a division in Go?"
+    - "What does '...' mean in a function parameter?"
+  L1:
+    - "Use the % operator for remainder"
+    - "Variadic parameters behave like slices inside the function"
+    - "Functions can be passed as arguments to other functions"
+  L2:
+    - "Named returns: assign to quotient and remainder, then use bare 'return'"
+    - "Range over the variadic parameter: for _, n := range numbers"
+    - "Apply: create result slice, range over input, call fn on each"
+  L3:
+    - |
+      ```go
+      func Divide(dividend, divisor int) (quotient, remainder int) {
+          quotient = dividend / divisor
+          remainder = dividend % divisor
+          return
+      }
+
+      func SumAll(numbers ...int) int {
+          sum := 0
+          for _, n := range numbers {
+              sum += n
+          }
+          return sum
+      }
+
+      func Apply(numbers []int, fn func(int) int) []int {
+          result := make([]int, len(numbers))
+          for i, n := range numbers {
+              result[i] = fn(n)
+          }
+          return result
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    func Divide(dividend, divisor int) (quotient, remainder int) {
+        quotient = dividend / divisor
+        remainder = dividend % divisor
+        return
+    }
+
+    func SumAll(numbers ...int) int {
+        sum := 0
+        for _, n := range numbers {
+            sum += n
+        }
+        return sum
+    }
+
+    func Apply(numbers []int, fn func(int) int) []int {
+        result := make([]int, len(numbers))
+        for i, n := range numbers {
+            result[i] = fn(n)
+        }
+        return result
+    }
+
+    func main() {}

@@ -1,0 +1,256 @@
+id: table-tests
+title: Table-Driven Tests
+description: |
+  Learn the table-driven testing pattern, a Go best practice.
+
+  ## Learning Objectives
+  - Understand table-driven test pattern
+  - Use subtests with t.Run
+  - Write maintainable test code
+
+  ## Instructions
+  Refactor the provided tests into table-driven tests.
+  The implementation is already done - focus on the test code!
+
+difficulty: intermediate
+tags:
+  - testing
+  - patterns
+  - tdd
+
+prerequisites:
+  - basics/functions
+
+starter:
+  calculator.go: |
+    package calculator
+
+    // Add returns the sum of two integers
+    func Add(a, b int) int {
+        return a + b
+    }
+
+    // Subtract returns the difference of two integers
+    func Subtract(a, b int) int {
+        return a - b
+    }
+
+    // Multiply returns the product of two integers
+    func Multiply(a, b int) int {
+        return a * b
+    }
+
+    // Divide returns the quotient of two integers
+    // Returns 0 if divisor is 0
+    func Divide(a, b int) int {
+        if b == 0 {
+            return 0
+        }
+        return a / b
+    }
+
+  calculator_test.go: |
+    package calculator
+
+    import "testing"
+
+    // TODO: Refactor these tests into table-driven tests
+    // Each function should have ONE test with a table of test cases
+    // Use t.Run for subtests
+
+    func TestAdd(t *testing.T) {
+        // Refactor these individual checks into a table
+        if Add(2, 3) != 5 {
+            t.Error("Add(2, 3) should be 5")
+        }
+        if Add(-1, 1) != 0 {
+            t.Error("Add(-1, 1) should be 0")
+        }
+        if Add(0, 0) != 0 {
+            t.Error("Add(0, 0) should be 0")
+        }
+    }
+
+    func TestSubtract(t *testing.T) {
+        // Add more test cases as a table
+        if Subtract(5, 3) != 2 {
+            t.Error("Subtract(5, 3) should be 2")
+        }
+    }
+
+    func TestMultiply(t *testing.T) {
+        // TODO: Implement as table-driven test
+    }
+
+    func TestDivide(t *testing.T) {
+        // TODO: Implement as table-driven test
+        // Don't forget to test division by zero!
+    }
+
+tests:
+  # For this exercise, the tests ARE the exercise
+  # Validation is done by the rubric signals
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: table_pattern
+      name: Table-Driven Pattern
+      description: Uses struct slice for test cases
+      weight: 0.4
+      signals:
+        - has_test_case_struct
+        - uses_range_over_cases
+
+    - id: subtests
+      name: Subtests
+      description: Uses t.Run for each test case
+      weight: 0.3
+      signals:
+        - uses_t_run
+
+    - id: coverage
+      name: Test Coverage
+      description: Tests all operations with edge cases
+      weight: 0.3
+      signals:
+        - tests_all_operations
+        - tests_edge_cases
+
+hints:
+  L0:
+    - "What pattern do you see repeating in the current tests?"
+    - "How could you reduce duplication in test code?"
+  L1:
+    - "Define a struct with inputs and expected output"
+    - "Create a slice of these structs (the 'table')"
+    - "Loop over the table and check each case"
+  L2:
+    - "Use t.Run(name, func(t *testing.T) {...}) for subtests"
+    - "Name your test cases for clear failure messages"
+    - "Common struct: struct{ name string; a, b, want int }"
+  L3:
+    - |
+      ```go
+      func TestAdd(t *testing.T) {
+          tests := []struct {
+              name     string
+              a, b     int
+              expected int
+          }{
+              {"positive", 2, 3, 5},
+              {"with negative", -1, 1, 0},
+              {"zeros", 0, 0, 0},
+          }
+
+          for _, tc := range tests {
+              t.Run(tc.name, func(t *testing.T) {
+                  got := Add(tc.a, tc.b)
+                  if got != tc.expected {
+                      t.Errorf("Add(%d, %d) = %d; want %d",
+                          tc.a, tc.b, got, tc.expected)
+                  }
+              })
+          }
+      }
+      ```
+
+solution:
+  calculator_test.go: |
+    package calculator
+
+    import "testing"
+
+    func TestAdd(t *testing.T) {
+        tests := []struct {
+            name     string
+            a, b     int
+            expected int
+        }{
+            {"positive numbers", 2, 3, 5},
+            {"negative and positive", -1, 1, 0},
+            {"zeros", 0, 0, 0},
+            {"large numbers", 1000, 2000, 3000},
+        }
+
+        for _, tc := range tests {
+            t.Run(tc.name, func(t *testing.T) {
+                got := Add(tc.a, tc.b)
+                if got != tc.expected {
+                    t.Errorf("Add(%d, %d) = %d; want %d", tc.a, tc.b, got, tc.expected)
+                }
+            })
+        }
+    }
+
+    func TestSubtract(t *testing.T) {
+        tests := []struct {
+            name     string
+            a, b     int
+            expected int
+        }{
+            {"positive result", 5, 3, 2},
+            {"negative result", 3, 5, -2},
+            {"same numbers", 5, 5, 0},
+        }
+
+        for _, tc := range tests {
+            t.Run(tc.name, func(t *testing.T) {
+                got := Subtract(tc.a, tc.b)
+                if got != tc.expected {
+                    t.Errorf("Subtract(%d, %d) = %d; want %d", tc.a, tc.b, got, tc.expected)
+                }
+            })
+        }
+    }
+
+    func TestMultiply(t *testing.T) {
+        tests := []struct {
+            name     string
+            a, b     int
+            expected int
+        }{
+            {"positive numbers", 2, 3, 6},
+            {"with zero", 5, 0, 0},
+            {"negative numbers", -2, -3, 6},
+            {"mixed signs", -2, 3, -6},
+        }
+
+        for _, tc := range tests {
+            t.Run(tc.name, func(t *testing.T) {
+                got := Multiply(tc.a, tc.b)
+                if got != tc.expected {
+                    t.Errorf("Multiply(%d, %d) = %d; want %d", tc.a, tc.b, got, tc.expected)
+                }
+            })
+        }
+    }
+
+    func TestDivide(t *testing.T) {
+        tests := []struct {
+            name     string
+            a, b     int
+            expected int
+        }{
+            {"exact division", 10, 2, 5},
+            {"integer division", 7, 2, 3},
+            {"divide by zero", 5, 0, 0},
+            {"negative dividend", -10, 2, -5},
+        }
+
+        for _, tc := range tests {
+            t.Run(tc.name, func(t *testing.T) {
+                got := Divide(tc.a, tc.b)
+                if got != tc.expected {
+                    t.Errorf("Divide(%d, %d) = %d; want %d", tc.a, tc.b, got, tc.expected)
+                }
+            })
+        }
+    }
