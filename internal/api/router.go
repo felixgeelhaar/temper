@@ -94,6 +94,12 @@ func (r *Router) buildMiddlewareChain(handler http.Handler, app *App) http.Handl
 	// Apply middleware in reverse order (last applied = first executed)
 	handler = middleware.Recovery(handler)
 	handler = middleware.Logger(handler)
+
+	// Apply rate limiting (skip in debug mode for easier development)
+	if !app.Config.Debug {
+		handler = middleware.RateLimitMiddleware(middleware.DefaultRateLimitConfig())(handler)
+	}
+
 	handler = middleware.RequestID(handler)
 	handler = middleware.CORS(handler)
 

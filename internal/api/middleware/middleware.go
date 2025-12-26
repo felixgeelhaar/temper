@@ -171,14 +171,13 @@ func Timeout(duration time.Duration) func(http.Handler) http.Handler {
 	}
 }
 
-// RateLimit implements a simple rate limiter (placeholder for now)
+// RateLimit creates a simple rate limiter middleware (legacy, use RateLimitMiddleware instead)
 func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
-	// TODO: Implement proper rate limiting with Redis or in-memory store
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-		})
-	}
+	return RateLimitMiddleware(RateLimitConfig{
+		RequestsPerMinute:          requestsPerMinute,
+		ExpensiveRequestsPerMinute: requestsPerMinute / 6,
+		BurstMultiplier:            3,
+	})
 }
 
 // RequireAuth ensures the request has a valid session (legacy, auth handled by router)
