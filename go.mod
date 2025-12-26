@@ -1,10 +1,12 @@
 module github.com/felixgeelhaar/temper
 
-go 1.24.0
+go 1.23
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.1
+	github.com/lib/pq v1.10.9
+	github.com/sqlc-dev/pqtype v0.3.0
 	golang.org/x/crypto v0.27.0
 	gopkg.in/yaml.v3 v3.0.1
 )

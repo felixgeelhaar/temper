@@ -1,0 +1,557 @@
+id: concurrency
+title: Goroutines and Channels
+description: |
+  Master Go's concurrency primitives - goroutines and channels.
+
+  ## Learning Objectives
+  - Launch and coordinate goroutines
+  - Use channels for communication
+  - Implement common concurrency patterns
+  - Handle timeouts and cancellation
+
+difficulty: advanced
+tags:
+  - concurrency
+  - goroutines
+  - channels
+
+prerequisites:
+  - intermediate/interfaces
+  - intermediate/errors
+
+starter:
+  main.go: |
+    package main
+
+    import (
+        "context"
+        "sync"
+        "time"
+    )
+
+    // Sum calculates the sum of numbers concurrently.
+    // Split the slice into two halves, sum each in a goroutine,
+    // and combine the results.
+    func Sum(numbers []int) int {
+        // TODO: Implement using goroutines and channels
+        // 1. If len <= 1, return sum directly
+        // 2. Split slice in half
+        // 3. Sum each half in separate goroutine
+        // 4. Use channel to collect results
+        // 5. Return combined sum
+        return 0
+    }
+
+    // FanOut sends each input to n workers and collects results.
+    // Each worker applies the transform function.
+    func FanOut(inputs []int, workers int, transform func(int) int) []int {
+        // TODO: Implement fan-out pattern
+        // 1. Create input and output channels
+        // 2. Launch worker goroutines
+        // 3. Send inputs to input channel
+        // 4. Collect transformed outputs
+        // Order does not need to be preserved
+        return nil
+    }
+
+    // Pipeline chains multiple transform stages.
+    // Each stage runs in its own goroutine.
+    func Pipeline(input <-chan int, stages ...func(int) int) <-chan int {
+        // TODO: Implement pipeline pattern
+        // 1. For each stage, create a goroutine that:
+        //    - Reads from previous channel
+        //    - Applies transform
+        //    - Sends to next channel
+        // 2. Return final output channel
+        return nil
+    }
+
+    // Merge combines multiple channels into one.
+    func Merge(channels ...<-chan int) <-chan int {
+        // TODO: Implement fan-in pattern
+        // 1. Create output channel
+        // 2. Use WaitGroup to track goroutines
+        // 3. Launch goroutine for each input channel
+        // 4. Close output when all inputs are done
+        return nil
+    }
+
+    // WithTimeout runs f and returns result or times out.
+    func WithTimeout(timeout time.Duration, f func() int) (int, bool) {
+        // TODO: Implement timeout pattern
+        // 1. Run f in goroutine, send result to channel
+        // 2. Select between result and time.After
+        // 3. Return (result, true) on success
+        // 4. Return (0, false) on timeout
+        return 0, false
+    }
+
+    // WorkerPool processes jobs with a fixed number of workers.
+    type WorkerPool struct {
+        workers int
+        jobs    chan func()
+        wg      sync.WaitGroup
+    }
+
+    // NewWorkerPool creates a pool with n workers.
+    func NewWorkerPool(n int) *WorkerPool {
+        // TODO: Implement
+        return nil
+    }
+
+    // Start launches the worker goroutines.
+    func (p *WorkerPool) Start() {
+        // TODO: Implement
+        // Launch p.workers goroutines that read from p.jobs
+    }
+
+    // Submit adds a job to the pool.
+    func (p *WorkerPool) Submit(job func()) {
+        // TODO: Implement
+    }
+
+    // Wait waits for all submitted jobs to complete.
+    func (p *WorkerPool) Wait() {
+        // TODO: Implement
+    }
+
+    // Stop shuts down the worker pool.
+    func (p *WorkerPool) Stop() {
+        // TODO: Implement
+    }
+
+    func main() {
+        nums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+        println("Sum:", Sum(nums))
+    }
+
+    // Ignore - for context exercise
+    var _ = context.Background
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "sort"
+        "sync/atomic"
+        "testing"
+        "time"
+    )
+
+    func TestSum(t *testing.T) {
+        tests := []struct {
+            input    []int
+            expected int
+        }{
+            {[]int{1, 2, 3, 4, 5}, 15},
+            {[]int{10, 20, 30}, 60},
+            {[]int{1}, 1},
+            {[]int{}, 0},
+        }
+
+        for _, tc := range tests {
+            got := Sum(tc.input)
+            if got != tc.expected {
+                t.Errorf("Sum(%v) = %d; want %d", tc.input, got, tc.expected)
+            }
+        }
+    }
+
+    func TestFanOut(t *testing.T) {
+        inputs := []int{1, 2, 3, 4, 5}
+        double := func(n int) int { return n * 2 }
+
+        got := FanOut(inputs, 3, double)
+
+        if len(got) != len(inputs) {
+            t.Fatalf("FanOut returned %d results; want %d", len(got), len(inputs))
+        }
+
+        sort.Ints(got)
+        expected := []int{2, 4, 6, 8, 10}
+
+        for i, v := range expected {
+            if got[i] != v {
+                t.Errorf("FanOut result[%d] = %d; want %d", i, got[i], v)
+            }
+        }
+    }
+
+    func TestPipeline(t *testing.T) {
+        input := make(chan int, 3)
+        input <- 1
+        input <- 2
+        input <- 3
+        close(input)
+
+        double := func(n int) int { return n * 2 }
+        addOne := func(n int) int { return n + 1 }
+
+        output := Pipeline(input, double, addOne)
+
+        var results []int
+        for v := range output {
+            results = append(results, v)
+        }
+
+        sort.Ints(results)
+        expected := []int{3, 5, 7} // (1*2)+1, (2*2)+1, (3*2)+1
+
+        if len(results) != len(expected) {
+            t.Fatalf("Pipeline returned %d results; want %d", len(results), len(expected))
+        }
+
+        for i, v := range expected {
+            if results[i] != v {
+                t.Errorf("Pipeline result[%d] = %d; want %d", i, results[i], v)
+            }
+        }
+    }
+
+    func TestMerge(t *testing.T) {
+        ch1 := make(chan int, 2)
+        ch2 := make(chan int, 2)
+
+        ch1 <- 1
+        ch1 <- 2
+        close(ch1)
+
+        ch2 <- 3
+        ch2 <- 4
+        close(ch2)
+
+        merged := Merge(ch1, ch2)
+
+        var results []int
+        for v := range merged {
+            results = append(results, v)
+        }
+
+        sort.Ints(results)
+        expected := []int{1, 2, 3, 4}
+
+        if len(results) != len(expected) {
+            t.Fatalf("Merge returned %d results; want %d", len(results), len(expected))
+        }
+
+        for i, v := range expected {
+            if results[i] != v {
+                t.Errorf("Merge result[%d] = %d; want %d", i, results[i], v)
+            }
+        }
+    }
+
+    func TestWithTimeout(t *testing.T) {
+        // Fast function
+        result, ok := WithTimeout(100*time.Millisecond, func() int {
+            return 42
+        })
+        if !ok || result != 42 {
+            t.Errorf("WithTimeout(fast) = (%d, %v); want (42, true)", result, ok)
+        }
+
+        // Slow function
+        result, ok = WithTimeout(50*time.Millisecond, func() int {
+            time.Sleep(200 * time.Millisecond)
+            return 42
+        })
+        if ok {
+            t.Errorf("WithTimeout(slow) = (%d, %v); want (0, false)", result, ok)
+        }
+    }
+
+    func TestWorkerPool(t *testing.T) {
+        pool := NewWorkerPool(3)
+        if pool == nil {
+            t.Fatal("NewWorkerPool returned nil")
+        }
+
+        pool.Start()
+
+        var counter int64
+        for i := 0; i < 10; i++ {
+            pool.Submit(func() {
+                atomic.AddInt64(&counter, 1)
+                time.Sleep(10 * time.Millisecond)
+            })
+        }
+
+        pool.Wait()
+        pool.Stop()
+
+        if counter != 10 {
+            t.Errorf("Worker pool processed %d jobs; want 10", counter)
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+    - "-race"
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass including race detector
+      weight: 0.4
+      signals:
+        - all_tests_pass
+        - no_race_conditions
+
+    - id: channels
+      name: Channel Usage
+      description: Proper channel creation and closing
+      weight: 0.2
+      signals:
+        - uses_channels
+        - closes_channels
+
+    - id: sync
+      name: Synchronization
+      description: Uses sync.WaitGroup correctly
+      weight: 0.2
+      signals:
+        - uses_waitgroup
+
+    - id: patterns
+      name: Concurrency Patterns
+      description: Implements fan-out/fan-in, pipeline patterns
+      weight: 0.2
+      signals:
+        - implements_patterns
+
+hints:
+  L0:
+    - "How do you start a goroutine?"
+    - "How do channels communicate between goroutines?"
+  L1:
+    - "Use 'go func() { ... }()' to start goroutines"
+    - "Make buffered channels with make(chan T, size)"
+    - "Use sync.WaitGroup to wait for goroutines"
+    - "Always close channels when done sending"
+  L2:
+    - "Sum: ch := make(chan int, 2); go func() { ch <- sum }()"
+    - "FanOut: workers read from jobs channel, write to results"
+    - "Pipeline: chain stages with intermediate channels"
+    - "Merge: launch goroutine per channel, use WaitGroup to close output"
+  L3:
+    - |
+      ```go
+      func Sum(numbers []int) int {
+          if len(numbers) <= 1 {
+              sum := 0
+              for _, n := range numbers {
+                  sum += n
+              }
+              return sum
+          }
+          mid := len(numbers) / 2
+          ch := make(chan int, 2)
+          go func() {
+              sum := 0
+              for _, n := range numbers[:mid] {
+                  sum += n
+              }
+              ch <- sum
+          }()
+          go func() {
+              sum := 0
+              for _, n := range numbers[mid:] {
+                  sum += n
+              }
+              ch <- sum
+          }()
+          return <-ch + <-ch
+      }
+
+      func WithTimeout(timeout time.Duration, f func() int) (int, bool) {
+          ch := make(chan int, 1)
+          go func() {
+              ch <- f()
+          }()
+          select {
+          case result := <-ch:
+              return result, true
+          case <-time.After(timeout):
+              return 0, false
+          }
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import (
+        "context"
+        "sync"
+        "time"
+    )
+
+    func Sum(numbers []int) int {
+        if len(numbers) <= 1 {
+            sum := 0
+            for _, n := range numbers {
+                sum += n
+            }
+            return sum
+        }
+
+        mid := len(numbers) / 2
+        ch := make(chan int, 2)
+
+        go func() {
+            sum := 0
+            for _, n := range numbers[:mid] {
+                sum += n
+            }
+            ch <- sum
+        }()
+
+        go func() {
+            sum := 0
+            for _, n := range numbers[mid:] {
+                sum += n
+            }
+            ch <- sum
+        }()
+
+        return <-ch + <-ch
+    }
+
+    func FanOut(inputs []int, workers int, transform func(int) int) []int {
+        jobs := make(chan int, len(inputs))
+        results := make(chan int, len(inputs))
+
+        var wg sync.WaitGroup
+        for i := 0; i < workers; i++ {
+            wg.Add(1)
+            go func() {
+                defer wg.Done()
+                for job := range jobs {
+                    results <- transform(job)
+                }
+            }()
+        }
+
+        for _, input := range inputs {
+            jobs <- input
+        }
+        close(jobs)
+
+        go func() {
+            wg.Wait()
+            close(results)
+        }()
+
+        var output []int
+        for result := range results {
+            output = append(output, result)
+        }
+        return output
+    }
+
+    func Pipeline(input <-chan int, stages ...func(int) int) <-chan int {
+        ch := input
+        for _, stage := range stages {
+            ch = pipelineStage(ch, stage)
+        }
+        return ch
+    }
+
+    func pipelineStage(input <-chan int, f func(int) int) <-chan int {
+        output := make(chan int)
+        go func() {
+            defer close(output)
+            for v := range input {
+                output <- f(v)
+            }
+        }()
+        return output
+    }
+
+    func Merge(channels ...<-chan int) <-chan int {
+        output := make(chan int)
+        var wg sync.WaitGroup
+
+        for _, ch := range channels {
+            wg.Add(1)
+            go func(c <-chan int) {
+                defer wg.Done()
+                for v := range c {
+                    output <- v
+                }
+            }(ch)
+        }
+
+        go func() {
+            wg.Wait()
+            close(output)
+        }()
+
+        return output
+    }
+
+    func WithTimeout(timeout time.Duration, f func() int) (int, bool) {
+        ch := make(chan int, 1)
+        go func() {
+            ch <- f()
+        }()
+
+        select {
+        case result := <-ch:
+            return result, true
+        case <-time.After(timeout):
+            return 0, false
+        }
+    }
+
+    type WorkerPool struct {
+        workers int
+        jobs    chan func()
+        wg      sync.WaitGroup
+    }
+
+    func NewWorkerPool(n int) *WorkerPool {
+        return &WorkerPool{
+            workers: n,
+            jobs:    make(chan func(), 100),
+        }
+    }
+
+    func (p *WorkerPool) Start() {
+        for i := 0; i < p.workers; i++ {
+            go func() {
+                for job := range p.jobs {
+                    job()
+                    p.wg.Done()
+                }
+            }()
+        }
+    }
+
+    func (p *WorkerPool) Submit(job func()) {
+        p.wg.Add(1)
+        p.jobs <- job
+    }
+
+    func (p *WorkerPool) Wait() {
+        p.wg.Wait()
+    }
+
+    func (p *WorkerPool) Stop() {
+        close(p.jobs)
+    }
+
+    func main() {
+        nums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+        println("Sum:", Sum(nums))
+    }
+
+    var _ = context.Background

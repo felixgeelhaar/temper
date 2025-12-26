@@ -1,14 +1,17 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/runner"
+	"github.com/felixgeelhaar/temper/internal/storage"
 	"github.com/felixgeelhaar/temper/internal/workspace"
 	"github.com/google/uuid"
 )
@@ -18,14 +21,16 @@ type RunHandler struct {
 	runnerService    *runner.Service
 	workspaceService *workspace.Service
 	exerciseRegistry *exercise.Registry
+	queries          *storage.Queries
 }
 
 // NewRunHandler creates a new run handler
-func NewRunHandler(runnerService *runner.Service, workspaceService *workspace.Service, exerciseRegistry *exercise.Registry) *RunHandler {
+func NewRunHandler(runnerService *runner.Service, workspaceService *workspace.Service, exerciseRegistry *exercise.Registry, db *sql.DB) *RunHandler {
 	return &RunHandler{
 		runnerService:    runnerService,
 		workspaceService: workspaceService,
 		exerciseRegistry: exerciseRegistry,
+		queries:          storage.New(db),
 	}
 }
 
@@ -99,6 +104,19 @@ func (h *RunHandler) TriggerRun(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.jsonError(w, http.StatusInternalServerError, fmt.Sprintf("execution failed: %v", err))
 		return
+	}
+
+	// Update learning profile - increment run count
+	_, err = h.queries.IncrementProfileRuns(r.Context(), userID)
+	if err != nil {
+		// Profile might not exist - try creating it first
+		_, createErr := h.queries.CreateLearningProfile(r.Context(), userID)
+		if createErr == nil {
+			// Profile created, increment now
+			_, _ = h.queries.IncrementProfileRuns(r.Context(), userID)
+		} else {
+			slog.Warn("failed to update profile runs", "user_id", userID, "error", err)
+		}
 	}
 
 	h.jsonResponse(w, http.StatusOK, RunResponse{

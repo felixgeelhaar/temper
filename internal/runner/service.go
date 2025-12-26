@@ -119,6 +119,7 @@ func (s *Service) Execute(ctx context.Context, req ExecuteRequest) (*domain.RunO
 			return nil, fmt.Errorf("build check: %w", err)
 		}
 		output.BuildOK = buildResult.OK
+		output.BuildOutput = buildResult.Output
 		output.BuildErrors = s.parser.ParseBuildErrors(buildResult.Output)
 	}
 
@@ -128,6 +129,8 @@ func (s *Service) Execute(ctx context.Context, req ExecuteRequest) (*domain.RunO
 		if err != nil {
 			return nil, fmt.Errorf("test check: %w", err)
 		}
+		output.TestOK = testResult.OK
+		output.TestOutput = testResult.Output
 		output.TestResults = s.parser.ParseTestOutput(testResult.Output)
 
 		for _, tr := range output.TestResults {

@@ -33,33 +33,36 @@ const (
 
 // RunOutput contains the results of a code execution
 type RunOutput struct {
-	FormatOK    bool          // gofmt passed
-	FormatDiff  string        // gofmt diff output (if any changes needed)
-	BuildOK     bool          // go build passed
-	BuildErrors []Diagnostic  // compilation errors
-	TestResults []TestResult  // individual test results
-	TestsPassed int           // count of passing tests
-	TestsFailed int           // count of failing tests
-	Duration    time.Duration // total execution time
-	Logs        string        // full output logs
+	FormatOK    bool          `json:"format_passed"`  // gofmt passed
+	FormatDiff  string        `json:"format_output"`  // gofmt diff output (if any changes needed)
+	BuildOK     bool          `json:"build_passed"`   // go build passed
+	BuildOutput string        `json:"build_output"`   // build error output
+	BuildErrors []Diagnostic  `json:"build_errors"`   // compilation errors
+	TestOK      bool          `json:"test_passed"`    // all tests passed
+	TestOutput  string        `json:"test_output"`    // test output
+	TestResults []TestResult  `json:"test_results"`   // individual test results
+	TestsPassed int           `json:"tests_passed"`   // count of passing tests
+	TestsFailed int           `json:"tests_failed"`   // count of failing tests
+	Duration    time.Duration `json:"duration"`       // total execution time
+	Logs        string        `json:"logs"`           // full output logs
 }
 
 // Diagnostic represents a compiler or lint error/warning
 type Diagnostic struct {
-	File     string
-	Line     int
-	Column   int
-	Severity string // error, warning
-	Message  string
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Column   int    `json:"column"`
+	Severity string `json:"severity"` // error, warning
+	Message  string `json:"message"`
 }
 
 // TestResult represents the outcome of a single test
 type TestResult struct {
-	Package  string
-	Name     string
-	Passed   bool
-	Duration time.Duration
-	Output   string
+	Package  string        `json:"package"`
+	Name     string        `json:"name"`
+	Passed   bool          `json:"passed"`
+	Duration time.Duration `json:"elapsed"`
+	Output   string        `json:"output,omitempty"`
 }
 
 // IsTerminal returns true if the run is in a terminal state

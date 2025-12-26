@@ -122,8 +122,8 @@ func initLLMProviders(registry *llm.Registry, cfg *config.Config) error {
 			ollamaURL = "http://localhost:11434"
 		}
 		model := cfg.LLMModel
-		if model == "" {
-			model = "llama3"
+		if model == "" || model == "claude-sonnet-4-20250514" {
+			model = "llama3.2:latest"
 		}
 		provider := llm.NewOllamaProvider(llm.OllamaConfig{
 			BaseURL: ollamaURL,
@@ -158,7 +158,7 @@ func initLLMProviders(registry *llm.Registry, cfg *config.Config) error {
 		}
 		provider := llm.NewOllamaProvider(llm.OllamaConfig{
 			BaseURL: ollamaURL,
-			Model:   "llama3",
+			Model:   "llama3.2:latest",
 		})
 		registry.Register("ollama", provider)
 		// Only set ollama as default if no other provider was set

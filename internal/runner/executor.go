@@ -2,6 +2,10 @@ package runner
 
 import (
 	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -47,19 +51,118 @@ func NewLocalExecutor(workDir string) *LocalExecutor {
 }
 
 func (e *LocalExecutor) RunFormat(ctx context.Context, code map[string]string) (*FormatResult, error) {
-	// TODO: Implement local gofmt execution
-	// For now, return OK to allow development
-	return &FormatResult{OK: true}, nil
+	// Create temp directory for code
+	tmpDir, err := createTempCodeDir(code)
+	if err != nil {
+		return nil, err
+	}
+	defer removeTempDir(tmpDir)
+
+	// Run gofmt -d on all .go files
+	var allDiffs strings.Builder
+	for filename := range code {
+		if !strings.HasSuffix(filename, ".go") {
+			continue
+		}
+		cmd := exec.CommandContext(ctx, "gofmt", "-d", filepath.Join(tmpDir, filename))
+		output, _ := cmd.CombinedOutput()
+		if len(output) > 0 {
+			allDiffs.Write(output)
+		}
+	}
+
+	diff := allDiffs.String()
+	return &FormatResult{
+		OK:   diff == "",
+		Diff: diff,
+	}, nil
 }
 
 func (e *LocalExecutor) RunBuild(ctx context.Context, code map[string]string) (*BuildResult, error) {
-	// TODO: Implement local go build execution
-	return &BuildResult{OK: true}, nil
+	// Create temp directory for code
+	tmpDir, err := createTempCodeDir(code)
+	if err != nil {
+		return nil, err
+	}
+	defer removeTempDir(tmpDir)
+
+	// Initialize go.mod if not present
+	if _, ok := code["go.mod"]; !ok {
+		modContent := "module exercise\n\ngo 1.22\n"
+		os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644)
+	}
+
+	// Run go build
+	cmd := exec.CommandContext(ctx, "go", "build", "./...")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return &BuildResult{
+			OK:     false,
+			Output: string(output),
+		}, nil
+	}
+
+	return &BuildResult{
+		OK:     true,
+		Output: string(output),
+	}, nil
 }
 
 func (e *LocalExecutor) RunTests(ctx context.Context, code map[string]string, flags []string) (*TestResult, error) {
-	// TODO: Implement local go test execution
-	return &TestResult{OK: true, Output: "{}"}, nil
+	// Create temp directory for code
+	tmpDir, err := createTempCodeDir(code)
+	if err != nil {
+		return nil, err
+	}
+	defer removeTempDir(tmpDir)
+
+	// Initialize go.mod if not present
+	if _, ok := code["go.mod"]; !ok {
+		modContent := "module exercise\n\ngo 1.22\n"
+		os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644)
+	}
+
+	// Run go test with JSON output
+	start := time.Now()
+	args := append([]string{"test", "-json", "./..."}, flags...)
+	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd.Dir = tmpDir
+	output, _ := cmd.CombinedOutput()
+	duration := time.Since(start)
+
+	return &TestResult{
+		OK:       cmd.ProcessState.ExitCode() == 0,
+		Output:   string(output),
+		Duration: duration,
+	}, nil
+}
+
+// Helper functions
+func createTempCodeDir(code map[string]string) (string, error) {
+	tmpDir, err := os.MkdirTemp("", "temper-run-*")
+	if err != nil {
+		return "", err
+	}
+
+	for filename, content := range code {
+		filePath := filepath.Join(tmpDir, filename)
+		// Create parent directories if needed
+		if dir := filepath.Dir(filePath); dir != tmpDir {
+			os.MkdirAll(dir, 0755)
+		}
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			removeTempDir(tmpDir)
+			return "", err
+		}
+	}
+
+	return tmpDir, nil
+}
+
+func removeTempDir(dir string) {
+	os.RemoveAll(dir)
 }
 
 // DockerExecutor executes code in Docker containers

@@ -1,0 +1,270 @@
+id: maps
+title: Working with Maps
+description: |
+  Learn to use Go maps - hash tables for key-value storage.
+
+  ## Learning Objectives
+  - Create and initialize maps
+  - Add, retrieve, and delete map entries
+  - Check for key existence
+  - Iterate over maps
+
+difficulty: beginner
+tags:
+  - basics
+  - maps
+  - collections
+
+prerequisites:
+  - basics/variables
+
+starter:
+  main.go: |
+    package main
+
+    // WordCount returns a map of word frequencies in the given slice.
+    func WordCount(words []string) map[string]int {
+        // TODO: Implement
+        return nil
+    }
+
+    // GroupByLength groups strings by their length.
+    // Returns a map where keys are lengths and values are slices of strings.
+    func GroupByLength(words []string) map[int][]string {
+        // TODO: Implement
+        return nil
+    }
+
+    // InvertMap swaps keys and values in a map.
+    // If there are duplicate values, later keys overwrite earlier ones.
+    func InvertMap(m map[string]int) map[int]string {
+        // TODO: Implement
+        return nil
+    }
+
+    // MergeMap merges two maps. Values from m2 override m1 for duplicate keys.
+    func MergeMaps(m1, m2 map[string]int) map[string]int {
+        // TODO: Implement
+        return nil
+    }
+
+    func main() {
+        // Test your implementations
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "reflect"
+        "sort"
+        "testing"
+    )
+
+    func TestWordCount(t *testing.T) {
+        tests := []struct {
+            input    []string
+            expected map[string]int
+        }{
+            {
+                []string{"hello", "world", "hello"},
+                map[string]int{"hello": 2, "world": 1},
+            },
+            {
+                []string{},
+                map[string]int{},
+            },
+            {
+                []string{"a", "b", "a", "c", "b", "a"},
+                map[string]int{"a": 3, "b": 2, "c": 1},
+            },
+        }
+
+        for _, tc := range tests {
+            got := WordCount(tc.input)
+            if !reflect.DeepEqual(got, tc.expected) {
+                t.Errorf("WordCount(%v) = %v; want %v", tc.input, got, tc.expected)
+            }
+        }
+    }
+
+    func TestGroupByLength(t *testing.T) {
+        input := []string{"a", "bb", "ccc", "dd", "e"}
+        got := GroupByLength(input)
+
+        expected := map[int][]string{
+            1: {"a", "e"},
+            2: {"bb", "dd"},
+            3: {"ccc"},
+        }
+
+        if len(got) != len(expected) {
+            t.Errorf("GroupByLength: got %d groups; want %d", len(got), len(expected))
+        }
+
+        for k, v := range expected {
+            gotV, ok := got[k]
+            if !ok {
+                t.Errorf("GroupByLength: missing key %d", k)
+                continue
+            }
+            sort.Strings(gotV)
+            sort.Strings(v)
+            if !reflect.DeepEqual(gotV, v) {
+                t.Errorf("GroupByLength[%d] = %v; want %v", k, gotV, v)
+            }
+        }
+    }
+
+    func TestInvertMap(t *testing.T) {
+        tests := []struct {
+            input    map[string]int
+            expected map[int]string
+        }{
+            {
+                map[string]int{"a": 1, "b": 2, "c": 3},
+                map[int]string{1: "a", 2: "b", 3: "c"},
+            },
+            {
+                map[string]int{},
+                map[int]string{},
+            },
+        }
+
+        for _, tc := range tests {
+            got := InvertMap(tc.input)
+            if !reflect.DeepEqual(got, tc.expected) {
+                t.Errorf("InvertMap(%v) = %v; want %v", tc.input, got, tc.expected)
+            }
+        }
+    }
+
+    func TestMergeMaps(t *testing.T) {
+        tests := []struct {
+            m1, m2   map[string]int
+            expected map[string]int
+        }{
+            {
+                map[string]int{"a": 1, "b": 2},
+                map[string]int{"b": 3, "c": 4},
+                map[string]int{"a": 1, "b": 3, "c": 4},
+            },
+            {
+                map[string]int{},
+                map[string]int{"a": 1},
+                map[string]int{"a": 1},
+            },
+        }
+
+        for _, tc := range tests {
+            got := MergeMaps(tc.m1, tc.m2)
+            if !reflect.DeepEqual(got, tc.expected) {
+                t.Errorf("MergeMaps(%v, %v) = %v; want %v", tc.m1, tc.m2, got, tc.expected)
+            }
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+
+    - id: initialization
+      name: Map Initialization
+      description: Properly initializes maps before use
+      weight: 0.2
+      signals:
+        - uses_make
+
+    - id: idioms
+      name: Go Idioms
+      description: Uses idiomatic Go patterns
+      weight: 0.2
+      signals:
+        - uses_range
+
+hints:
+  L0:
+    - "How do you create an empty map in Go?"
+    - "How do you check if a key exists in a map?"
+  L1:
+    - "Use 'make(map[K]V)' to create an empty map"
+    - "Use 'value, ok := m[key]' to check if key exists"
+    - "Use 'range' to iterate over map entries"
+  L2:
+    - "WordCount: increment m[word] for each word"
+    - "GroupByLength: append to m[len(word)]"
+    - "InvertMap: for k, v := range m { result[v] = k }"
+  L3:
+    - |
+      ```go
+      func WordCount(words []string) map[string]int {
+          counts := make(map[string]int)
+          for _, word := range words {
+              counts[word]++
+          }
+          return counts
+      }
+
+      func GroupByLength(words []string) map[int][]string {
+          groups := make(map[int][]string)
+          for _, word := range words {
+              groups[len(word)] = append(groups[len(word)], word)
+          }
+          return groups
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    func WordCount(words []string) map[string]int {
+        counts := make(map[string]int)
+        for _, word := range words {
+            counts[word]++
+        }
+        return counts
+    }
+
+    func GroupByLength(words []string) map[int][]string {
+        groups := make(map[int][]string)
+        for _, word := range words {
+            groups[len(word)] = append(groups[len(word)], word)
+        }
+        return groups
+    }
+
+    func InvertMap(m map[string]int) map[int]string {
+        inverted := make(map[int]string)
+        for k, v := range m {
+            inverted[v] = k
+        }
+        return inverted
+    }
+
+    func MergeMaps(m1, m2 map[string]int) map[string]int {
+        merged := make(map[string]int)
+        for k, v := range m1 {
+            merged[k] = v
+        }
+        for k, v := range m2 {
+            merged[k] = v
+        }
+        return merged
+    }
+
+    func main() {}

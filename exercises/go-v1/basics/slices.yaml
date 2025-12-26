@@ -1,0 +1,262 @@
+id: slices
+title: Working with Slices
+description: |
+  Master Go slices - dynamic arrays that are essential to Go programming.
+
+  ## Learning Objectives
+  - Understand slice creation and initialization
+  - Learn slice operations (append, copy, slice)
+  - Work with slice capacity and length
+
+difficulty: beginner
+tags:
+  - basics
+  - slices
+  - collections
+
+prerequisites:
+  - basics/variables
+
+starter:
+  main.go: |
+    package main
+
+    // Reverse returns a new slice with elements in reverse order.
+    // Do not modify the original slice.
+    func Reverse(s []int) []int {
+        // TODO: Implement
+        return nil
+    }
+
+    // Contains returns true if the slice contains the target value.
+    func Contains(s []int, target int) bool {
+        // TODO: Implement
+        return false
+    }
+
+    // RemoveDuplicates returns a new slice with duplicate values removed.
+    // Order should be preserved (keep first occurrence).
+    func RemoveDuplicates(s []int) []int {
+        // TODO: Implement
+        return nil
+    }
+
+    // Chunk splits a slice into chunks of the given size.
+    // The last chunk may be smaller than size.
+    func Chunk(s []int, size int) [][]int {
+        // TODO: Implement
+        return nil
+    }
+
+    func main() {
+        // Test your implementations
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "reflect"
+        "testing"
+    )
+
+    func TestReverse(t *testing.T) {
+        tests := []struct {
+            input    []int
+            expected []int
+        }{
+            {[]int{1, 2, 3}, []int{3, 2, 1}},
+            {[]int{1}, []int{1}},
+            {[]int{}, []int{}},
+            {[]int{1, 2, 3, 4, 5}, []int{5, 4, 3, 2, 1}},
+        }
+
+        for _, tc := range tests {
+            original := make([]int, len(tc.input))
+            copy(original, tc.input)
+
+            got := Reverse(tc.input)
+
+            if !reflect.DeepEqual(got, tc.expected) {
+                t.Errorf("Reverse(%v) = %v; want %v", tc.input, got, tc.expected)
+            }
+            if !reflect.DeepEqual(tc.input, original) {
+                t.Errorf("Reverse modified original slice")
+            }
+        }
+    }
+
+    func TestContains(t *testing.T) {
+        tests := []struct {
+            slice    []int
+            target   int
+            expected bool
+        }{
+            {[]int{1, 2, 3}, 2, true},
+            {[]int{1, 2, 3}, 4, false},
+            {[]int{}, 1, false},
+        }
+
+        for _, tc := range tests {
+            got := Contains(tc.slice, tc.target)
+            if got != tc.expected {
+                t.Errorf("Contains(%v, %d) = %v; want %v", tc.slice, tc.target, got, tc.expected)
+            }
+        }
+    }
+
+    func TestRemoveDuplicates(t *testing.T) {
+        tests := []struct {
+            input    []int
+            expected []int
+        }{
+            {[]int{1, 2, 2, 3, 3, 3}, []int{1, 2, 3}},
+            {[]int{1, 1, 1}, []int{1}},
+            {[]int{1, 2, 3}, []int{1, 2, 3}},
+            {[]int{}, []int{}},
+        }
+
+        for _, tc := range tests {
+            got := RemoveDuplicates(tc.input)
+            if !reflect.DeepEqual(got, tc.expected) {
+                t.Errorf("RemoveDuplicates(%v) = %v; want %v", tc.input, got, tc.expected)
+            }
+        }
+    }
+
+    func TestChunk(t *testing.T) {
+        tests := []struct {
+            input    []int
+            size     int
+            expected [][]int
+        }{
+            {[]int{1, 2, 3, 4, 5}, 2, [][]int{{1, 2}, {3, 4}, {5}}},
+            {[]int{1, 2, 3}, 3, [][]int{{1, 2, 3}}},
+            {[]int{1, 2, 3}, 5, [][]int{{1, 2, 3}}},
+            {[]int{}, 2, [][]int{}},
+        }
+
+        for _, tc := range tests {
+            got := Chunk(tc.input, tc.size)
+            if !reflect.DeepEqual(got, tc.expected) {
+                t.Errorf("Chunk(%v, %d) = %v; want %v", tc.input, tc.size, got, tc.expected)
+            }
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+
+    - id: immutability
+      name: Immutability
+      description: Original slices are not modified
+      weight: 0.2
+      signals:
+        - preserves_original
+
+    - id: efficiency
+      name: Efficiency
+      description: Uses appropriate slice operations
+      weight: 0.2
+      signals:
+        - uses_make
+        - uses_append
+
+hints:
+  L0:
+    - "How do you iterate through a slice?"
+    - "How do you create a new slice with a specific capacity?"
+  L1:
+    - "Use 'make([]int, len)' to create a slice of a specific length"
+    - "Use 'append' to add elements to a slice"
+    - "Use a map to track seen values for deduplication"
+  L2:
+    - "Reverse: create new slice, iterate backwards through original"
+    - "Contains: range over slice, compare each element"
+    - "RemoveDuplicates: use map[int]bool to track seen values"
+    - "Chunk: use slice expressions s[i:j] to create sub-slices"
+  L3:
+    - |
+      ```go
+      func Reverse(s []int) []int {
+          result := make([]int, len(s))
+          for i := range s {
+              result[len(s)-1-i] = s[i]
+          }
+          return result
+      }
+
+      func Contains(s []int, target int) bool {
+          for _, v := range s {
+              if v == target {
+                  return true
+              }
+          }
+          return false
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    func Reverse(s []int) []int {
+        result := make([]int, len(s))
+        for i := range s {
+            result[len(s)-1-i] = s[i]
+        }
+        return result
+    }
+
+    func Contains(s []int, target int) bool {
+        for _, v := range s {
+            if v == target {
+                return true
+            }
+        }
+        return false
+    }
+
+    func RemoveDuplicates(s []int) []int {
+        seen := make(map[int]bool)
+        result := []int{}
+        for _, v := range s {
+            if !seen[v] {
+                seen[v] = true
+                result = append(result, v)
+            }
+        }
+        return result
+    }
+
+    func Chunk(s []int, size int) [][]int {
+        if len(s) == 0 {
+            return [][]int{}
+        }
+        var chunks [][]int
+        for i := 0; i < len(s); i += size {
+            end := i + size
+            if end > len(s) {
+                end = len(s)
+            }
+            chunks = append(chunks, s[i:end])
+        }
+        return chunks
+    }
+
+    func main() {}

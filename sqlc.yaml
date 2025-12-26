@@ -7,7 +7,7 @@ sql:
       go:
         package: "storage"
         out: "internal/storage"
-        sql_package: "pgx/v5"
+        sql_package: "database/sql"
         emit_json_tags: true
         emit_db_tags: true
         emit_prepared_queries: false

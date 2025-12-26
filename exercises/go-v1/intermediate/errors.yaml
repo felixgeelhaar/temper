@@ -1,0 +1,330 @@
+id: errors
+title: Error Handling
+description: |
+  Learn Go's error handling patterns and best practices.
+
+  ## Learning Objectives
+  - Create custom error types
+  - Wrap and unwrap errors
+  - Use errors.Is and errors.As
+  - Implement sentinel errors
+
+difficulty: intermediate
+tags:
+  - errors
+  - patterns
+  - best-practices
+
+prerequisites:
+  - basics/functions
+  - intermediate/structs
+
+starter:
+  main.go: |
+    package main
+
+    import (
+        "errors"
+        "fmt"
+    )
+
+    // ErrNotFound is a sentinel error for missing items.
+    var ErrNotFound = errors.New("not found")
+
+    // ErrInvalidInput is a sentinel error for invalid input.
+    var ErrInvalidInput = errors.New("invalid input")
+
+    // ValidationError represents a validation failure with details.
+    type ValidationError struct {
+        Field   string
+        Message string
+    }
+
+    // Error implements the error interface.
+    func (e *ValidationError) Error() string {
+        // TODO: Return "validation error: <field>: <message>"
+        return ""
+    }
+
+    // Validate checks if a user is valid.
+    // Returns ValidationError for invalid fields.
+    func ValidateUser(name, email string) error {
+        // TODO: Implement
+        // - name must not be empty (field: "name", message: "required")
+        // - email must contain "@" (field: "email", message: "must contain @")
+        return nil
+    }
+
+    // FindUser finds a user by ID.
+    // Returns ErrNotFound if not found, wrapped with context.
+    func FindUser(users map[int]string, id int) (string, error) {
+        // TODO: Implement
+        // If not found, return fmt.Errorf with %w to wrap ErrNotFound
+        return "", nil
+    }
+
+    // ParsePositive parses a string as a positive integer.
+    // Returns ErrInvalidInput if negative or not a number.
+    func ParsePositive(s string) (int, error) {
+        // TODO: Implement
+        // Wrap ErrInvalidInput with context using fmt.Errorf
+        return 0, nil
+    }
+
+    // ProcessData processes data and wraps any errors with context.
+    func ProcessData(data string) error {
+        // TODO: Implement
+        // 1. Call ParsePositive with data
+        // 2. If error, wrap it with "processing failed: %w"
+        // 3. Return nil on success
+        return nil
+    }
+
+    func main() {
+        err := ValidateUser("", "test")
+        fmt.Println(err)
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "errors"
+        "testing"
+    )
+
+    func TestValidationError(t *testing.T) {
+        err := &ValidationError{Field: "email", Message: "required"}
+        expected := "validation error: email: required"
+
+        if err.Error() != expected {
+            t.Errorf("Error() = %q; want %q", err.Error(), expected)
+        }
+    }
+
+    func TestValidateUser(t *testing.T) {
+        tests := []struct {
+            name, email string
+            wantField   string
+        }{
+            {"", "test@test.com", "name"},
+            {"John", "invalid", "email"},
+        }
+
+        for _, tc := range tests {
+            err := ValidateUser(tc.name, tc.email)
+            if err == nil {
+                t.Errorf("ValidateUser(%q, %q) = nil; want error", tc.name, tc.email)
+                continue
+            }
+
+            var ve *ValidationError
+            if !errors.As(err, &ve) {
+                t.Errorf("error is not ValidationError: %v", err)
+                continue
+            }
+
+            if ve.Field != tc.wantField {
+                t.Errorf("ValidationError.Field = %q; want %q", ve.Field, tc.wantField)
+            }
+        }
+
+        // Valid input
+        if err := ValidateUser("John", "john@test.com"); err != nil {
+            t.Errorf("ValidateUser with valid input returned error: %v", err)
+        }
+    }
+
+    func TestFindUser(t *testing.T) {
+        users := map[int]string{1: "Alice", 2: "Bob"}
+
+        // Found
+        name, err := FindUser(users, 1)
+        if err != nil || name != "Alice" {
+            t.Errorf("FindUser(users, 1) = (%q, %v); want (\"Alice\", nil)", name, err)
+        }
+
+        // Not found
+        _, err = FindUser(users, 999)
+        if !errors.Is(err, ErrNotFound) {
+            t.Errorf("FindUser(users, 999) error = %v; want ErrNotFound", err)
+        }
+    }
+
+    func TestParsePositive(t *testing.T) {
+        // Valid
+        n, err := ParsePositive("42")
+        if err != nil || n != 42 {
+            t.Errorf("ParsePositive(\"42\") = (%d, %v); want (42, nil)", n, err)
+        }
+
+        // Negative
+        _, err = ParsePositive("-5")
+        if !errors.Is(err, ErrInvalidInput) {
+            t.Errorf("ParsePositive(\"-5\") error = %v; want ErrInvalidInput", err)
+        }
+
+        // Not a number
+        _, err = ParsePositive("abc")
+        if !errors.Is(err, ErrInvalidInput) {
+            t.Errorf("ParsePositive(\"abc\") error = %v; want ErrInvalidInput", err)
+        }
+    }
+
+    func TestProcessData(t *testing.T) {
+        // Success
+        if err := ProcessData("10"); err != nil {
+            t.Errorf("ProcessData(\"10\") = %v; want nil", err)
+        }
+
+        // Error wrapping
+        err := ProcessData("abc")
+        if err == nil {
+            t.Error("ProcessData(\"abc\") = nil; want error")
+        }
+        if !errors.Is(err, ErrInvalidInput) {
+            t.Errorf("error chain should contain ErrInvalidInput")
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: error_types
+      name: Custom Error Types
+      description: Properly implements error interface
+      weight: 0.2
+      signals:
+        - implements_error_interface
+
+    - id: wrapping
+      name: Error Wrapping
+      description: Uses fmt.Errorf with %w for wrapping
+      weight: 0.2
+      signals:
+        - uses_error_wrapping
+
+    - id: checking
+      name: Error Checking
+      description: Uses errors.Is/As patterns
+      weight: 0.2
+      signals:
+        - uses_errors_is_as
+
+hints:
+  L0:
+    - "What interface does an error type need to implement?"
+    - "How do you wrap an error with additional context?"
+  L1:
+    - "Implement Error() string method to satisfy error interface"
+    - "Use fmt.Errorf(\"context: %w\", err) to wrap errors"
+    - "errors.Is checks error chain, errors.As extracts types"
+  L2:
+    - "ValidationError.Error: fmt.Sprintf(\"validation error: %s: %s\", e.Field, e.Message)"
+    - "FindUser: return \"\", fmt.Errorf(\"user %d: %w\", id, ErrNotFound)"
+    - "Use strconv.Atoi to parse strings to int"
+  L3:
+    - |
+      ```go
+      func (e *ValidationError) Error() string {
+          return fmt.Sprintf("validation error: %s: %s", e.Field, e.Message)
+      }
+
+      func ValidateUser(name, email string) error {
+          if name == "" {
+              return &ValidationError{Field: "name", Message: "required"}
+          }
+          if !strings.Contains(email, "@") {
+              return &ValidationError{Field: "email", Message: "must contain @"}
+          }
+          return nil
+      }
+
+      func FindUser(users map[int]string, id int) (string, error) {
+          name, ok := users[id]
+          if !ok {
+              return "", fmt.Errorf("user %d: %w", id, ErrNotFound)
+          }
+          return name, nil
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import (
+        "errors"
+        "fmt"
+        "strconv"
+        "strings"
+    )
+
+    var ErrNotFound = errors.New("not found")
+    var ErrInvalidInput = errors.New("invalid input")
+
+    type ValidationError struct {
+        Field   string
+        Message string
+    }
+
+    func (e *ValidationError) Error() string {
+        return fmt.Sprintf("validation error: %s: %s", e.Field, e.Message)
+    }
+
+    func ValidateUser(name, email string) error {
+        if name == "" {
+            return &ValidationError{Field: "name", Message: "required"}
+        }
+        if !strings.Contains(email, "@") {
+            return &ValidationError{Field: "email", Message: "must contain @"}
+        }
+        return nil
+    }
+
+    func FindUser(users map[int]string, id int) (string, error) {
+        name, ok := users[id]
+        if !ok {
+            return "", fmt.Errorf("user %d: %w", id, ErrNotFound)
+        }
+        return name, nil
+    }
+
+    func ParsePositive(s string) (int, error) {
+        n, err := strconv.Atoi(s)
+        if err != nil {
+            return 0, fmt.Errorf("parse %q: %w", s, ErrInvalidInput)
+        }
+        if n < 0 {
+            return 0, fmt.Errorf("negative value %d: %w", n, ErrInvalidInput)
+        }
+        return n, nil
+    }
+
+    func ProcessData(data string) error {
+        _, err := ParsePositive(data)
+        if err != nil {
+            return fmt.Errorf("processing failed: %w", err)
+        }
+        return nil
+    }
+
+    func main() {
+        err := ValidateUser("", "test")
+        fmt.Println(err)
+    }

@@ -1,0 +1,380 @@
+id: interfaces
+title: Interfaces and Polymorphism
+description: |
+  Learn Go interfaces - implicit contracts that enable polymorphism.
+
+  ## Learning Objectives
+  - Define and implement interfaces
+  - Use type assertions and type switches
+  - Understand interface composition
+  - Apply the io.Reader/Writer patterns
+
+difficulty: intermediate
+tags:
+  - interfaces
+  - polymorphism
+  - design
+
+prerequisites:
+  - intermediate/structs
+
+starter:
+  main.go: |
+    package main
+
+    import (
+        "fmt"
+        "math"
+    )
+
+    // Shape is an interface for geometric shapes.
+    type Shape interface {
+        Area() float64
+        Perimeter() float64
+    }
+
+    // Circle represents a circle.
+    type Circle struct {
+        Radius float64
+    }
+
+    // Area returns the area of the circle.
+    func (c Circle) Area() float64 {
+        // TODO: Implement (π * r²)
+        return 0
+    }
+
+    // Perimeter returns the circumference of the circle.
+    func (c Circle) Perimeter() float64 {
+        // TODO: Implement (2 * π * r)
+        return 0
+    }
+
+    // Triangle represents a triangle with three sides.
+    type Triangle struct {
+        A, B, C float64 // side lengths
+    }
+
+    // Area returns the area using Heron's formula.
+    func (t Triangle) Area() float64 {
+        // TODO: Implement using Heron's formula
+        // s = (a + b + c) / 2
+        // area = sqrt(s * (s-a) * (s-b) * (s-c))
+        return 0
+    }
+
+    // Perimeter returns the perimeter of the triangle.
+    func (t Triangle) Perimeter() float64 {
+        // TODO: Implement
+        return 0
+    }
+
+    // TotalArea calculates total area of multiple shapes.
+    func TotalArea(shapes []Shape) float64 {
+        // TODO: Implement
+        return 0
+    }
+
+    // Describe returns a description based on shape type.
+    // Use type switch to identify Circle vs Triangle.
+    func Describe(s Shape) string {
+        // TODO: Implement using type switch
+        // Circle: "Circle with radius X.XX"
+        // Triangle: "Triangle with sides X.XX, X.XX, X.XX"
+        // Default: "Unknown shape"
+        return ""
+    }
+
+    // Stringer interface check
+    type Printer interface {
+        Print() string
+    }
+
+    // Document represents a printable document.
+    type Document struct {
+        Title   string
+        Content string
+    }
+
+    // Print returns the document as a formatted string.
+    func (d Document) Print() string {
+        // TODO: Return "Title: <title>\n<content>"
+        return ""
+    }
+
+    // PrintAll prints all Printer items.
+    func PrintAll(items []Printer) []string {
+        // TODO: Implement
+        return nil
+    }
+
+    func main() {
+        shapes := []Shape{
+            Circle{Radius: 5},
+            Triangle{A: 3, B: 4, C: 5},
+        }
+        fmt.Printf("Total area: %.2f\n", TotalArea(shapes))
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "math"
+        "reflect"
+        "testing"
+    )
+
+    const epsilon = 0.0001
+
+    func floatEquals(a, b float64) bool {
+        return math.Abs(a-b) < epsilon
+    }
+
+    func TestCircle(t *testing.T) {
+        c := Circle{Radius: 5}
+
+        expectedArea := math.Pi * 25
+        if !floatEquals(c.Area(), expectedArea) {
+            t.Errorf("Circle.Area() = %.4f; want %.4f", c.Area(), expectedArea)
+        }
+
+        expectedPerimeter := 2 * math.Pi * 5
+        if !floatEquals(c.Perimeter(), expectedPerimeter) {
+            t.Errorf("Circle.Perimeter() = %.4f; want %.4f", c.Perimeter(), expectedPerimeter)
+        }
+    }
+
+    func TestTriangle(t *testing.T) {
+        // 3-4-5 right triangle
+        tri := Triangle{A: 3, B: 4, C: 5}
+
+        expectedArea := 6.0 // well-known result
+        if !floatEquals(tri.Area(), expectedArea) {
+            t.Errorf("Triangle.Area() = %.4f; want %.4f", tri.Area(), expectedArea)
+        }
+
+        expectedPerimeter := 12.0
+        if !floatEquals(tri.Perimeter(), expectedPerimeter) {
+            t.Errorf("Triangle.Perimeter() = %.4f; want %.4f", tri.Perimeter(), expectedPerimeter)
+        }
+    }
+
+    func TestTotalArea(t *testing.T) {
+        shapes := []Shape{
+            Circle{Radius: 1},
+            Triangle{A: 3, B: 4, C: 5},
+        }
+
+        expected := math.Pi + 6.0
+        got := TotalArea(shapes)
+
+        if !floatEquals(got, expected) {
+            t.Errorf("TotalArea() = %.4f; want %.4f", got, expected)
+        }
+    }
+
+    func TestDescribe(t *testing.T) {
+        tests := []struct {
+            shape    Shape
+            contains string
+        }{
+            {Circle{Radius: 5}, "Circle"},
+            {Triangle{A: 3, B: 4, C: 5}, "Triangle"},
+        }
+
+        for _, tc := range tests {
+            got := Describe(tc.shape)
+            if got == "" || got == "Unknown shape" {
+                t.Errorf("Describe(%T) = %q; should describe the shape", tc.shape, got)
+            }
+        }
+    }
+
+    func TestDocument(t *testing.T) {
+        doc := Document{Title: "Hello", Content: "World"}
+        expected := "Title: Hello\nWorld"
+
+        if doc.Print() != expected {
+            t.Errorf("Document.Print() = %q; want %q", doc.Print(), expected)
+        }
+    }
+
+    func TestPrintAll(t *testing.T) {
+        items := []Printer{
+            Document{Title: "A", Content: "1"},
+            Document{Title: "B", Content: "2"},
+        }
+
+        expected := []string{
+            "Title: A\n1",
+            "Title: B\n2",
+        }
+
+        got := PrintAll(items)
+        if !reflect.DeepEqual(got, expected) {
+            t.Errorf("PrintAll() = %v; want %v", got, expected)
+        }
+    }
+
+    func TestShapeInterface(t *testing.T) {
+        // Compile-time interface satisfaction check
+        var _ Shape = Circle{}
+        var _ Shape = Triangle{}
+        var _ Printer = Document{}
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: interface_impl
+      name: Interface Implementation
+      description: Correctly implements Shape and Printer interfaces
+      weight: 0.25
+      signals:
+        - implements_interface
+
+    - id: type_switch
+      name: Type Switch
+      description: Uses type switch for Describe function
+      weight: 0.25
+      signals:
+        - uses_type_switch
+
+hints:
+  L0:
+    - "How do you implement an interface in Go?"
+    - "What is a type switch?"
+  L1:
+    - "In Go, interfaces are implemented implicitly"
+    - "Use math.Pi for π and math.Sqrt for square root"
+    - "Type switch: switch v := s.(type) { case Circle: ... }"
+  L2:
+    - "Circle area: math.Pi * c.Radius * c.Radius"
+    - "Heron's formula: s := (a+b+c)/2; math.Sqrt(s*(s-a)*(s-b)*(s-c))"
+    - "Type switch gives you the concrete type to access fields"
+  L3:
+    - |
+      ```go
+      func (c Circle) Area() float64 {
+          return math.Pi * c.Radius * c.Radius
+      }
+
+      func (t Triangle) Area() float64 {
+          s := (t.A + t.B + t.C) / 2
+          return math.Sqrt(s * (s - t.A) * (s - t.B) * (s - t.C))
+      }
+
+      func Describe(s Shape) string {
+          switch v := s.(type) {
+          case Circle:
+              return fmt.Sprintf("Circle with radius %.2f", v.Radius)
+          case Triangle:
+              return fmt.Sprintf("Triangle with sides %.2f, %.2f, %.2f", v.A, v.B, v.C)
+          default:
+              return "Unknown shape"
+          }
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import (
+        "fmt"
+        "math"
+    )
+
+    type Shape interface {
+        Area() float64
+        Perimeter() float64
+    }
+
+    type Circle struct {
+        Radius float64
+    }
+
+    func (c Circle) Area() float64 {
+        return math.Pi * c.Radius * c.Radius
+    }
+
+    func (c Circle) Perimeter() float64 {
+        return 2 * math.Pi * c.Radius
+    }
+
+    type Triangle struct {
+        A, B, C float64
+    }
+
+    func (t Triangle) Area() float64 {
+        s := (t.A + t.B + t.C) / 2
+        return math.Sqrt(s * (s - t.A) * (s - t.B) * (s - t.C))
+    }
+
+    func (t Triangle) Perimeter() float64 {
+        return t.A + t.B + t.C
+    }
+
+    func TotalArea(shapes []Shape) float64 {
+        total := 0.0
+        for _, s := range shapes {
+            total += s.Area()
+        }
+        return total
+    }
+
+    func Describe(s Shape) string {
+        switch v := s.(type) {
+        case Circle:
+            return fmt.Sprintf("Circle with radius %.2f", v.Radius)
+        case Triangle:
+            return fmt.Sprintf("Triangle with sides %.2f, %.2f, %.2f", v.A, v.B, v.C)
+        default:
+            return "Unknown shape"
+        }
+    }
+
+    type Printer interface {
+        Print() string
+    }
+
+    type Document struct {
+        Title   string
+        Content string
+    }
+
+    func (d Document) Print() string {
+        return fmt.Sprintf("Title: %s\n%s", d.Title, d.Content)
+    }
+
+    func PrintAll(items []Printer) []string {
+        result := make([]string, len(items))
+        for i, item := range items {
+            result[i] = item.Print()
+        }
+        return result
+    }
+
+    func main() {
+        shapes := []Shape{
+            Circle{Radius: 5},
+            Triangle{A: 3, B: 4, C: 5},
+        }
+        fmt.Printf("Total area: %.2f\n", TotalArea(shapes))
+    }

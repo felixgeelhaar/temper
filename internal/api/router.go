@@ -10,12 +10,14 @@ import (
 	"github.com/felixgeelhaar/temper/internal/api/handlers"
 	"github.com/felixgeelhaar/temper/internal/api/middleware"
 	"github.com/felixgeelhaar/temper/internal/domain"
+	"github.com/felixgeelhaar/temper/internal/storage"
 )
 
 // Router wraps the HTTP multiplexer with middleware and handlers
 type Router struct {
 	mux      *http.ServeMux
 	app      *App
+	queries  *storage.Queries
 	auth     *handlers.AuthHandler
 	exercise *handlers.ExerciseHandler
 	ws       *handlers.WorkspaceHandler
@@ -26,16 +28,17 @@ type Router struct {
 // NewRouter creates a new API router with all routes configured
 func NewRouter(app *App) (http.Handler, error) {
 	r := &Router{
-		mux: http.NewServeMux(),
-		app: app,
+		mux:     http.NewServeMux(),
+		app:     app,
+		queries: storage.New(app.DB),
 	}
 
 	// Initialize handlers
 	r.auth = handlers.NewAuthHandler(app.Auth, !app.Config.Debug, 7*24*3600)
 	r.exercise = handlers.NewExerciseHandler(app.Exercises, app.Workspace)
 	r.ws = handlers.NewWorkspaceHandler(app.Workspace)
-	r.run = handlers.NewRunHandler(app.Runner, app.Workspace, app.Exercises)
-	r.pairing = handlers.NewPairingHandler(app.Pairing, app.Workspace, app.Exercises)
+	r.run = handlers.NewRunHandler(app.Runner, app.Workspace, app.Exercises, app.DB)
+	r.pairing = handlers.NewPairingHandler(app.Pairing, app.Workspace, app.Exercises, app.DB)
 
 	// Register routes
 	r.registerRoutes()
@@ -102,13 +105,17 @@ func (r *Router) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		cookie, err := req.Cookie("session")
 		if err != nil {
-			r.jsonError(w, http.StatusUnauthorized, "authentication required")
+			Unauthorized(w, req, "authentication required")
 			return
 		}
 
 		user, _, err := r.app.Auth.ValidateSession(req.Context(), cookie.Value)
 		if err != nil {
-			r.jsonError(w, http.StatusUnauthorized, "invalid session")
+			slog.Warn("invalid session",
+				"error", err,
+				"request_id", middleware.GetRequestID(req.Context()),
+			)
+			Unauthorized(w, req, "invalid or expired session")
 			return
 		}
 
@@ -127,9 +134,26 @@ func (r *Router) handleHealth(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) handleReady(w http.ResponseWriter, req *http.Request) {
-	// TODO: Check database and RabbitMQ connectivity
-	r.jsonResponse(w, http.StatusOK, map[string]string{
+	// Check database connectivity
+	if err := r.app.DB.PingContext(req.Context()); err != nil {
+		slog.Error("database health check failed",
+			"error", err,
+			"request_id", middleware.GetRequestID(req.Context()),
+		)
+		r.jsonResponse(w, http.StatusServiceUnavailable, map[string]any{
+			"status": "not ready",
+			"checks": map[string]string{
+				"database": "unhealthy",
+			},
+		})
+		return
+	}
+
+	r.jsonResponse(w, http.StatusOK, map[string]any{
 		"status": "ready",
+		"checks": map[string]string{
+			"database": "healthy",
+		},
 	})
 }
 
@@ -137,12 +161,35 @@ func (r *Router) handleReady(w http.ResponseWriter, req *http.Request) {
 func (r *Router) handleGetProfile(w http.ResponseWriter, req *http.Request) {
 	user := req.Context().Value(handlers.ContextKeyUser).(*domain.User)
 
-	// Return basic profile for now
+	// Get profile from database
+	profile, err := r.queries.GetLearningProfile(req.Context(), user.ID)
+	if err != nil {
+		// Profile doesn't exist - return defaults
+		r.jsonResponse(w, http.StatusOK, map[string]any{
+			"user_id":         user.ID.String(),
+			"total_exercises": 0,
+			"total_runs":      0,
+			"hint_requests":   0,
+			"topic_skills":    map[string]any{},
+		})
+		return
+	}
+
+	// Parse topic skills from JSON
+	var topicSkills map[string]any
+	if profile.TopicSkills != nil {
+		_ = json.Unmarshal(profile.TopicSkills, &topicSkills)
+	}
+	if topicSkills == nil {
+		topicSkills = map[string]any{}
+	}
+
 	r.jsonResponse(w, http.StatusOK, map[string]any{
-		"user_id":       user.ID.String(),
-		"total_runs":    0,
-		"hint_requests": 0,
-		"topic_skills":  map[string]any{},
+		"user_id":         user.ID.String(),
+		"total_exercises": profile.TotalExercises,
+		"total_runs":      profile.TotalRuns,
+		"hint_requests":   profile.HintRequests,
+		"topic_skills":    topicSkills,
 	})
 }
 

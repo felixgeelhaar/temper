@@ -76,21 +76,34 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// Flush implements http.Flusher for SSE support
+func (rw *responseWriter) Flush() {
+	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 // Recovery recovers from panics and returns 500 error
 func Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
+				requestID := GetRequestID(r.Context())
+				stack := string(debug.Stack())
+
 				slog.Error("panic recovered",
 					"error", err,
-					"stack", string(debug.Stack()),
-					"request_id", GetRequestID(r.Context()),
+					"stack", stack,
+					"request_id", requestID,
+					"method", r.Method,
 					"path", r.URL.Path,
+					"remote_addr", r.RemoteAddr,
 				)
 
 				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-Request-ID", requestID)
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"error": "internal server error"}`))
+				w.Write([]byte(`{"error":{"code":"INTERNAL_ERROR","message":"an unexpected error occurred"}}`))
 			}
 		}()
 
@@ -125,6 +138,39 @@ func CORS(next http.Handler) http.Handler {
 	})
 }
 
+// Timeout adds a request timeout
+func Timeout(duration time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), duration)
+			defer cancel()
+
+			done := make(chan struct{})
+			go func() {
+				next.ServeHTTP(w, r.WithContext(ctx))
+				close(done)
+			}()
+
+			select {
+			case <-done:
+				return
+			case <-ctx.Done():
+				if ctx.Err() == context.DeadlineExceeded {
+					slog.Warn("request timeout",
+						"request_id", GetRequestID(r.Context()),
+						"method", r.Method,
+						"path", r.URL.Path,
+						"timeout", duration.String(),
+					)
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusGatewayTimeout)
+					w.Write([]byte(`{"error":{"code":"TIMEOUT","message":"request timed out"}}`))
+				}
+			}
+		})
+	}
+}
+
 // RateLimit implements a simple rate limiter (placeholder for now)
 func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
 	// TODO: Implement proper rate limiting with Redis or in-memory store
@@ -135,7 +181,7 @@ func RateLimit(requestsPerMinute int) func(http.Handler) http.Handler {
 	}
 }
 
-// RequireAuth ensures the request has a valid session
+// RequireAuth ensures the request has a valid session (legacy, auth handled by router)
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check for session cookie or Authorization header
@@ -146,18 +192,12 @@ func RequireAuth(next http.Handler) http.Handler {
 			if authHeader == "" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte(`{"error": "authentication required"}`))
+				w.Write([]byte(`{"error":{"code":"UNAUTHORIZED","message":"authentication required"}}`))
 				return
 			}
-			// TODO: Validate bearer token
 		} else {
-			// TODO: Validate session cookie
 			_ = cookie
 		}
-
-		// TODO: Add user to context
-		// ctx := context.WithValue(r.Context(), UserIDKey, userID)
-		// next.ServeHTTP(w, r.WithContext(ctx))
 
 		next.ServeHTTP(w, r)
 	})

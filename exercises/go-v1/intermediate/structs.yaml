@@ -1,0 +1,326 @@
+id: structs
+title: Structs and Methods
+description: |
+  Learn to define and use structs with methods in Go.
+
+  ## Learning Objectives
+  - Define custom struct types
+  - Add methods to structs (value and pointer receivers)
+  - Understand when to use pointer receivers
+  - Implement common interfaces
+
+difficulty: intermediate
+tags:
+  - structs
+  - methods
+  - oop
+
+prerequisites:
+  - basics/functions
+
+starter:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    // Rectangle represents a rectangle with width and height.
+    type Rectangle struct {
+        Width  float64
+        Height float64
+    }
+
+    // Area returns the area of the rectangle.
+    func (r Rectangle) Area() float64 {
+        // TODO: Implement
+        return 0
+    }
+
+    // Perimeter returns the perimeter of the rectangle.
+    func (r Rectangle) Perimeter() float64 {
+        // TODO: Implement
+        return 0
+    }
+
+    // Scale multiplies width and height by the given factor.
+    // Use a pointer receiver to modify the rectangle.
+    func (r *Rectangle) Scale(factor float64) {
+        // TODO: Implement
+    }
+
+    // String returns a string representation of the rectangle.
+    // This implements the fmt.Stringer interface.
+    func (r Rectangle) String() string {
+        // TODO: Return "Rectangle(width x height)"
+        return ""
+    }
+
+    // Stack represents a simple stack of integers.
+    type Stack struct {
+        items []int
+    }
+
+    // Push adds an item to the top of the stack.
+    func (s *Stack) Push(item int) {
+        // TODO: Implement
+    }
+
+    // Pop removes and returns the top item. Returns 0 and false if empty.
+    func (s *Stack) Pop() (int, bool) {
+        // TODO: Implement
+        return 0, false
+    }
+
+    // Peek returns the top item without removing it.
+    func (s *Stack) Peek() (int, bool) {
+        // TODO: Implement
+        return 0, false
+    }
+
+    // Len returns the number of items in the stack.
+    func (s *Stack) Len() int {
+        // TODO: Implement
+        return 0
+    }
+
+    func main() {
+        r := Rectangle{Width: 10, Height: 5}
+        fmt.Println(r)
+        fmt.Printf("Area: %.2f\n", r.Area())
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "fmt"
+        "testing"
+    )
+
+    func TestRectangleArea(t *testing.T) {
+        tests := []struct {
+            r        Rectangle
+            expected float64
+        }{
+            {Rectangle{10, 5}, 50},
+            {Rectangle{3, 4}, 12},
+            {Rectangle{0, 5}, 0},
+        }
+
+        for _, tc := range tests {
+            got := tc.r.Area()
+            if got != tc.expected {
+                t.Errorf("Rectangle%v.Area() = %.2f; want %.2f", tc.r, got, tc.expected)
+            }
+        }
+    }
+
+    func TestRectanglePerimeter(t *testing.T) {
+        tests := []struct {
+            r        Rectangle
+            expected float64
+        }{
+            {Rectangle{10, 5}, 30},
+            {Rectangle{3, 4}, 14},
+        }
+
+        for _, tc := range tests {
+            got := tc.r.Perimeter()
+            if got != tc.expected {
+                t.Errorf("Rectangle%v.Perimeter() = %.2f; want %.2f", tc.r, got, tc.expected)
+            }
+        }
+    }
+
+    func TestRectangleScale(t *testing.T) {
+        r := Rectangle{10, 5}
+        r.Scale(2)
+
+        if r.Width != 20 || r.Height != 10 {
+            t.Errorf("After Scale(2), got Rectangle{%.2f, %.2f}; want Rectangle{20, 10}", r.Width, r.Height)
+        }
+    }
+
+    func TestRectangleString(t *testing.T) {
+        r := Rectangle{10, 5}
+        expected := "Rectangle(10.00 x 5.00)"
+        got := fmt.Sprint(r)
+
+        if got != expected {
+            t.Errorf("String() = %q; want %q", got, expected)
+        }
+    }
+
+    func TestStack(t *testing.T) {
+        s := &Stack{}
+
+        // Test empty stack
+        if v, ok := s.Pop(); ok {
+            t.Errorf("Pop on empty stack returned (%d, %v); want (0, false)", v, ok)
+        }
+
+        if s.Len() != 0 {
+            t.Errorf("Empty stack Len() = %d; want 0", s.Len())
+        }
+
+        // Test push and pop
+        s.Push(1)
+        s.Push(2)
+        s.Push(3)
+
+        if s.Len() != 3 {
+            t.Errorf("Len() = %d; want 3", s.Len())
+        }
+
+        if v, ok := s.Peek(); !ok || v != 3 {
+            t.Errorf("Peek() = (%d, %v); want (3, true)", v, ok)
+        }
+
+        if v, ok := s.Pop(); !ok || v != 3 {
+            t.Errorf("Pop() = (%d, %v); want (3, true)", v, ok)
+        }
+
+        if v, ok := s.Pop(); !ok || v != 2 {
+            t.Errorf("Pop() = (%d, %v); want (2, true)", v, ok)
+        }
+
+        if s.Len() != 1 {
+            t.Errorf("Len() = %d; want 1", s.Len())
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: pointer_receivers
+      name: Pointer Receivers
+      description: Uses pointer receivers for mutating methods
+      weight: 0.25
+      signals:
+        - uses_pointer_receiver
+
+    - id: stringer
+      name: Stringer Interface
+      description: Correctly implements fmt.Stringer
+      weight: 0.25
+      signals:
+        - implements_stringer
+
+hints:
+  L0:
+    - "What's the difference between value and pointer receivers?"
+    - "How do you format a float with 2 decimal places?"
+  L1:
+    - "Use pointer receivers (*T) when you need to modify the struct"
+    - "Use fmt.Sprintf for formatted strings"
+    - "Slices are reference types - append works with pointer receiver"
+  L2:
+    - "Area = Width * Height, Perimeter = 2 * (Width + Height)"
+    - "Scale: r.Width *= factor; r.Height *= factor"
+    - "Stack Pop: get last element, shrink slice by 1"
+  L3:
+    - |
+      ```go
+      func (r Rectangle) Area() float64 {
+          return r.Width * r.Height
+      }
+
+      func (r *Rectangle) Scale(factor float64) {
+          r.Width *= factor
+          r.Height *= factor
+      }
+
+      func (r Rectangle) String() string {
+          return fmt.Sprintf("Rectangle(%.2f x %.2f)", r.Width, r.Height)
+      }
+
+      func (s *Stack) Push(item int) {
+          s.items = append(s.items, item)
+      }
+
+      func (s *Stack) Pop() (int, bool) {
+          if len(s.items) == 0 {
+              return 0, false
+          }
+          item := s.items[len(s.items)-1]
+          s.items = s.items[:len(s.items)-1]
+          return item, true
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    type Rectangle struct {
+        Width  float64
+        Height float64
+    }
+
+    func (r Rectangle) Area() float64 {
+        return r.Width * r.Height
+    }
+
+    func (r Rectangle) Perimeter() float64 {
+        return 2 * (r.Width + r.Height)
+    }
+
+    func (r *Rectangle) Scale(factor float64) {
+        r.Width *= factor
+        r.Height *= factor
+    }
+
+    func (r Rectangle) String() string {
+        return fmt.Sprintf("Rectangle(%.2f x %.2f)", r.Width, r.Height)
+    }
+
+    type Stack struct {
+        items []int
+    }
+
+    func (s *Stack) Push(item int) {
+        s.items = append(s.items, item)
+    }
+
+    func (s *Stack) Pop() (int, bool) {
+        if len(s.items) == 0 {
+            return 0, false
+        }
+        item := s.items[len(s.items)-1]
+        s.items = s.items[:len(s.items)-1]
+        return item, true
+    }
+
+    func (s *Stack) Peek() (int, bool) {
+        if len(s.items) == 0 {
+            return 0, false
+        }
+        return s.items[len(s.items)-1], true
+    }
+
+    func (s *Stack) Len() int {
+        return len(s.items)
+    }
+
+    func main() {
+        r := Rectangle{Width: 10, Height: 5}
+        fmt.Println(r)
+        fmt.Printf("Area: %.2f\n", r.Area())
+    }
