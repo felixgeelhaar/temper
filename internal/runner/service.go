@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/domain"
+	"github.com/felixgeelhaar/temper/internal/risk"
 	"github.com/google/uuid"
 )
 
@@ -32,12 +33,13 @@ func DefaultConfig() Config {
 
 // Service handles code execution
 type Service struct {
-	config   Config
-	executor Executor
-	parser   *Parser
+	config       Config
+	executor     Executor
+	parser       *Parser
+	riskDetector *risk.Detector
 
-	mu       sync.Mutex
-	running  map[uuid.UUID]*runState
+	mu      sync.Mutex
+	running map[uuid.UUID]*runState
 }
 
 type runState struct {
@@ -49,10 +51,11 @@ type runState struct {
 // NewService creates a new runner service
 func NewService(cfg Config, executor Executor) *Service {
 	return &Service{
-		config:   cfg,
-		executor: executor,
-		parser:   NewParser(),
-		running:  make(map[uuid.UUID]*runState),
+		config:       cfg,
+		executor:     executor,
+		parser:       NewParser(),
+		riskDetector: risk.NewDetector(),
+		running:      make(map[uuid.UUID]*runState),
 	}
 }
 
@@ -143,6 +146,9 @@ func (s *Service) Execute(ctx context.Context, req ExecuteRequest) (*domain.RunO
 		output.Duration = testResult.Duration
 		output.Logs = testResult.Output
 	}
+
+	// Run risk detection on the code
+	output.Risks = s.riskDetector.Analyze(req.Code)
 
 	return output, nil
 }

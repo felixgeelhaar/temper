@@ -45,7 +45,39 @@ type RunOutput struct {
 	TestsFailed int           `json:"tests_failed"`   // count of failing tests
 	Duration    time.Duration `json:"duration"`       // total execution time
 	Logs        string        `json:"logs"`           // full output logs
+	Risks       []RiskNotice  `json:"risks"`          // detected risky patterns
 }
+
+// RiskNotice represents a detected risky pattern in code
+type RiskNotice struct {
+	ID          string       `json:"id"`          // unique identifier (e.g., "SEC001")
+	Category    RiskCategory `json:"category"`    // security, quality, performance
+	Severity    RiskSeverity `json:"severity"`    // high, medium, low
+	Title       string       `json:"title"`       // short description
+	Description string       `json:"description"` // detailed explanation
+	File        string       `json:"file"`        // file path
+	Line        int          `json:"line"`        // line number
+	Suggestion  string       `json:"suggestion"`  // how to fix
+}
+
+// RiskCategory categorizes the type of risk
+type RiskCategory string
+
+const (
+	RiskCategorySecurity    RiskCategory = "security"
+	RiskCategoryQuality     RiskCategory = "quality"
+	RiskCategoryPerformance RiskCategory = "performance"
+	RiskCategoryReliability RiskCategory = "reliability"
+)
+
+// RiskSeverity indicates how serious the risk is
+type RiskSeverity string
+
+const (
+	RiskSeverityHigh   RiskSeverity = "high"
+	RiskSeverityMedium RiskSeverity = "medium"
+	RiskSeverityLow    RiskSeverity = "low"
+)
 
 // Diagnostic represents a compiler or lint error/warning
 type Diagnostic struct {

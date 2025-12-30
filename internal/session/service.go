@@ -10,6 +10,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/profile"
+	"github.com/felixgeelhaar/temper/internal/risk"
 	"github.com/felixgeelhaar/temper/internal/runner"
 	"github.com/felixgeelhaar/temper/internal/spec"
 	"github.com/google/uuid"
@@ -29,6 +30,7 @@ type Service struct {
 	store          *Store
 	loader         *exercise.Loader
 	executor       runner.Executor
+	riskDetector   *risk.Detector
 	profileService *profile.Service // Optional: tracks learning progress
 	specService    *spec.Service    // Optional: spec management for feature guidance
 }
@@ -36,9 +38,10 @@ type Service struct {
 // NewService creates a new session service
 func NewService(store *Store, loader *exercise.Loader, executor runner.Executor) *Service {
 	return &Service{
-		store:    store,
-		loader:   loader,
-		executor: executor,
+		store:        store,
+		loader:       loader,
+		executor:     executor,
+		riskDetector: risk.NewDetector(),
 	}
 }
 
@@ -289,6 +292,8 @@ func (s *Service) RunCode(ctx context.Context, sessionID string, req RunRequest)
 
 		// Skip tests if build failed
 		if !buildResult.OK {
+			// Still run risk detection even on build failure
+			result.Risks = s.riskDetector.Analyze(code)
 			run.Result = result
 			session.RecordRun()
 
@@ -313,6 +318,9 @@ func (s *Service) RunCode(ctx context.Context, sessionID string, req RunRequest)
 		result.TestOutput = testResult.Output
 		result.Duration = testResult.Duration
 	}
+
+	// Run risk detection on the code
+	result.Risks = s.riskDetector.Analyze(code)
 
 	run.Result = result
 

@@ -59,13 +59,14 @@ type Run struct {
 
 // RunResult contains the outcome of a run
 type RunResult struct {
-	FormatOK   bool          `json:"format_ok"`
-	FormatDiff string        `json:"format_diff,omitempty"`
-	BuildOK    bool          `json:"build_ok"`
-	BuildOutput string       `json:"build_output,omitempty"`
-	TestOK     bool          `json:"test_ok"`
-	TestOutput string        `json:"test_output,omitempty"`
-	Duration   time.Duration `json:"duration"`
+	FormatOK    bool                `json:"format_ok"`
+	FormatDiff  string              `json:"format_diff,omitempty"`
+	BuildOK     bool                `json:"build_ok"`
+	BuildOutput string              `json:"build_output,omitempty"`
+	TestOK      bool                `json:"test_ok"`
+	TestOutput  string              `json:"test_output,omitempty"`
+	Duration    time.Duration       `json:"duration"`
+	Risks       []domain.RiskNotice `json:"risks,omitempty"`
 }
 
 // Intervention represents an AI intervention within a session

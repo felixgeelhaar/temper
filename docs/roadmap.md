@@ -54,7 +54,7 @@
 | Hints & questions | ✅ | L0-L5 intervention levels |
 | Run checks | ✅ | Local execution via Docker |
 | Targeted feedback | ✅ | Based on check results |
-| Risk notices | ⏳ | Warn about risky patterns |
+| Risk notices | ✅ | Warn about risky patterns |
 
 ### Spec-Driven Workflow
 
