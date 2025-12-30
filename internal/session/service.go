@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
+	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/felixgeelhaar/temper/internal/runner"
 	"github.com/google/uuid"
 )
@@ -21,9 +23,10 @@ var (
 
 // Service manages pairing sessions
 type Service struct {
-	store    *Store
-	loader   *exercise.Loader
-	executor runner.Executor
+	store          *Store
+	loader         *exercise.Loader
+	executor       runner.Executor
+	profileService *profile.Service // Optional: tracks learning progress
 }
 
 // NewService creates a new session service
@@ -33,6 +36,11 @@ func NewService(store *Store, loader *exercise.Loader, executor runner.Executor)
 		loader:   loader,
 		executor: executor,
 	}
+}
+
+// SetProfileService sets the profile service for tracking learning progress
+func (s *Service) SetProfileService(ps *profile.Service) {
+	s.profileService = ps
 }
 
 // CreateRequest contains data for creating a session
@@ -79,6 +87,18 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Session, erro
 	// Persist
 	if err := s.store.Save(session); err != nil {
 		return nil, fmt.Errorf("save session: %w", err)
+	}
+
+	// Notify profile service of session start
+	if s.profileService != nil {
+		if err := s.profileService.OnSessionStart(ctx, profile.SessionInfo{
+			ID:         session.ID,
+			ExerciseID: session.ExerciseID,
+			Status:     string(session.Status),
+			CreatedAt:  session.CreatedAt,
+		}); err != nil {
+			slog.Warn("failed to record session start in profile", "error", err)
+		}
 	}
 
 	return session, nil
@@ -220,6 +240,25 @@ func (s *Service) RunCode(ctx context.Context, sessionID string, req RunRequest)
 		return nil, fmt.Errorf("save run: %w", err)
 	}
 
+	// Notify profile service of run completion
+	if s.profileService != nil {
+		if err := s.profileService.OnRunComplete(ctx, profile.SessionInfo{
+			ID:         session.ID,
+			ExerciseID: session.ExerciseID,
+			RunCount:   session.RunCount,
+			HintCount:  session.HintCount,
+			Status:     string(session.Status),
+			CreatedAt:  session.CreatedAt,
+		}, profile.RunInfo{
+			Success:     result.TestOK && result.BuildOK,
+			BuildOutput: result.BuildOutput,
+			TestOutput:  result.TestOutput,
+			Duration:    result.Duration,
+		}); err != nil {
+			slog.Warn("failed to record run in profile", "error", err)
+		}
+	}
+
 	return run, nil
 }
 
@@ -232,7 +271,25 @@ func (s *Service) Complete(ctx context.Context, id string) error {
 
 	session.Complete()
 
-	return s.store.Save(session)
+	if err := s.store.Save(session); err != nil {
+		return err
+	}
+
+	// Notify profile service of session completion
+	if s.profileService != nil {
+		if err := s.profileService.OnSessionComplete(ctx, profile.SessionInfo{
+			ID:         session.ID,
+			ExerciseID: session.ExerciseID,
+			RunCount:   session.RunCount,
+			HintCount:  session.HintCount,
+			Status:     string(session.Status),
+			CreatedAt:  session.CreatedAt,
+		}); err != nil {
+			slog.Warn("failed to record session completion in profile", "error", err)
+		}
+	}
+
+	return nil
 }
 
 // GetRuns returns all runs for a session
@@ -274,7 +331,25 @@ func (s *Service) RecordIntervention(ctx context.Context, intervention *Interven
 		return fmt.Errorf("save session: %w", err)
 	}
 
-	return s.store.SaveIntervention(intervention)
+	if err := s.store.SaveIntervention(intervention); err != nil {
+		return err
+	}
+
+	// Notify profile service of hint delivery
+	if s.profileService != nil {
+		if err := s.profileService.OnHintDelivered(ctx, profile.SessionInfo{
+			ID:         session.ID,
+			ExerciseID: session.ExerciseID,
+			RunCount:   session.RunCount,
+			HintCount:  session.HintCount,
+			Status:     string(session.Status),
+			CreatedAt:  session.CreatedAt,
+		}); err != nil {
+			slog.Warn("failed to record hint in profile", "error", err)
+		}
+	}
+
+	return nil
 }
 
 // GetInterventions returns all interventions for a session

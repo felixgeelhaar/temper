@@ -15,6 +15,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/llm"
 	"github.com/felixgeelhaar/temper/internal/pairing"
+	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/felixgeelhaar/temper/internal/runner"
 	"github.com/felixgeelhaar/temper/internal/session"
 	"github.com/google/uuid"
@@ -32,6 +33,7 @@ type Server struct {
 	runnerExecutor runner.Executor
 	sessionService *session.Service
 	pairingService *pairing.Service
+	profileService *profile.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -78,13 +80,15 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		s.runnerExecutor = runner.NewLocalExecutor("")
 	}
 
+	// Get temper directory for data storage
+	temperDir, err := config.TemperDir()
+	if err != nil {
+		return nil, fmt.Errorf("get temper dir: %w", err)
+	}
+
 	// Initialize session service
 	sessionsPath := cfg.SessionsPath
 	if sessionsPath == "" {
-		temperDir, err := config.TemperDir()
-		if err != nil {
-			return nil, fmt.Errorf("get temper dir: %w", err)
-		}
 		sessionsPath = filepath.Join(temperDir, "sessions")
 	}
 
@@ -93,6 +97,16 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		return nil, fmt.Errorf("create session store: %w", err)
 	}
 	s.sessionService = session.NewService(sessionStore, s.exerciseLoader, s.runnerExecutor)
+
+	// Initialize profile service
+	profileStore, err := profile.NewStore(filepath.Join(temperDir, "profiles"))
+	if err != nil {
+		return nil, fmt.Errorf("create profile store: %w", err)
+	}
+	s.profileService = profile.NewService(profileStore)
+
+	// Connect profile service to session service for event hooks
+	s.sessionService.SetProfileService(s.profileService)
 
 	// Initialize pairing service
 	s.pairingService = pairing.NewService(s.llmRegistry, cfg.Config.LLM.DefaultProvider)
@@ -189,6 +203,13 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("POST /v1/sessions/{id}/stuck", s.handleStuck)
 	s.router.HandleFunc("POST /v1/sessions/{id}/next", s.handleNext)
 	s.router.HandleFunc("POST /v1/sessions/{id}/explain", s.handleExplain)
+
+	// Profile & Analytics
+	s.router.HandleFunc("GET /v1/profile", s.handleGetProfile)
+	s.router.HandleFunc("GET /v1/analytics/overview", s.handleAnalyticsOverview)
+	s.router.HandleFunc("GET /v1/analytics/skills", s.handleAnalyticsSkills)
+	s.router.HandleFunc("GET /v1/analytics/errors", s.handleAnalyticsErrors)
+	s.router.HandleFunc("GET /v1/analytics/trend", s.handleAnalyticsTrend)
 }
 
 // Start starts the HTTP server
@@ -732,4 +753,55 @@ func (s *Server) jsonError(w http.ResponseWriter, status int, message string, er
 		response["details"] = err.Error()
 	}
 	s.jsonResponse(w, status, response)
+}
+
+// Profile & Analytics handlers
+
+func (s *Server) handleGetProfile(w http.ResponseWriter, r *http.Request) {
+	profile, err := s.profileService.GetProfile(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to get profile", err)
+		return
+	}
+	s.jsonResponse(w, http.StatusOK, profile)
+}
+
+func (s *Server) handleAnalyticsOverview(w http.ResponseWriter, r *http.Request) {
+	overview, err := s.profileService.GetOverview(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to get analytics overview", err)
+		return
+	}
+	s.jsonResponse(w, http.StatusOK, overview)
+}
+
+func (s *Server) handleAnalyticsSkills(w http.ResponseWriter, r *http.Request) {
+	skills, err := s.profileService.GetSkillBreakdown(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to get skill breakdown", err)
+		return
+	}
+	s.jsonResponse(w, http.StatusOK, skills)
+}
+
+func (s *Server) handleAnalyticsErrors(w http.ResponseWriter, r *http.Request) {
+	errors, err := s.profileService.GetErrorPatterns(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to get error patterns", err)
+		return
+	}
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"patterns": errors,
+	})
+}
+
+func (s *Server) handleAnalyticsTrend(w http.ResponseWriter, r *http.Request) {
+	trend, err := s.profileService.GetHintTrend(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to get hint trend", err)
+		return
+	}
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"trend": trend,
+	})
 }
