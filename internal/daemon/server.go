@@ -100,11 +100,12 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	// Setup routes
 	s.setupRoutes()
 
-	// Create HTTP server
+	// Create HTTP server with middleware chain
 	addr := fmt.Sprintf("%s:%d", cfg.Config.Daemon.Bind, cfg.Config.Daemon.Port)
+	handler := recoveryMiddleware(loggingMiddleware(s.router))
 	s.server = &http.Server{
 		Addr:         addr,
-		Handler:      s.router,
+		Handler:      handler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 120 * time.Second, // Long for SSE
 		IdleTimeout:  120 * time.Second,

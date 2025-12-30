@@ -1,0 +1,214 @@
+id: methods
+title: Methods on Structs
+description: |
+  Learn how to define methods on custom types in Go.
+
+  ## Learning Objectives
+  - Define methods with value receivers
+  - Define methods with pointer receivers
+  - Understand when to use each receiver type
+
+  ## Instructions
+  Create a `Counter` struct with methods:
+  1. `Value()` - returns the current count
+  2. `Increment()` - increases count by 1
+  3. `Add(n int)` - increases count by n
+  4. `Reset()` - sets count back to 0
+
+difficulty: intermediate
+tags:
+  - methods
+  - structs
+  - receivers
+
+prerequisites:
+  - intermediate/structs
+  - intermediate/pointers
+
+starter:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    // Counter tracks a count value.
+    type Counter struct {
+        count int
+    }
+
+    // Value returns the current count.
+    func (c Counter) Value() int {
+        // TODO: Implement this method
+        return 0
+    }
+
+    // Increment increases the count by 1.
+    func (c *Counter) Increment() {
+        // TODO: Implement this method
+    }
+
+    // Add increases the count by n.
+    func (c *Counter) Add(n int) {
+        // TODO: Implement this method
+    }
+
+    // Reset sets the count back to 0.
+    func (c *Counter) Reset() {
+        // TODO: Implement this method
+    }
+
+    func main() {
+        c := Counter{}
+        c.Increment()
+        c.Increment()
+        c.Add(5)
+        fmt.Println("Count:", c.Value())
+        c.Reset()
+        fmt.Println("After reset:", c.Value())
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import "testing"
+
+    func TestCounter(t *testing.T) {
+        t.Run("initial value is zero", func(t *testing.T) {
+            c := Counter{}
+            if c.Value() != 0 {
+                t.Errorf("got %d; want 0", c.Value())
+            }
+        })
+
+        t.Run("increment increases by 1", func(t *testing.T) {
+            c := Counter{}
+            c.Increment()
+            if c.Value() != 1 {
+                t.Errorf("got %d; want 1", c.Value())
+            }
+            c.Increment()
+            if c.Value() != 2 {
+                t.Errorf("got %d; want 2", c.Value())
+            }
+        })
+
+        t.Run("add increases by n", func(t *testing.T) {
+            c := Counter{}
+            c.Add(5)
+            if c.Value() != 5 {
+                t.Errorf("got %d; want 5", c.Value())
+            }
+            c.Add(10)
+            if c.Value() != 15 {
+                t.Errorf("got %d; want 15", c.Value())
+            }
+        })
+
+        t.Run("reset sets to zero", func(t *testing.T) {
+            c := Counter{}
+            c.Add(100)
+            c.Reset()
+            if c.Value() != 0 {
+                t.Errorf("got %d; want 0", c.Value())
+            }
+        })
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: receivers
+      name: Correct Receivers
+      description: Uses pointer receivers for mutating methods
+      weight: 0.3
+      signals:
+        - pointer_receiver_for_mutation
+
+    - id: idioms
+      name: Go Idioms
+      description: Follows Go method conventions
+      weight: 0.2
+      signals:
+        - value_receiver_for_getter
+
+hints:
+  L0:
+    - "Which methods need to modify the Counter?"
+    - "What's the difference between value and pointer receivers?"
+  L1:
+    - "Methods that modify state need pointer receivers (*Counter)"
+    - "Getter methods can use value receivers (Counter)"
+  L2:
+    - "Value() just returns c.count"
+    - "Increment uses c.count++ or c.count = c.count + 1"
+    - "Add uses c.count += n"
+  L3:
+    - |
+      ```go
+      func (c Counter) Value() int {
+          return c.count
+      }
+
+      func (c *Counter) Increment() {
+          c.count++
+      }
+
+      func (c *Counter) Add(n int) {
+          c.count += n
+      }
+
+      func (c *Counter) Reset() {
+          c.count = 0
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    type Counter struct {
+        count int
+    }
+
+    func (c Counter) Value() int {
+        return c.count
+    }
+
+    func (c *Counter) Increment() {
+        c.count++
+    }
+
+    func (c *Counter) Add(n int) {
+        c.count += n
+    }
+
+    func (c *Counter) Reset() {
+        c.count = 0
+    }
+
+    func main() {
+        c := Counter{}
+        c.Increment()
+        c.Increment()
+        c.Add(5)
+        fmt.Println("Count:", c.Value())
+        c.Reset()
+        fmt.Println("After reset:", c.Value())
+    }

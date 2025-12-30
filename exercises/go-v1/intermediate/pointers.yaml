@@ -1,0 +1,175 @@
+id: pointers
+title: Pointers and Memory
+description: |
+  Learn how pointers work in Go and when to use them.
+
+  ## Learning Objectives
+  - Understand pointer syntax (* and &)
+  - Know when to pass by value vs by pointer
+  - Modify values through pointers
+
+  ## Instructions
+  Implement two functions:
+  1. `Double` - takes a pointer to an int and doubles the value in place
+  2. `Swap` - takes two int pointers and swaps their values
+
+difficulty: intermediate
+tags:
+  - pointers
+  - memory
+  - fundamentals
+
+prerequisites:
+  - basics/variables
+  - basics/functions
+
+starter:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    // Double takes a pointer to an int and doubles the value in place.
+    func Double(n *int) {
+        // TODO: Implement this function
+    }
+
+    // Swap takes two int pointers and swaps their values.
+    func Swap(a, b *int) {
+        // TODO: Implement this function
+    }
+
+    func main() {
+        x := 5
+        Double(&x)
+        fmt.Println("Doubled:", x)
+
+        a, b := 10, 20
+        Swap(&a, &b)
+        fmt.Printf("Swapped: a=%d, b=%d\n", a, b)
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import "testing"
+
+    func TestDouble(t *testing.T) {
+        tests := []struct {
+            input    int
+            expected int
+        }{
+            {5, 10},
+            {0, 0},
+            {-3, -6},
+            {100, 200},
+        }
+
+        for _, tc := range tests {
+            t.Run("", func(t *testing.T) {
+                n := tc.input
+                Double(&n)
+                if n != tc.expected {
+                    t.Errorf("Double(%d) = %d; want %d", tc.input, n, tc.expected)
+                }
+            })
+        }
+    }
+
+    func TestSwap(t *testing.T) {
+        tests := []struct {
+            a, b         int
+            wantA, wantB int
+        }{
+            {1, 2, 2, 1},
+            {0, 0, 0, 0},
+            {-1, 1, 1, -1},
+            {100, 200, 200, 100},
+        }
+
+        for _, tc := range tests {
+            t.Run("", func(t *testing.T) {
+                a, b := tc.a, tc.b
+                Swap(&a, &b)
+                if a != tc.wantA || b != tc.wantB {
+                    t.Errorf("Swap(%d, %d) = (%d, %d); want (%d, %d)",
+                        tc.a, tc.b, a, b, tc.wantA, tc.wantB)
+                }
+            })
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+
+    - id: understanding
+      name: Pointer Understanding
+      description: Correctly uses pointer dereference
+      weight: 0.4
+      signals:
+        - uses_dereference
+
+hints:
+  L0:
+    - "How do you access the value a pointer points to?"
+    - "What operator lets you modify a value through a pointer?"
+  L1:
+    - "Use * to dereference a pointer and access its value"
+    - "For swapping, you need a temporary variable"
+  L2:
+    - "*n = *n * 2 doubles the value n points to"
+    - "temp := *a saves the value, then *a = *b, *b = temp"
+  L3:
+    - |
+      ```go
+      func Double(n *int) {
+          *n = *n * 2
+      }
+
+      func Swap(a, b *int) {
+          temp := *a
+          *a = *b
+          *b = temp
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    func Double(n *int) {
+        *n = *n * 2
+    }
+
+    func Swap(a, b *int) {
+        temp := *a
+        *a = *b
+        *b = temp
+    }
+
+    func main() {
+        x := 5
+        Double(&x)
+        fmt.Println("Doubled:", x)
+
+        a, b := 10, 20
+        Swap(&a, &b)
+        fmt.Printf("Swapped: a=%d, b=%d\n", a, b)
+    }

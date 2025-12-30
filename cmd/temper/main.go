@@ -38,6 +38,8 @@ func main() {
 
 	var err error
 	switch os.Args[1] {
+	case "init":
+		err = cmdInit()
 	case "start":
 		err = cmdStart()
 	case "stop":
@@ -78,16 +80,17 @@ func printUsage() {
 Usage:
   temper <command> [arguments]
 
+Setup Commands:
+  init            Initialize Temper (first-time setup)
+  doctor          Check system requirements
+  config          Show current configuration
+  provider        Manage LLM providers
+
 Daemon Commands:
   start           Start the Temper daemon
   stop            Stop the Temper daemon
   status          Show daemon status
   logs            View daemon logs
-
-Setup Commands:
-  doctor          Check system requirements
-  config          Show current configuration
-  provider        Manage LLM providers
 
 Exercise Commands:
   exercise list   List available exercises
@@ -106,6 +109,144 @@ Examples:
   temper provider set-key claude  # Configure Claude API key
   temper exercise list            # List exercises
   temper mcp                      # Start MCP server for Cursor`)
+}
+
+// cmdInit initializes Temper for first-time use
+func cmdInit() error {
+	fmt.Println("Temper - First-Time Setup")
+	fmt.Println("==========================")
+	fmt.Println()
+
+	reader := bufio.NewReader(os.Stdin)
+
+	// 1. Create directory structure
+	fmt.Print("Creating ~/.temper directory structure... ")
+	temperDir, err := config.EnsureTemperDir()
+	if err != nil {
+		return fmt.Errorf("create directories: %w", err)
+	}
+	fmt.Println("✓")
+
+	// 2. Create default config if it doesn't exist
+	configPath := filepath.Join(temperDir, "config.yaml")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Print("Creating default configuration... ")
+		if err := config.SaveLocalConfig(config.DefaultLocalConfig()); err != nil {
+			return fmt.Errorf("save config: %w", err)
+		}
+		fmt.Println("✓")
+	} else {
+		fmt.Println("Configuration already exists ✓")
+	}
+
+	// 3. Copy bundled exercises
+	fmt.Print("Setting up exercise packs... ")
+	exercisesDest := filepath.Join(temperDir, "exercises")
+
+	// Check if exercises exist in current directory (dev mode)
+	if _, err := os.Stat("./exercises"); err == nil {
+		// Copy from local
+		if err := copyDir("./exercises", exercisesDest); err != nil {
+			fmt.Println("⚠ (manual copy required)")
+		} else {
+			fmt.Println("✓")
+		}
+	} else {
+		// Create placeholder
+		goPackDir := filepath.Join(exercisesDest, "go-fundamentals")
+		if err := os.MkdirAll(goPackDir, 0755); err == nil {
+			fmt.Println("✓ (placeholder created)")
+		}
+	}
+
+	// 4. Configure LLM provider
+	fmt.Println()
+	fmt.Println("LLM Provider Setup")
+	fmt.Println("------------------")
+	fmt.Println("Temper supports: Claude (Anthropic), OpenAI, and Ollama (local)")
+	fmt.Println()
+
+	// Load current config to check existing keys
+	cfg, _ := config.LoadLocalConfig()
+
+	// Claude
+	if cfg != nil && cfg.LLM.Providers["claude"] != nil && cfg.LLM.Providers["claude"].APIKey != "" {
+		fmt.Println("Claude API key: already configured ✓")
+	} else {
+		fmt.Print("Enter Claude API key (or press Enter to skip): ")
+		key, _ := reader.ReadString('\n')
+		key = strings.TrimSpace(key)
+		if key != "" {
+			secrets := map[string]string{"claude": key}
+			if err := config.SaveSecrets(secrets); err != nil {
+				fmt.Printf("  ⚠ Failed to save: %v\n", err)
+			} else {
+				fmt.Println("  ✓ Saved")
+			}
+		}
+	}
+
+	// 5. Check Docker
+	fmt.Println()
+	fmt.Print("Checking Docker... ")
+	if err := checkDocker(); err != nil {
+		fmt.Println("⚠ Not available (local execution will be used)")
+	} else {
+		fmt.Println("✓")
+	}
+
+	// 6. Summary
+	fmt.Println()
+	fmt.Println("Setup Complete!")
+	fmt.Println("===============")
+	fmt.Println()
+	fmt.Println("Next steps:")
+	fmt.Println("  1. temper start          # Start the daemon")
+	fmt.Println("  2. temper doctor         # Verify configuration")
+	fmt.Println("  3. temper exercise list  # See available exercises")
+	fmt.Println()
+	fmt.Println("For IDE integration:")
+	fmt.Println("  - VS Code: Install the Temper extension from editors/vscode/")
+	fmt.Println("  - Neovim:  Add the plugin from editors/nvim/")
+	fmt.Println("  - Cursor:  Configure MCP with 'temper mcp' command")
+
+	return nil
+}
+
+// copyDir copies a directory recursively
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Get relative path
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, info.Mode())
+		}
+
+		// Copy file
+		srcFile, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		dstFile, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+		defer dstFile.Close()
+
+		_, err = io.Copy(dstFile, srcFile)
+		return err
+	})
 }
 
 // cmdStart starts the daemon in the background

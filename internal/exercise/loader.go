@@ -72,6 +72,11 @@ func NewLoader(basePath string) *Loader {
 	return &Loader{basePath: basePath}
 }
 
+// BasePath returns the base path for exercises
+func (l *Loader) BasePath() string {
+	return l.basePath
+}
+
 // LoadPack loads an exercise pack from a directory
 func (l *Loader) LoadPack(packID string) (*domain.ExercisePack, error) {
 	packPath := filepath.Join(l.basePath, packID, "pack.yaml")

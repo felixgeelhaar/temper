@@ -1,0 +1,146 @@
+version: 2
+
+project_name: temper
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: temper
+    main: ./cmd/temper
+    binary: temper
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+  - id: temperd
+    main: ./cmd/temperd
+    binary: temperd
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: temper-archive
+    builds:
+      - temper
+      - temperd
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+      - exercises/**/*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Performance
+      regexp: "^.*perf[(\\w)]*:+.*$"
+      order: 2
+    - title: Refactoring
+      regexp: "^.*refactor[(\\w)]*:+.*$"
+      order: 3
+    - title: Other
+      order: 999
+
+release:
+  github:
+    owner: felixgeelhaar
+    name: temper
+  prerelease: auto
+  mode: append
+  header: |
+    ## Temper {{ .Version }}
+
+    Adaptive AI pairing for learning - enforces a Learning Contract to build genuine skill.
+
+  footer: |
+    ## Installation
+
+    ### Using Go Install
+    ```bash
+    go install github.com/felixgeelhaar/temper/cmd/temper@{{ .Tag }}
+    go install github.com/felixgeelhaar/temper/cmd/temperd@{{ .Tag }}
+    ```
+
+    ### Download Binary
+    Download the appropriate archive for your platform from the assets below.
+
+    ### Quick Start
+    ```bash
+    temper init    # First-time setup
+    temper doctor  # Check requirements
+    temper start   # Start daemon
+    ```
+
+brews:
+  - name: temper
+    ids:
+      - temper-archive
+    repository:
+      owner: felixgeelhaar
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    folder: Formula
+    homepage: https://github.com/felixgeelhaar/temper
+    description: Adaptive AI pairing for learning
+    license: MIT
+    test: |
+      system "#{bin}/temper", "--version"
+    install: |
+      bin.install "temper"
+      bin.install "temperd"
+    skip_upload: auto

@@ -24,10 +24,13 @@ exercises:
   - basics/slices
   - basics/maps
   # Intermediate
+  - intermediate/pointers
   - intermediate/structs
+  - intermediate/methods
   - intermediate/errors
   - intermediate/interfaces
   # Testing
   - testing/table-tests
   # Advanced
   - advanced/concurrency
+  - advanced/channels

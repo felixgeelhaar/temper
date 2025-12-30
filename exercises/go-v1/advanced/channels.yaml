@@ -1,0 +1,285 @@
+id: channels
+title: Channel Basics
+description: |
+  Learn the fundamentals of Go channels for goroutine communication.
+
+  ## Learning Objectives
+  - Create and use channels
+  - Send and receive values
+  - Use buffered channels
+  - Close channels properly
+
+  ## Instructions
+  Implement three functions:
+  1. `Sum` - calculates sum of numbers using a channel
+  2. `Generator` - creates a channel that yields numbers 1 to n
+  3. `Merge` - merges two channels into one
+
+difficulty: advanced
+tags:
+  - channels
+  - concurrency
+  - goroutines
+
+prerequisites:
+  - advanced/concurrency
+
+starter:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    // Sum calculates the sum of numbers in a slice and sends the result to a channel.
+    func Sum(nums []int, ch chan<- int) {
+        // TODO: Calculate sum and send to channel
+    }
+
+    // Generator returns a channel that yields numbers from 1 to n, then closes.
+    func Generator(n int) <-chan int {
+        // TODO: Create channel, start goroutine to send numbers, return channel
+        return nil
+    }
+
+    // Merge takes two channels and returns a single channel with all values.
+    func Merge(ch1, ch2 <-chan int) <-chan int {
+        // TODO: Merge both channels into one
+        return nil
+    }
+
+    func main() {
+        // Test Sum
+        ch := make(chan int)
+        go Sum([]int{1, 2, 3, 4, 5}, ch)
+        fmt.Println("Sum:", <-ch)
+
+        // Test Generator
+        for n := range Generator(5) {
+            fmt.Printf("%d ", n)
+        }
+        fmt.Println()
+
+        // Test Merge
+        merged := Merge(Generator(3), Generator(3))
+        for n := range merged {
+            fmt.Printf("%d ", n)
+        }
+        fmt.Println()
+    }
+
+tests:
+  main_test.go: |
+    package main
+
+    import (
+        "sort"
+        "testing"
+    )
+
+    func TestSum(t *testing.T) {
+        tests := []struct {
+            nums     []int
+            expected int
+        }{
+            {[]int{1, 2, 3, 4, 5}, 15},
+            {[]int{}, 0},
+            {[]int{10}, 10},
+            {[]int{-1, 1}, 0},
+        }
+
+        for _, tc := range tests {
+            ch := make(chan int)
+            go Sum(tc.nums, ch)
+            got := <-ch
+            if got != tc.expected {
+                t.Errorf("Sum(%v) = %d; want %d", tc.nums, got, tc.expected)
+            }
+        }
+    }
+
+    func TestGenerator(t *testing.T) {
+        tests := []struct {
+            n        int
+            expected []int
+        }{
+            {5, []int{1, 2, 3, 4, 5}},
+            {1, []int{1}},
+            {0, []int{}},
+        }
+
+        for _, tc := range tests {
+            var got []int
+            for n := range Generator(tc.n) {
+                got = append(got, n)
+            }
+            if len(got) != len(tc.expected) {
+                t.Errorf("Generator(%d) produced %d items; want %d", tc.n, len(got), len(tc.expected))
+                continue
+            }
+            for i, v := range got {
+                if v != tc.expected[i] {
+                    t.Errorf("Generator(%d)[%d] = %d; want %d", tc.n, i, v, tc.expected[i])
+                }
+            }
+        }
+    }
+
+    func TestMerge(t *testing.T) {
+        ch1 := Generator(3)
+        ch2 := Generator(3)
+        merged := Merge(ch1, ch2)
+
+        var got []int
+        for n := range merged {
+            got = append(got, n)
+        }
+
+        // Should have 6 items total (3 from each)
+        if len(got) != 6 {
+            t.Errorf("Merge produced %d items; want 6", len(got))
+        }
+
+        // Sort and verify we got 1,1,2,2,3,3
+        sort.Ints(got)
+        expected := []int{1, 1, 2, 2, 3, 3}
+        for i, v := range got {
+            if v != expected[i] {
+                t.Errorf("Merge result[%d] = %d; want %d", i, v, expected[i])
+            }
+        }
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+    - "-race"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass including race detection
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: channel_usage
+      name: Channel Usage
+      description: Proper channel operations
+      weight: 0.3
+      signals:
+        - channels_closed
+        - no_goroutine_leak
+
+    - id: idioms
+      name: Go Idioms
+      description: Uses idiomatic channel patterns
+      weight: 0.2
+      signals:
+        - uses_range_over_channel
+
+hints:
+  L0:
+    - "How do you send a value to a channel?"
+    - "What happens when you range over a channel?"
+  L1:
+    - "Use ch <- value to send, and <-ch to receive"
+    - "Close a channel when no more values will be sent"
+    - "Range over a channel to receive until it's closed"
+  L2:
+    - "For Generator: create channel, start goroutine, send 1..n, close, return channel"
+    - "For Merge: use sync.WaitGroup to wait for both inputs to complete"
+  L3:
+    - |
+      ```go
+      func Sum(nums []int, ch chan<- int) {
+          sum := 0
+          for _, n := range nums {
+              sum += n
+          }
+          ch <- sum
+      }
+
+      func Generator(n int) <-chan int {
+          ch := make(chan int)
+          go func() {
+              for i := 1; i <= n; i++ {
+                  ch <- i
+              }
+              close(ch)
+          }()
+          return ch
+      }
+      ```
+
+solution:
+  main.go: |
+    package main
+
+    import (
+        "fmt"
+        "sync"
+    )
+
+    func Sum(nums []int, ch chan<- int) {
+        sum := 0
+        for _, n := range nums {
+            sum += n
+        }
+        ch <- sum
+    }
+
+    func Generator(n int) <-chan int {
+        ch := make(chan int)
+        go func() {
+            for i := 1; i <= n; i++ {
+                ch <- i
+            }
+            close(ch)
+        }()
+        return ch
+    }
+
+    func Merge(ch1, ch2 <-chan int) <-chan int {
+        out := make(chan int)
+        var wg sync.WaitGroup
+        wg.Add(2)
+
+        output := func(c <-chan int) {
+            for n := range c {
+                out <- n
+            }
+            wg.Done()
+        }
+
+        go output(ch1)
+        go output(ch2)
+
+        go func() {
+            wg.Wait()
+            close(out)
+        }()
+
+        return out
+    }
+
+    func main() {
+        ch := make(chan int)
+        go Sum([]int{1, 2, 3, 4, 5}, ch)
+        fmt.Println("Sum:", <-ch)
+
+        for n := range Generator(5) {
+            fmt.Printf("%d ", n)
+        }
+        fmt.Println()
+
+        merged := Merge(Generator(3), Generator(3))
+        for n := range merged {
+            fmt.Printf("%d ", n)
+        }
+        fmt.Println()
+    }
