@@ -43,9 +43,9 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Training intent | ✅ | Structured exercises |
-| Greenfield intent | 🔨 | New project guidance |
-| Feature Guidance intent | ⏳ | Spec-driven feature work |
-| Intent inference | ⏳ | Auto-detect from context |
+| Greenfield intent | ✅ | New project guidance |
+| Feature Guidance intent | ✅ | Spec-driven feature work |
+| Intent inference | ✅ | Auto-detect from context |
 
 ### Pairing Loop
 
@@ -60,9 +60,11 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Spec format (Specular) | ⏳ | Define intent & acceptance |
-| Spec validation | ⏳ | Check completeness |
-| Spec-anchored feedback | ⏳ | Review against spec |
+| Spec format (Specular) | ✅ | Define intent & acceptance |
+| Spec validation | ✅ | Check completeness |
+| Spec-anchored feedback | ✅ | Review against spec |
+| SpecLock drift detection | ✅ | SHA256 hashing |
+| CLI commands | ✅ | `temper spec create/list/validate/status/lock/drift` |
 
 ### Patch Policy
 
@@ -113,8 +115,8 @@
 
 **Priority for v1 completion:**
 
-1. **Spec-driven workflow** — Help create and validate specs for feature work
-2. **Intent inference** — Auto-detect Training/Greenfield/Feature from context
+1. ~~**Spec-driven workflow**~~ ✅ — Specular format with validation, locking, drift detection
+2. ~~**Intent inference**~~ ✅ — Auto-detect Training/Greenfield/Feature from context
 3. **Neovim plugin** — Complete editor coverage
 4. **Evidence-based appreciation** — Progress recognition without gamification
 
