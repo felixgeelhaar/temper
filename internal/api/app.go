@@ -76,12 +76,17 @@ func NewApp(ctx context.Context, cfg AppConfig) (*App, error) {
 	if cfg.Config.Debug {
 		executor = runner.NewLocalExecutor(".")
 	} else {
-		executor = runner.NewDockerExecutor(runner.DockerConfig{
+		dockerExec, err := runner.NewDockerExecutor(runner.DockerConfig{
 			BaseImage:  cfg.Config.RunnerImage,
-			MemoryMB:   runnerCfg.MemoryMB,
+			MemoryMB:   int64(runnerCfg.MemoryMB),
 			CPULimit:   runnerCfg.CPULimit,
 			NetworkOff: true,
+			Timeout:    runnerCfg.Timeout,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Docker executor: %w", err)
+		}
+		executor = dockerExec
 	}
 	app.Runner = runner.NewService(runnerCfg, executor)
 
