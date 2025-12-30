@@ -192,6 +192,23 @@ function M.create_commands()
 	vim.api.nvim_create_user_command("TemperStatsTrend", function()
 		M.stats_trend()
 	end, { desc = "Show hint dependency over time" })
+
+	-- Patch commands
+	vim.api.nvim_create_user_command("TemperPatchPreview", function()
+		M.patch_preview()
+	end, { desc = "Preview pending patch" })
+
+	vim.api.nvim_create_user_command("TemperPatchApply", function()
+		M.patch_apply()
+	end, { desc = "Apply pending patch" })
+
+	vim.api.nvim_create_user_command("TemperPatchReject", function()
+		M.patch_reject()
+	end, { desc = "Reject pending patch" })
+
+	vim.api.nvim_create_user_command("TemperPatches", function()
+		M.list_patches()
+	end, { desc = "List all patches in session" })
 end
 
 -- Setup keymaps
@@ -799,6 +816,157 @@ function M.stats_trend()
 		end
 
 		ui.set_panel_content(lines, "Temper - Trend")
+	end)
+end
+
+-- Patch commands
+
+-- Preview pending patch
+function M.patch_preview()
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Loading patch preview...")
+
+	client.patch_preview(M.state.session_id, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		if not result.has_patch then
+			ui.notify(result.message or "No pending patches", vim.log.levels.INFO)
+			return
+		end
+
+		local preview = result.preview
+		local patch = preview.patch
+
+		local lines = { "## Patch Preview", "" }
+		table.insert(lines, string.format("**File:** `%s`", patch.file or "unknown"))
+		table.insert(lines, string.format("**Description:** %s", patch.description or "Code change"))
+		table.insert(lines, "")
+
+		if preview.additions or preview.deletions then
+			table.insert(lines, string.format("**Changes:** +%d / -%d lines", preview.additions or 0, preview.deletions or 0))
+		end
+
+		if preview.warnings and #preview.warnings > 0 then
+			table.insert(lines, "")
+			table.insert(lines, "### Warnings")
+			for _, w in ipairs(preview.warnings) do
+				table.insert(lines, "- " .. w)
+			end
+		end
+
+		table.insert(lines, "")
+		table.insert(lines, "### Diff")
+		table.insert(lines, "```diff")
+		for line in (patch.diff or ""):gmatch("[^\n]+") do
+			table.insert(lines, line)
+		end
+		table.insert(lines, "```")
+
+		table.insert(lines, "")
+		table.insert(lines, "Use `:TemperPatchApply` to apply or `:TemperPatchReject` to reject")
+
+		ui.set_panel_content(lines, "Temper - Patch")
+	end)
+end
+
+-- Apply pending patch
+function M.patch_apply()
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Applying patch...")
+
+	client.patch_apply(M.state.session_id, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		if result.applied then
+			-- Apply the patch content to the buffer
+			local filename = vim.fn.expand("%:t")
+			if result.file == filename and result.content then
+				local lines = vim.split(result.content, "\n")
+				vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+				ui.notify("Patch applied to " .. result.file, vim.log.levels.INFO)
+			else
+				-- Patch is for a different file, just notify
+				ui.notify("Patch applied to " .. result.file .. " - open the file to see changes", vim.log.levels.INFO)
+			end
+		else
+			ui.notify("Failed to apply patch", vim.log.levels.ERROR)
+		end
+	end)
+end
+
+-- Reject pending patch
+function M.patch_reject()
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+		return
+	end
+
+	client.patch_reject(M.state.session_id, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		if result.rejected then
+			ui.notify("Patch rejected", vim.log.levels.INFO)
+		end
+	end)
+end
+
+-- List all patches in session
+function M.list_patches()
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Loading patches...")
+
+	client.list_patches(M.state.session_id, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Session Patches", "" }
+
+		if result.count == 0 then
+			table.insert(lines, "No patches in this session.")
+			table.insert(lines, "")
+			table.insert(lines, "Patches are created when you request L4/L5 escalation.")
+		else
+			table.insert(lines, string.format("**Total Patches:** %d", result.count))
+			table.insert(lines, "")
+
+			for i, p in ipairs(result.patches or {}) do
+				local status_icon = "○"
+				if p.status == "applied" then status_icon = "✓"
+				elseif p.status == "rejected" then status_icon = "✗"
+				elseif p.status == "expired" then status_icon = "⏱"
+				end
+
+				table.insert(lines, string.format("### %d. %s `%s`", i, status_icon, p.file or "unknown"))
+				table.insert(lines, string.format("- Status: %s", p.status or "pending"))
+				table.insert(lines, string.format("- Description: %s", p.description or "Code change"))
+				table.insert(lines, "")
+			end
+		end
+
+		ui.set_panel_content(lines, "Temper - Patches")
 	end)
 end
 

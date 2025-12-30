@@ -16,6 +16,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/llm"
 	"github.com/felixgeelhaar/temper/internal/pairing"
+	"github.com/felixgeelhaar/temper/internal/patch"
 	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/felixgeelhaar/temper/internal/runner"
 	"github.com/felixgeelhaar/temper/internal/session"
@@ -38,6 +39,7 @@ type Server struct {
 	profileService       *profile.Service
 	specService          *spec.Service
 	appreciationService  *appreciation.Service
+	patchService         *patch.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -128,6 +130,9 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 
 	// Initialize appreciation service
 	s.appreciationService = appreciation.NewService()
+
+	// Initialize patch service
+	s.patchService = patch.NewService()
 
 	// Setup routes
 	s.setupRoutes()
@@ -239,6 +244,12 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("GET /v1/specs/progress/{path...}", s.handleGetSpecProgress)
 	s.router.HandleFunc("GET /v1/specs/drift/{path...}", s.handleGetSpecDrift)
 	s.router.HandleFunc("GET /v1/specs/file/{path...}", s.handleGetSpec)
+
+	// Patches
+	s.router.HandleFunc("GET /v1/sessions/{id}/patch/preview", s.handlePatchPreview)
+	s.router.HandleFunc("POST /v1/sessions/{id}/patch/apply", s.handlePatchApply)
+	s.router.HandleFunc("POST /v1/sessions/{id}/patch/reject", s.handlePatchReject)
+	s.router.HandleFunc("GET /v1/sessions/{id}/patches", s.handleListPatches)
 }
 
 // Start starts the HTTP server
@@ -800,6 +811,19 @@ func (s *Server) handlePairingWithEscalation(w http.ResponseWriter, r *http.Requ
 		slog.Warn("failed to record escalation", "error", err)
 	}
 
+	// Extract patches from L4/L5 interventions
+	var hasPatch bool
+	if intervention.Level >= domain.L4PartialSolution {
+		patches := s.patchService.ExtractFromIntervention(intervention, uuid.MustParse(sess.ID), sess.Code)
+		hasPatch = len(patches) > 0
+		if hasPatch {
+			slog.Info("patches extracted from escalation",
+				"session_id", sess.ID,
+				"patch_count", len(patches),
+			)
+		}
+	}
+
 	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
 		"id":            intervention.ID.String(),
 		"intent":        intervention.Intent,
@@ -808,6 +832,7 @@ func (s *Server) handlePairingWithEscalation(w http.ResponseWriter, r *http.Requ
 		"content":       intervention.Content,
 		"escalated":     true,
 		"justification": req.Justification,
+		"has_patch":     hasPatch,
 	})
 }
 
@@ -916,12 +941,26 @@ func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request, intent do
 		slog.Warn("failed to record intervention", "error", err)
 	}
 
+	// Extract patches from L4/L5 interventions
+	var hasPatch bool
+	if intervention.Level >= domain.L4PartialSolution {
+		patches := s.patchService.ExtractFromIntervention(intervention, uuid.MustParse(sess.ID), sess.Code)
+		hasPatch = len(patches) > 0
+		if hasPatch {
+			slog.Info("patches extracted from intervention",
+				"session_id", sess.ID,
+				"patch_count", len(patches),
+			)
+		}
+	}
+
 	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
-		"id":      intervention.ID.String(),
-		"intent":  intervention.Intent,
-		"level":   intervention.Level,
-		"type":    intervention.Type,
-		"content": intervention.Content,
+		"id":        intervention.ID.String(),
+		"intent":    intervention.Intent,
+		"level":     intervention.Level,
+		"type":      intervention.Type,
+		"content":   intervention.Content,
+		"has_patch": hasPatch,
 	})
 }
 
@@ -1301,4 +1340,159 @@ func (s *Server) handleGetSpecDrift(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, http.StatusOK, drift)
+}
+
+// Patch handlers
+
+func (s *Server) handlePatchPreview(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	// Parse session ID
+	sessUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid session ID", nil)
+		return
+	}
+
+	// Get pending patch preview
+	preview, err := s.patchService.PreviewPending(sessUUID)
+	if err != nil {
+		if err == patch.ErrPatchNotFound {
+			s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+				"has_patch": false,
+				"message":   "No pending patches for this session",
+			})
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get patch preview", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"has_patch": true,
+		"preview":   preview,
+	})
+}
+
+func (s *Server) handlePatchApply(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	sessUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid session ID", nil)
+		return
+	}
+
+	// Get the session to access current code
+	sess, err := s.sessionService.Get(r.Context(), sessionID)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	// Apply the pending patch
+	file, content, err := s.patchService.ApplyPending(sessUUID)
+	if err != nil {
+		switch err {
+		case patch.ErrPatchNotFound:
+			s.jsonError(w, http.StatusNotFound, "no pending patch to apply", nil)
+		case patch.ErrPatchApplied:
+			s.jsonError(w, http.StatusConflict, "patch already applied", nil)
+		case patch.ErrPatchRejected:
+			s.jsonError(w, http.StatusConflict, "patch was rejected", nil)
+		case patch.ErrPatchExpired:
+			s.jsonError(w, http.StatusGone, "patch has expired", nil)
+		default:
+			s.jsonError(w, http.StatusInternalServerError, "failed to apply patch", err)
+		}
+		return
+	}
+
+	// Update session code
+	newCode := make(map[string]string)
+	for k, v := range sess.Code {
+		newCode[k] = v
+	}
+	newCode[file] = content
+
+	// Update session with new code
+	if _, err := s.sessionService.UpdateCode(r.Context(), sessionID, newCode); err != nil {
+		slog.Warn("failed to update session code after patch apply", "error", err)
+	}
+
+	slog.Info("patch applied",
+		"session_id", sessionID,
+		"file", file,
+	)
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"applied": true,
+		"file":    file,
+		"content": content,
+	})
+}
+
+func (s *Server) handlePatchReject(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	sessUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid session ID", nil)
+		return
+	}
+
+	if err := s.patchService.RejectPending(sessUUID); err != nil {
+		if err == patch.ErrPatchNotFound {
+			s.jsonError(w, http.StatusNotFound, "no pending patch to reject", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to reject patch", err)
+		return
+	}
+
+	slog.Info("patch rejected", "session_id", sessionID)
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"rejected": true,
+	})
+}
+
+func (s *Server) handleListPatches(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	sessUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid session ID", nil)
+		return
+	}
+
+	patches := s.patchService.GetSessionPatches(sessUUID)
+	if patches == nil {
+		patches = []*domain.Patch{}
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"patches": patches,
+		"count":   len(patches),
+	})
 }

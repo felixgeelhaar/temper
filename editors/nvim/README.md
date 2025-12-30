@@ -121,6 +121,15 @@ require("temper").setup({
 | `:TemperStatsErrors` | Show common error patterns |
 | `:TemperStatsTrend` | Show hint dependency over time |
 
+### Patch Commands
+
+| Command | Description |
+|---------|-------------|
+| `:TemperPatchPreview` | Preview pending patch from L4/L5 escalation |
+| `:TemperPatchApply` | Apply pending patch to your code |
+| `:TemperPatchReject` | Reject pending patch |
+| `:TemperPatches` | List all patches in current session |
+
 ### Other
 
 | Command | Description |

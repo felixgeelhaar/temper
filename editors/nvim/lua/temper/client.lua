@@ -254,4 +254,26 @@ function M.get_stats_trend(callback)
 	request("GET", "/v1/analytics/trend", nil, callback)
 end
 
+-- Patch management
+
+-- Get patch preview for current session
+function M.patch_preview(session_id, callback)
+	request("GET", "/v1/sessions/" .. session_id .. "/patch/preview", nil, callback)
+end
+
+-- Apply the pending patch
+function M.patch_apply(session_id, callback)
+	request("POST", "/v1/sessions/" .. session_id .. "/patch/apply", nil, callback)
+end
+
+-- Reject the pending patch
+function M.patch_reject(session_id, callback)
+	request("POST", "/v1/sessions/" .. session_id .. "/patch/reject", nil, callback)
+end
+
+-- List all patches for a session
+function M.list_patches(session_id, callback)
+	request("GET", "/v1/sessions/" .. session_id .. "/patches", nil, callback)
+end
+
 return M
