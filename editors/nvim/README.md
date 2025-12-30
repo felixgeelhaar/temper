@@ -92,6 +92,7 @@ require("temper").setup({
 | `:TemperStuck` | Signal that you're stuck |
 | `:TemperNext` | Ask what to do next |
 | `:TemperExplain` | Request an explanation |
+| `:TemperEscalate <level> <justification>` | Request explicit escalation (L4 or L5) |
 
 ### Code Execution
 

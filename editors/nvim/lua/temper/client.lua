@@ -159,6 +159,18 @@ function M.explain(session_id, code, callback)
 	request("POST", "/v1/sessions/" .. session_id .. "/explain", body, callback)
 end
 
+-- Request explicit escalation (L4/L5)
+function M.escalate(session_id, level, justification, code, callback)
+	local body = {
+		level = level,
+		justification = justification,
+	}
+	if code then
+		body.code = code
+	end
+	request("POST", "/v1/sessions/" .. session_id .. "/escalate", body, callback)
+end
+
 -- Format code
 function M.format(session_id, code, callback)
 	request("POST", "/v1/sessions/" .. session_id .. "/format", { code = code }, callback)

@@ -109,6 +109,13 @@ function M.create_commands()
 		M.explain()
 	end, { desc = "Request an explanation" })
 
+	vim.api.nvim_create_user_command("TemperEscalate", function(opts)
+		M.escalate(opts.args)
+	end, {
+		nargs = "+",
+		desc = "Request explicit escalation (L4/L5) - requires level and justification",
+	})
+
 	-- Code execution
 	vim.api.nvim_create_user_command("TemperRun", function()
 		M.run()
@@ -307,6 +314,48 @@ end
 -- Request explanation
 function M.explain()
 	M.request_intervention("explain", client.explain)
+end
+
+-- Request explicit escalation (L4/L5)
+function M.escalate(args)
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+		return
+	end
+
+	-- Parse args: first word is level (4 or 5), rest is justification
+	local parts = vim.split(args, " ", { trimempty = true })
+	if #parts < 2 then
+		ui.notify("Usage: :TemperEscalate <level> <justification>", vim.log.levels.ERROR)
+		ui.notify("Example: :TemperEscalate 4 I've tried multiple hints but still can't understand the recursion pattern", vim.log.levels.INFO)
+		return
+	end
+
+	local level = tonumber(parts[1])
+	if level ~= 4 and level ~= 5 then
+		ui.notify("Level must be 4 (partial solution) or 5 (full solution)", vim.log.levels.ERROR)
+		return
+	end
+
+	local justification = table.concat(vim.list_slice(parts, 2), " ")
+	if #justification < 20 then
+		ui.notify("Please provide a more detailed justification (at least 20 characters)", vim.log.levels.ERROR)
+		return
+	end
+
+	local code = get_buffer_code()
+	ui.show_loading("Requesting escalation to L" .. level .. "...")
+
+	client.escalate(M.state.session_id, level, justification, code, function(err, result)
+		if err then
+			ui.notify("Escalation failed: " .. err, vim.log.levels.ERROR)
+			return
+		end
+
+		if result.content then
+			ui.show_response(result.content, "L" .. result.level .. " (escalated)")
+		end
+	end)
 end
 
 -- Common intervention request handler

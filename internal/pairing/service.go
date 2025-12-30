@@ -30,23 +30,31 @@ func NewService(llmRegistry *llm.Registry, defaultProvider string) *Service {
 
 // InterventionRequest contains data for requesting an intervention
 type InterventionRequest struct {
-	SessionID   uuid.UUID
-	UserID      uuid.UUID
-	Intent      domain.Intent
-	Context     InterventionContext
-	Policy      domain.LearningPolicy
-	RunID       *uuid.UUID
+	SessionID     uuid.UUID
+	UserID        uuid.UUID
+	Intent        domain.Intent
+	Context       InterventionContext
+	Policy        domain.LearningPolicy
+	RunID         *uuid.UUID
+	ExplicitLevel domain.InterventionLevel // Explicit level request (for escalation)
+	Justification string                   // Required justification for L4/L5 escalation
 }
 
 // InterventionContext is defined in context.go with spec support
 
 // Intervene generates an intervention based on the request
 func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*domain.Intervention, error) {
-	// Select intervention level based on context
-	level := s.selector.SelectLevel(req.Intent, req.Context, req.Policy)
+	var level domain.InterventionLevel
 
-	// Clamp level based on policy
-	level = req.Policy.ClampLevel(level)
+	// Use explicit level if provided (for escalation requests)
+	if req.ExplicitLevel > 0 {
+		level = req.ExplicitLevel
+	} else {
+		// Select intervention level based on context
+		level = s.selector.SelectLevel(req.Intent, req.Context, req.Policy)
+		// Clamp level based on policy (only for non-explicit requests)
+		level = req.Policy.ClampLevel(level)
+	}
 
 	// Select intervention type
 	interventionType := s.selector.SelectType(req.Intent, level)

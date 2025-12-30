@@ -71,7 +71,7 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | No automatic changes | ✅ | Policy enforced |
-| Explicit escalation | 🔨 | User must request |
+| Explicit escalation | ✅ | User must request L4/L5 with justification |
 | Patch preview | ⏳ | Show before apply |
 | Patch logging | ⏳ | Local audit trail |
 

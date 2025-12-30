@@ -221,6 +221,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("POST /v1/sessions/{id}/stuck", s.handleStuck)
 	s.router.HandleFunc("POST /v1/sessions/{id}/next", s.handleNext)
 	s.router.HandleFunc("POST /v1/sessions/{id}/explain", s.handleExplain)
+	s.router.HandleFunc("POST /v1/sessions/{id}/escalate", s.handleEscalate)
 
 	// Profile & Analytics
 	s.router.HandleFunc("GET /v1/profile", s.handleGetProfile)
@@ -620,10 +621,12 @@ func (s *Server) handleFormat(w http.ResponseWriter, r *http.Request) {
 
 // pairingRequest is the common request format for pairing endpoints
 type pairingRequest struct {
-	Code     map[string]string `json:"code,omitempty"`       // Optional: override session code
-	Context  string            `json:"context,omitempty"`    // Optional: additional context
-	RunID    string            `json:"run_id,omitempty"`     // Optional: reference to a run
-	Stream   bool              `json:"stream,omitempty"`     // Whether to stream the response
+	Code          map[string]string `json:"code,omitempty"`          // Optional: override session code
+	Context       string            `json:"context,omitempty"`       // Optional: additional context
+	RunID         string            `json:"run_id,omitempty"`        // Optional: reference to a run
+	Stream        bool              `json:"stream,omitempty"`        // Whether to stream the response
+	RequestLevel  int               `json:"request_level,omitempty"` // Explicit level request (4 or 5 for escalation)
+	Justification string            `json:"justification,omitempty"` // Required for L4/L5 escalation
 }
 
 func (s *Server) handleHint(w http.ResponseWriter, r *http.Request) {
@@ -644,6 +647,168 @@ func (s *Server) handleNext(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleExplain(w http.ResponseWriter, r *http.Request) {
 	s.handlePairing(w, r, domain.IntentExplain)
+}
+
+func (s *Server) handleEscalate(w http.ResponseWriter, r *http.Request) {
+	s.handlePairingWithEscalation(w, r)
+}
+
+// handlePairingWithEscalation handles explicit escalation to L4/L5 levels
+func (s *Server) handlePairingWithEscalation(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+
+	// Parse request - must have escalation details
+	var req struct {
+		Code          map[string]string `json:"code,omitempty"`
+		Context       string            `json:"context,omitempty"`
+		RunID         string            `json:"run_id,omitempty"`
+		Stream        bool              `json:"stream,omitempty"`
+		Level         int               `json:"level"`         // Required: 4 or 5
+		Justification string            `json:"justification"` // Required: why escalation is needed
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	// Validate escalation request
+	if req.Level != 4 && req.Level != 5 {
+		s.jsonError(w, http.StatusBadRequest, "escalation requires level 4 or 5", nil)
+		return
+	}
+
+	if strings.TrimSpace(req.Justification) == "" {
+		s.jsonError(w, http.StatusBadRequest, "justification required for escalation", nil)
+		return
+	}
+
+	if len(req.Justification) < 20 {
+		s.jsonError(w, http.StatusBadRequest, "please provide a more detailed justification (at least 20 characters)", nil)
+		return
+	}
+
+	// Get session
+	sess, err := s.sessionService.Get(r.Context(), sessionID)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	if sess.Status != session.StatusActive {
+		s.jsonError(w, http.StatusBadRequest, "session is not active", nil)
+		return
+	}
+
+	// Check if user has made sufficient attempts before allowing escalation
+	if sess.HintCount < 2 {
+		s.jsonError(w, http.StatusBadRequest, "please try at least 2 hints before requesting escalation", nil)
+		return
+	}
+
+	// Check cooldown for high-level interventions
+	if !sess.CanRequestIntervention(domain.L4PartialSolution) {
+		remaining := sess.CooldownRemaining()
+		s.jsonResponse(w, http.StatusTooManyRequests, map[string]interface{}{
+			"error":              "cooldown active",
+			"cooldown_remaining": remaining.Seconds(),
+			"message":            fmt.Sprintf("Please wait %.0f seconds before requesting escalation", remaining.Seconds()),
+		})
+		return
+	}
+
+	// Load exercise for context
+	var ex *domain.Exercise
+	parts := strings.SplitN(sess.ExerciseID, "/", 2)
+	if len(parts) >= 2 {
+		ex, _ = s.exerciseLoader.LoadExercise(parts[0], parts[1])
+	}
+
+	// Use provided code or session's code
+	code := sess.Code
+	if len(req.Code) > 0 {
+		code = req.Code
+	}
+
+	// Create escalation policy that allows higher levels
+	escalationPolicy := sess.Policy
+	escalationPolicy.MaxLevel = domain.InterventionLevel(req.Level)
+
+	// Build intervention context with justification
+	pairingCtx := pairing.InterventionContext{
+		Exercise: ex,
+		Code:     code,
+	}
+
+	// Build intervention request with escalation
+	pairingReq := pairing.InterventionRequest{
+		SessionID:     uuid.MustParse(sess.ID),
+		UserID:        uuid.Nil,
+		Intent:        domain.IntentStuck, // Escalation uses stuck intent
+		Context:       pairingCtx,
+		Policy:        escalationPolicy,
+		ExplicitLevel: domain.InterventionLevel(req.Level),
+		Justification: req.Justification,
+	}
+
+	if req.RunID != "" {
+		runUUID := uuid.MustParse(req.RunID)
+		pairingReq.RunID = &runUUID
+	}
+
+	// Log the escalation request
+	slog.Info("explicit escalation requested",
+		"session_id", sessionID,
+		"level", req.Level,
+		"justification", req.Justification,
+		"hint_count", sess.HintCount,
+	)
+
+	// Handle streaming vs non-streaming
+	if req.Stream {
+		s.handlePairingStream(w, r, pairingReq, sess)
+		return
+	}
+
+	// Non-streaming: generate intervention
+	intervention, err := s.pairingService.Intervene(r.Context(), pairingReq)
+	if err != nil {
+		slog.Error("escalation intervention failed", "error", err)
+		s.jsonError(w, http.StatusInternalServerError, "failed to generate escalation response", err)
+		return
+	}
+
+	// Record intervention in session
+	sessionIntervention := &session.Intervention{
+		ID:        intervention.ID.String(),
+		SessionID: sess.ID,
+		Intent:    intervention.Intent,
+		Level:     intervention.Level,
+		Type:      intervention.Type,
+		Content:   intervention.Content,
+		CreatedAt: time.Now(),
+	}
+	if req.RunID != "" {
+		sessionIntervention.RunID = &req.RunID
+	}
+
+	if err := s.sessionService.RecordIntervention(r.Context(), sessionIntervention); err != nil {
+		slog.Warn("failed to record escalation", "error", err)
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"id":            intervention.ID.String(),
+		"intent":        intervention.Intent,
+		"level":         intervention.Level,
+		"type":          intervention.Type,
+		"content":       intervention.Content,
+		"escalated":     true,
+		"justification": req.Justification,
+	})
 }
 
 // handlePairing is the common handler for all pairing endpoints
