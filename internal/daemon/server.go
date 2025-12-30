@@ -7,14 +7,17 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/config"
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/llm"
+	"github.com/felixgeelhaar/temper/internal/pairing"
 	"github.com/felixgeelhaar/temper/internal/runner"
 	"github.com/felixgeelhaar/temper/internal/session"
+	"github.com/google/uuid"
 )
 
 // Server represents the Temper daemon HTTP server
@@ -28,6 +31,7 @@ type Server struct {
 	exerciseLoader *exercise.Loader
 	runnerExecutor runner.Executor
 	sessionService *session.Service
+	pairingService *pairing.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -89,6 +93,9 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		return nil, fmt.Errorf("create session store: %w", err)
 	}
 	s.sessionService = session.NewService(sessionStore, s.exerciseLoader, s.runnerExecutor)
+
+	// Initialize pairing service
+	s.pairingService = pairing.NewService(s.llmRegistry, cfg.Config.LLM.DefaultProvider)
 
 	// Setup routes
 	s.setupRoutes()
@@ -502,26 +509,207 @@ func (s *Server) handleFormat(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Pairing handlers (placeholder - will use pairing service)
+// Pairing handlers
+
+// pairingRequest is the common request format for pairing endpoints
+type pairingRequest struct {
+	Code     map[string]string `json:"code,omitempty"`       // Optional: override session code
+	Context  string            `json:"context,omitempty"`    // Optional: additional context
+	RunID    string            `json:"run_id,omitempty"`     // Optional: reference to a run
+	Stream   bool              `json:"stream,omitempty"`     // Whether to stream the response
+}
 
 func (s *Server) handleHint(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "pairing not yet implemented", nil)
+	s.handlePairing(w, r, domain.IntentHint)
 }
 
 func (s *Server) handleReview(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "pairing not yet implemented", nil)
+	s.handlePairing(w, r, domain.IntentReview)
 }
 
 func (s *Server) handleStuck(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "pairing not yet implemented", nil)
+	s.handlePairing(w, r, domain.IntentStuck)
 }
 
 func (s *Server) handleNext(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "pairing not yet implemented", nil)
+	s.handlePairing(w, r, domain.IntentNext)
 }
 
 func (s *Server) handleExplain(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "pairing not yet implemented", nil)
+	s.handlePairing(w, r, domain.IntentExplain)
+}
+
+// handlePairing is the common handler for all pairing endpoints
+func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request, intent domain.Intent) {
+	sessionID := r.PathValue("id")
+
+	// Parse request
+	var req pairingRequest
+	if r.Body != nil && r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+			return
+		}
+	}
+
+	// Get session
+	sess, err := s.sessionService.Get(r.Context(), sessionID)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	if sess.Status != session.StatusActive {
+		s.jsonError(w, http.StatusBadRequest, "session is not active", nil)
+		return
+	}
+
+	// Check cooldown for L3+ interventions
+	if !sess.CanRequestIntervention(domain.L3ConstrainedSnippet) {
+		remaining := sess.CooldownRemaining()
+		s.jsonResponse(w, http.StatusTooManyRequests, map[string]interface{}{
+			"error":             "cooldown active",
+			"cooldown_remaining": remaining.Seconds(),
+			"message":           fmt.Sprintf("Please wait %.0f seconds before requesting more detailed help", remaining.Seconds()),
+		})
+		return
+	}
+
+	// Load exercise for context
+	var ex *domain.Exercise
+	parts := strings.SplitN(sess.ExerciseID, "/", 2)
+	if len(parts) >= 2 {
+		ex, _ = s.exerciseLoader.LoadExercise(parts[0], parts[1])
+	}
+
+	// Use provided code or session's code
+	code := sess.Code
+	if len(req.Code) > 0 {
+		code = req.Code
+	}
+
+	// Build intervention context
+	pairingCtx := pairing.InterventionContext{
+		Exercise: ex,
+		Code:     code,
+	}
+
+	// Build intervention request
+	pairingReq := pairing.InterventionRequest{
+		SessionID: uuid.MustParse(sess.ID),
+		UserID:    uuid.Nil, // Local daemon - no user auth
+		Intent:    intent,
+		Context:   pairingCtx,
+		Policy:    sess.Policy,
+	}
+
+	if req.RunID != "" {
+		runUUID := uuid.MustParse(req.RunID)
+		pairingReq.RunID = &runUUID
+	}
+
+	// Handle streaming vs non-streaming
+	if req.Stream {
+		s.handlePairingStream(w, r, pairingReq, sess)
+		return
+	}
+
+	// Non-streaming: generate intervention
+	intervention, err := s.pairingService.Intervene(r.Context(), pairingReq)
+	if err != nil {
+		slog.Error("intervention failed", "error", err)
+		s.jsonError(w, http.StatusInternalServerError, "failed to generate intervention", err)
+		return
+	}
+
+	// Record intervention in session
+	sessionIntervention := &session.Intervention{
+		ID:        intervention.ID.String(),
+		SessionID: sess.ID,
+		Intent:    intervention.Intent,
+		Level:     intervention.Level,
+		Type:      intervention.Type,
+		Content:   intervention.Content,
+		CreatedAt: time.Now(),
+	}
+	if req.RunID != "" {
+		sessionIntervention.RunID = &req.RunID
+	}
+
+	if err := s.sessionService.RecordIntervention(r.Context(), sessionIntervention); err != nil {
+		slog.Warn("failed to record intervention", "error", err)
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"id":      intervention.ID.String(),
+		"intent":  intervention.Intent,
+		"level":   intervention.Level,
+		"type":    intervention.Type,
+		"content": intervention.Content,
+	})
+}
+
+// handlePairingStream handles streaming intervention responses via SSE
+func (s *Server) handlePairingStream(w http.ResponseWriter, r *http.Request, req pairing.InterventionRequest, sess *session.Session) {
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		s.jsonError(w, http.StatusInternalServerError, "streaming not supported", nil)
+		return
+	}
+
+	// Start streaming
+	stream, err := s.pairingService.IntervenStream(r.Context(), req)
+	if err != nil {
+		fmt.Fprintf(w, "event: error\ndata: %s\n\n", err.Error())
+		flusher.Flush()
+		return
+	}
+
+	var contentBuilder strings.Builder
+	var level domain.InterventionLevel
+	var interventionType domain.InterventionType
+
+	for chunk := range stream {
+		switch chunk.Type {
+		case "metadata":
+			if chunk.Metadata != nil {
+				level = chunk.Metadata.Level
+				interventionType = chunk.Metadata.Type
+				fmt.Fprintf(w, "event: metadata\ndata: {\"level\":%d,\"type\":\"%s\"}\n\n", level, interventionType)
+			}
+		case "content":
+			contentBuilder.WriteString(chunk.Content)
+			fmt.Fprintf(w, "event: content\ndata: %s\n\n", chunk.Content)
+		case "error":
+			fmt.Fprintf(w, "event: error\ndata: %s\n\n", chunk.Error.Error())
+		case "done":
+			// Record the complete intervention
+			intervention := &session.Intervention{
+				ID:        uuid.New().String(),
+				SessionID: sess.ID,
+				Intent:    req.Intent,
+				Level:     level,
+				Type:      interventionType,
+				Content:   contentBuilder.String(),
+				CreatedAt: time.Now(),
+			}
+			if err := s.sessionService.RecordIntervention(r.Context(), intervention); err != nil {
+				slog.Warn("failed to record intervention", "error", err)
+			}
+
+			fmt.Fprintf(w, "event: done\ndata: {\"id\":\"%s\"}\n\n", intervention.ID)
+		}
+		flusher.Flush()
+	}
 }
 
 // Helper methods
