@@ -15,12 +15,12 @@ Outcomes
 • Learning progression is visible
 • AI restraint is trusted
 Focus
-• ✅ Deliberate coding practice sandbox (web UI with Monaco editor)
+• ✅ CLI-first architecture (temper CLI + temperd daemon)
+• ✅ Editor-native practice (VS Code extension, MCP server for Cursor)
 • ✅ Core intervention engine (L0-L5 levels, pairing engine)
 • ✅ Learning profiles (skill tracking, error patterns, hint dependency)
 • ✅ Exercise system (41 exercises: Go, Python, TypeScript)
-• ✅ CLI tools (temper start/stop/status/stats/exercise)
-• ✅ Editor integrations (VS Code extension, MCP server for Cursor)
+• ✅ Analytics CLI (temper stats: overview, skills, errors, trends)
 • 🔨 Dynamic mode shifting (Teach → Pair → Review)
 • ⏳ Learning journey orchestration (next exercise recommendations)
 • ⏳ Plateau/over-reliance detection

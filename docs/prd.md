@@ -66,9 +66,12 @@ Product: Temper
     • 🔨 Confidence (self-assessment)
 
     Craft Workspace ✅
-    A controlled environment to:
-    • ✅ Create artifacts (code workspaces)
+    Editor-native practice environment:
+    • ✅ CLI-first architecture (temper CLI + daemon)
+    • ✅ VS Code extension integration
+    • ✅ Cursor integration via MCP server
     • ✅ Iterate (run checks, get feedback)
+    • ⏳ Neovim plugin
     • ⏳ Reflect (session retrospectives)
 
     Pairing Modes (Dynamic) 🔨
@@ -100,7 +103,7 @@ Product: Temper
     • Frustration vs growth balance
     • Trust calibration
     • Over-restriction vs under-guidance
-    • Transition from sandbox to real environments
+    • Exercise isolation vs real project integration
     These are learning risks, not technical risks.
     ⸻
 13. Business Model (Exploratory)
