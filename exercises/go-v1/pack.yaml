@@ -8,6 +8,7 @@ language: go
 difficulty_range:
   - beginner
   - intermediate
+  - advanced
 
 default_policy:
   max_level: 3
@@ -16,7 +17,17 @@ default_policy:
   track: practice
 
 exercises:
+  # Basics
   - basics/hello-world
   - basics/variables
   - basics/functions
+  - basics/slices
+  - basics/maps
+  # Intermediate
+  - intermediate/structs
+  - intermediate/errors
+  - intermediate/interfaces
+  # Testing
   - testing/table-tests
+  # Advanced
+  - advanced/concurrency

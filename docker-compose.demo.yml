@@ -1,0 +1,97 @@
+# Demo environment with pre-seeded test accounts
+# Usage:
+#   docker-compose -f docker-compose.demo.yml up -d
+#   docker-compose -f docker-compose.demo.yml down -v  # Reset demo data
+
+services:
+  # PostgreSQL with demo data
+  demo-postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=temper
+      - POSTGRES_PASSWORD=temper
+      - POSTGRES_DB=temper
+    volumes:
+      - demo_postgres_data:/var/lib/postgresql/data
+      - ./sql/migrations/001_initial.up.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./demo/seeds/02_demo_users.sql:/docker-entrypoint-initdb.d/02_demo_users.sql:ro
+      - ./demo/seeds/03_demo_artifacts.sql:/docker-entrypoint-initdb.d/03_demo_artifacts.sql:ro
+      - ./demo/seeds/04_demo_profiles.sql:/docker-entrypoint-initdb.d/04_demo_profiles.sql:ro
+      - ./demo/seeds/05_demo_runs.sql:/docker-entrypoint-initdb.d/05_demo_runs.sql:ro
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts with dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temper -d temper"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - demo-net
+
+  # RabbitMQ for demo
+  demo-rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=temper
+      - RABBITMQ_DEFAULT_PASS=temper
+    volumes:
+      - demo_rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5673:5672"   # Different port to avoid conflicts
+      - "15673:15672" # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - demo-net
+
+  # Demo API server
+  demo-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8081:8080"  # Different port for demo
+    environment:
+      - PORT=8080
+      - DEBUG=true
+      - DATABASE_URL=postgres://temper:temper@demo-postgres:5432/temper?sslmode=disable
+      - RABBITMQ_URL=amqp://temper:temper@demo-rabbitmq:5672/
+      - RUNNER_POOL_SIZE=2
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2}
+      - OLLAMA_URL=http://demo-ollama:11434
+      - SESSION_SECRET=demo-secret-not-for-production
+      - EXERCISES_PATH=/app/exercises
+    depends_on:
+      demo-postgres:
+        condition: service_healthy
+      demo-rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./exercises:/app/exercises:ro
+    networks:
+      - demo-net
+    restart: unless-stopped
+
+  # Ollama for demo (local LLM)
+  demo-ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11435:11434"  # Different port for demo
+    volumes:
+      - demo_ollama_data:/root/.ollama
+    networks:
+      - demo-net
+
+volumes:
+  demo_postgres_data:
+  demo_rabbitmq_data:
+  demo_ollama_data:
+
+networks:
+  demo-net:
+    driver: bridge
