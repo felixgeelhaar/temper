@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { workspaces, runs, pairing, type Workspace, type Run, type Session } from '../../lib/api';
+import { workspaces, runs, pairing, exercises, type Workspace, type Run, type Session } from '../../lib/api';
 import MonacoEditor from '../editor/MonacoEditor.vue';
 import OutputPanel from './OutputPanel.vue';
 import PairingFeed from '../pairing/PairingFeed.vue';
@@ -113,20 +113,32 @@ async function formatCode() {
 }
 
 // Navigate to next exercise
-function goToNextExercise() {
+async function goToNextExercise() {
   if (!workspace.value?.exercise_id) {
     window.location.href = '/exercises';
     return;
   }
 
-  // Parse current exercise ID (e.g., "go-v1/basics/hello-world")
-  const parts = workspace.value.exercise_id.split('/');
-  if (parts.length >= 2) {
-    const packId = parts[0];
-    // Navigate to exercises page for now - a smarter approach would fetch the next exercise
-    window.location.href = `/exercises/${packId}`;
-  } else {
-    window.location.href = '/exercises';
+  loading.value = true;
+  error.value = '';
+
+  try {
+    const result = await exercises.getNextExercise(workspace.value.exercise_id);
+
+    if (result.completed) {
+      // User completed all exercises in the pack
+      const parts = workspace.value.exercise_id.split('/');
+      const packId = parts[0] || 'go-v1';
+      window.location.href = `/exercises/${packId}?completed=true`;
+    } else if (result.workspace) {
+      // Navigate to the next exercise workspace
+      window.location.href = `/sandbox/${result.workspace.id}`;
+    } else {
+      window.location.href = '/exercises';
+    }
+  } catch (err: any) {
+    error.value = err.data?.error || 'Failed to load next exercise';
+    loading.value = false;
   }
 }
 

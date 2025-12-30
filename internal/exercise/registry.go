@@ -144,6 +144,48 @@ func (r *Registry) GetExercisesByDifficulty(difficulty domain.Difficulty) []*dom
 	return exercises
 }
 
+// GetNextExercise returns the next exercise in the pack after the given exercise ID
+// Returns nil if there is no next exercise (current is the last one)
+func (r *Registry) GetNextExercise(currentExerciseID string) (*domain.Exercise, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// Find which pack contains this exercise
+	var pack *domain.ExercisePack
+	for _, p := range r.packs {
+		for _, exID := range p.ExerciseIDs {
+			if exID == currentExerciseID {
+				pack = p
+				break
+			}
+		}
+		if pack != nil {
+			break
+		}
+	}
+
+	if pack == nil {
+		return nil, fmt.Errorf("exercise not found in any pack: %s", currentExerciseID)
+	}
+
+	// Find the current exercise index and return the next one
+	for i, exID := range pack.ExerciseIDs {
+		if exID == currentExerciseID {
+			// Check if there's a next exercise
+			if i+1 < len(pack.ExerciseIDs) {
+				nextID := pack.ExerciseIDs[i+1]
+				if nextEx, ok := r.exercises[nextID]; ok {
+					return nextEx, nil
+				}
+			}
+			// No next exercise - this is the last one
+			return nil, nil
+		}
+	}
+
+	return nil, fmt.Errorf("exercise not found: %s", currentExerciseID)
+}
+
 // GetExercisesByTag returns exercises that have a specific tag
 func (r *Registry) GetExercisesByTag(tag string) []*domain.Exercise {
 	r.mu.RLock()

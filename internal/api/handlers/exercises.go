@@ -180,6 +180,64 @@ func (h *ExerciseHandler) StartExercise(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// GetNextExercise returns the next exercise after the current one and starts it
+func (h *ExerciseHandler) GetNextExercise(w http.ResponseWriter, r *http.Request) {
+	// Get user from context
+	userID, ok := getUserIDFromContext(r.Context())
+	if !ok {
+		h.jsonError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	// Get current exercise ID from query param
+	currentExerciseID := r.URL.Query().Get("current")
+	if currentExerciseID == "" {
+		h.jsonError(w, http.StatusBadRequest, "current exercise ID required")
+		return
+	}
+
+	// Get the next exercise
+	nextEx, err := h.registry.GetNextExercise(currentExerciseID)
+	if err != nil {
+		h.jsonError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	if nextEx == nil {
+		// No more exercises - return completion message
+		h.jsonResponse(w, http.StatusOK, map[string]any{
+			"completed": true,
+			"message":   "Congratulations! You've completed all exercises in this pack.",
+		})
+		return
+	}
+
+	// Create workspace for the next exercise
+	artifact, err := h.workspaceService.CreateFromExercise(r.Context(), userID, nextEx)
+	if err != nil {
+		h.jsonError(w, http.StatusInternalServerError, "failed to create workspace")
+		return
+	}
+
+	h.jsonResponse(w, http.StatusOK, map[string]any{
+		"completed": false,
+		"workspace": WorkspaceResponse{
+			ID:         artifact.ID.String(),
+			Name:       artifact.Name,
+			ExerciseID: artifact.ExerciseID,
+			CreatedAt:  artifact.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:  artifact.UpdatedAt.Format(time.RFC3339),
+		},
+		"exercise": ExerciseSummary{
+			ID:          nextEx.ID,
+			Title:       nextEx.Title,
+			Difficulty:  string(nextEx.Difficulty),
+			Description: nextEx.Description,
+			Tags:        nextEx.Tags,
+		},
+	})
+}
+
 // getUserIDFromContext extracts the user ID from request context
 func getUserIDFromContext(ctx interface{ Value(any) any }) (uuid.UUID, bool) {
 	user := ctx.Value(ContextKeyUser)

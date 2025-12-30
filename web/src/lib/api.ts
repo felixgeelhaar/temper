@@ -81,7 +81,20 @@ export const exercises = {
       `/api/v1/exercises/${packId}/${slug}/start`,
       { method: 'POST' }
     ),
+
+  getNextExercise: (currentExerciseId: string) =>
+    request<NextExerciseResponse>(`/api/v1/exercises/next`, {
+      params: { current: currentExerciseId },
+    }),
 };
+
+// Next exercise response type
+export interface NextExerciseResponse {
+  completed: boolean;
+  message?: string;
+  workspace?: Workspace;
+  exercise?: ExerciseSummary;
+}
 
 // Workspaces API
 export const workspaces = {

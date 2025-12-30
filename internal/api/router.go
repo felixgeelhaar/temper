@@ -62,6 +62,7 @@ func (r *Router) registerRoutes() {
 
 	// Exercises (public read, auth required for start)
 	r.mux.HandleFunc("GET /api/v1/exercises", r.exercise.ListPacks)
+	r.mux.HandleFunc("GET /api/v1/exercises/next", r.requireAuth(r.exercise.GetNextExercise))
 	r.mux.HandleFunc("GET /api/v1/exercises/{pack}", r.exercise.ListPackExercises)
 	r.mux.HandleFunc("GET /api/v1/exercises/{pack}/{category}/{slug}", r.exercise.GetExercise)
 	r.mux.HandleFunc("POST /api/v1/exercises/{pack}/{category}/{slug}/start", r.requireAuth(r.exercise.StartExercise))
