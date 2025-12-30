@@ -186,3 +186,8 @@ func (s *Service) Wait(ctx context.Context, runID uuid.UUID) error {
 		return ctx.Err()
 	}
 }
+
+// FormatCode formats Go code and returns the formatted version
+func (s *Service) FormatCode(ctx context.Context, code map[string]string) (map[string]string, error) {
+	return s.executor.RunFormatFix(ctx, code)
+}

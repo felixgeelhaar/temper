@@ -79,6 +79,7 @@ func (r *Router) registerRoutes() {
 	r.mux.HandleFunc("POST /api/v1/runs", r.requireAuth(r.run.TriggerRun))
 	r.mux.HandleFunc("GET /api/v1/runs/{id}", r.requireAuth(r.run.GetRun))
 	r.mux.HandleFunc("GET /api/v1/runs/{id}/stream", r.requireAuth(r.run.StreamRun))
+	r.mux.HandleFunc("POST /api/v1/workspaces/{workspace_id}/format", r.requireAuth(r.run.FormatWorkspace))
 
 	// Pairing (requires auth)
 	r.mux.HandleFunc("POST /api/v1/pairing/sessions", r.requireAuth(r.pairing.StartSession))

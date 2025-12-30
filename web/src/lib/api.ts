@@ -105,6 +105,12 @@ export const workspaces = {
 
   delete: (id: string) =>
     request<void>(`/api/v1/workspaces/${id}`, { method: 'DELETE' }),
+
+  format: (id: string) =>
+    request<{ content: Record<string, string>; message: string }>(
+      `/api/v1/workspaces/${id}/format`,
+      { method: 'POST' }
+    ),
 };
 
 // Runs API

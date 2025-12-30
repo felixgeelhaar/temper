@@ -90,14 +90,25 @@ async function runCode() {
   }
 }
 
-// Format code using Monaco's built-in formatter
+// Format code using server-side gofmt
 async function formatCode() {
-  if (editorRef.value) {
-    await editorRef.value.format();
-    // Save after formatting
-    await saveWorkspace();
-    // Re-run to check if format passes now
+  if (!workspace.value) return;
+
+  running.value = true;
+  error.value = '';
+
+  try {
+    // Call server-side format API
+    const result = await workspaces.format(props.workspaceId);
+
+    // Update local files with formatted code
+    files.value = result.content;
+
+    // Re-run to verify format passes
     await runCode();
+  } catch (err: any) {
+    error.value = err.data?.error || 'Failed to format code';
+    running.value = false;
   }
 }
 

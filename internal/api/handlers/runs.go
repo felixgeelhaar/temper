@@ -157,6 +157,51 @@ func (h *RunHandler) GetRun(w http.ResponseWriter, r *http.Request) {
 	h.jsonError(w, http.StatusNotFound, "run not found or already completed")
 }
 
+// FormatWorkspace formats the code in a workspace using gofmt
+func (h *RunHandler) FormatWorkspace(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserIDFromContext(r.Context())
+	if !ok {
+		h.jsonError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	wsID, err := uuid.Parse(r.PathValue("workspace_id"))
+	if err != nil {
+		h.jsonError(w, http.StatusBadRequest, "invalid workspace ID")
+		return
+	}
+
+	// Get workspace
+	ws, err := h.workspaceService.Get(r.Context(), wsID, userID)
+	if err != nil {
+		h.jsonError(w, http.StatusNotFound, "workspace not found")
+		return
+	}
+
+	// Format the code
+	formattedCode, err := h.runnerService.FormatCode(r.Context(), ws.Content)
+	if err != nil {
+		h.jsonError(w, http.StatusInternalServerError, fmt.Sprintf("format failed: %v", err))
+		return
+	}
+
+	// Update the workspace with formatted code
+	_, err = h.workspaceService.Update(r.Context(), workspace.UpdateRequest{
+		ID:      wsID,
+		UserID:  userID,
+		Content: formattedCode,
+	})
+	if err != nil {
+		h.jsonError(w, http.StatusInternalServerError, "failed to update workspace")
+		return
+	}
+
+	h.jsonResponse(w, http.StatusOK, map[string]any{
+		"content": formattedCode,
+		"message": "code formatted successfully",
+	})
+}
+
 // StreamRun streams run progress via SSE
 func (h *RunHandler) StreamRun(w http.ResponseWriter, r *http.Request) {
 	_, ok := getUserIDFromContext(r.Context())

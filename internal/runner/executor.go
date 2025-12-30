@@ -23,6 +23,9 @@ type Executor interface {
 	// RunFormat runs gofmt and returns diff
 	RunFormat(ctx context.Context, code map[string]string) (*FormatResult, error)
 
+	// RunFormatFix runs gofmt and returns formatted code
+	RunFormatFix(ctx context.Context, code map[string]string) (map[string]string, error)
+
 	// RunBuild runs go build
 	RunBuild(ctx context.Context, code map[string]string) (*BuildResult, error)
 
@@ -85,6 +88,40 @@ func (e *LocalExecutor) RunFormat(ctx context.Context, code map[string]string) (
 		OK:   diff == "",
 		Diff: diff,
 	}, nil
+}
+
+func (e *LocalExecutor) RunFormatFix(ctx context.Context, code map[string]string) (map[string]string, error) {
+	// Create a copy of the code map for the result
+	result := make(map[string]string)
+	for filename, content := range code {
+		result[filename] = content
+	}
+
+	// Create temp directory for code
+	tmpDir, err := createTempCodeDir(code)
+	if err != nil {
+		return nil, err
+	}
+	defer removeTempDir(tmpDir)
+
+	// Run gofmt on each .go file and read the formatted output
+	for filename := range code {
+		if !strings.HasSuffix(filename, ".go") {
+			continue
+		}
+		filePath := filepath.Join(tmpDir, filename)
+
+		// Run gofmt and get formatted output
+		cmd := exec.CommandContext(ctx, "gofmt", filePath)
+		output, err := cmd.Output()
+		if err != nil {
+			// If gofmt fails (syntax error), keep original
+			continue
+		}
+		result[filename] = string(output)
+	}
+
+	return result, nil
 }
 
 func (e *LocalExecutor) RunBuild(ctx context.Context, code map[string]string) (*BuildResult, error) {
@@ -324,6 +361,36 @@ func (e *DockerExecutor) RunFormat(ctx context.Context, code map[string]string) 
 		OK:   exitCode == 0 && output == "",
 		Diff: output,
 	}, nil
+}
+
+func (e *DockerExecutor) RunFormatFix(ctx context.Context, code map[string]string) (map[string]string, error) {
+	// Create a copy of the code map for the result
+	result := make(map[string]string)
+	for filename, content := range code {
+		result[filename] = content
+	}
+
+	// Create execution context with timeout
+	execCtx, cancel := context.WithTimeout(ctx, e.timeout)
+	defer cancel()
+
+	// Format each Go file individually to get the formatted output
+	for filename := range code {
+		if !strings.HasSuffix(filename, ".go") {
+			continue
+		}
+
+		// Run gofmt on the file and capture output
+		cmd := []string{"gofmt", "/workspace/" + filename}
+		output, exitCode, err := e.runInContainer(execCtx, code, cmd)
+		if err != nil || exitCode != 0 {
+			// If gofmt fails (syntax error), keep original
+			continue
+		}
+		result[filename] = output
+	}
+
+	return result, nil
 }
 
 func (e *DockerExecutor) RunBuild(ctx context.Context, code map[string]string) (*BuildResult, error) {
