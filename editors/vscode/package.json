@@ -1,0 +1,160 @@
+{
+  "name": "temper",
+  "displayName": "Temper - Adaptive AI Pairing",
+  "description": "AI pairing tool for learning through deliberate practice with controlled assistance",
+  "version": "0.1.0",
+  "publisher": "felixgeelhaar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felixgeelhaar/temper"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "learning",
+    "pairing",
+    "go",
+    "education"
+  ],
+  "activationEvents": [
+    "onLanguage:go"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "temper.start",
+        "title": "Temper: Start Session"
+      },
+      {
+        "command": "temper.stop",
+        "title": "Temper: Stop Session"
+      },
+      {
+        "command": "temper.status",
+        "title": "Temper: Show Status"
+      },
+      {
+        "command": "temper.hint",
+        "title": "Temper: Get Hint"
+      },
+      {
+        "command": "temper.review",
+        "title": "Temper: Request Review"
+      },
+      {
+        "command": "temper.stuck",
+        "title": "Temper: I'm Stuck"
+      },
+      {
+        "command": "temper.next",
+        "title": "Temper: What's Next"
+      },
+      {
+        "command": "temper.explain",
+        "title": "Temper: Explain"
+      },
+      {
+        "command": "temper.run",
+        "title": "Temper: Run Checks"
+      },
+      {
+        "command": "temper.format",
+        "title": "Temper: Format Code"
+      },
+      {
+        "command": "temper.exercises",
+        "title": "Temper: List Exercises"
+      },
+      {
+        "command": "temper.setMode",
+        "title": "Temper: Set Learning Mode"
+      },
+      {
+        "command": "temper.health",
+        "title": "Temper: Check Daemon Health"
+      }
+    ],
+    "configuration": {
+      "title": "Temper",
+      "properties": {
+        "temper.daemon.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Daemon host address"
+        },
+        "temper.daemon.port": {
+          "type": "number",
+          "default": 7432,
+          "description": "Daemon port"
+        },
+        "temper.learningTrack": {
+          "type": "string",
+          "enum": ["practice", "interview-prep"],
+          "default": "practice",
+          "description": "Learning track (affects intervention level limits)"
+        },
+        "temper.autoRunOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run checks when saving files"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "temper",
+          "title": "Temper",
+          "icon": "$(mortar-board)"
+        }
+      ]
+    },
+    "views": {
+      "temper": [
+        {
+          "id": "temper.session",
+          "name": "Session"
+        },
+        {
+          "id": "temper.exercises",
+          "name": "Exercises"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "temper.hint",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "temper.run",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
