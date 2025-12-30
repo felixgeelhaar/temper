@@ -70,6 +70,18 @@ watch(
 onUnmounted(() => {
   editor.value?.dispose();
 });
+
+// Expose format method for parent components
+async function format() {
+  if (editor.value) {
+    await editor.value.getAction('editor.action.formatDocument')?.run();
+  }
+}
+
+// Expose methods to parent
+defineExpose({
+  format,
+});
 </script>
 
 <template>

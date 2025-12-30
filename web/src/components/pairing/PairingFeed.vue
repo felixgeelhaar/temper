@@ -1,6 +1,18 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, computed } from 'vue';
+import { marked } from 'marked';
 import { pairing, type Session, type RunOutput, type Intervention } from '../../lib/api';
+
+// Configure marked for safe rendering
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+// Render markdown to HTML
+function renderMarkdown(content: string): string {
+  return marked.parse(content) as string;
+}
 
 const props = defineProps<{
   session: Session;
@@ -126,8 +138,8 @@ onUnmounted(() => {
       <div class="flex items-center gap-2 mb-2">
         <span class="badge badge-l2">Thinking...</span>
       </div>
-      <div class="text-sm text-gray-300 whitespace-pre-wrap">
-        {{ currentContent }}
+      <div class="text-sm text-gray-300 prose prose-invert prose-sm max-w-none">
+        <div v-html="renderMarkdown(currentContent)"></div>
         <span v-if="loading" class="animate-pulse">▋</span>
       </div>
     </div>
@@ -146,7 +158,7 @@ onUnmounted(() => {
           </span>
           <span class="text-xs text-gray-400 capitalize">{{ intervention.type }}</span>
         </div>
-        <div class="text-sm text-gray-300 whitespace-pre-wrap">{{ intervention.content }}</div>
+        <div class="text-sm text-gray-300 prose prose-invert prose-sm max-w-none" v-html="renderMarkdown(intervention.content)"></div>
       </div>
     </div>
 

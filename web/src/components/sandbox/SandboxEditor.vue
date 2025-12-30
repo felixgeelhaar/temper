@@ -19,6 +19,7 @@ const loading = ref(true);
 const error = ref('');
 const saving = ref(false);
 const running = ref(false);
+const editorRef = ref<InstanceType<typeof MonacoEditor> | null>(null);
 
 // Computed
 const currentCode = computed({
@@ -89,6 +90,35 @@ async function runCode() {
   }
 }
 
+// Format code using Monaco's built-in formatter
+async function formatCode() {
+  if (editorRef.value) {
+    await editorRef.value.format();
+    // Save after formatting
+    await saveWorkspace();
+    // Re-run to check if format passes now
+    await runCode();
+  }
+}
+
+// Navigate to next exercise
+function goToNextExercise() {
+  if (!workspace.value?.exercise_id) {
+    window.location.href = '/exercises';
+    return;
+  }
+
+  // Parse current exercise ID (e.g., "go-v1/basics/hello-world")
+  const parts = workspace.value.exercise_id.split('/');
+  if (parts.length >= 2) {
+    const packId = parts[0];
+    // Navigate to exercises page for now - a smarter approach would fetch the next exercise
+    window.location.href = `/exercises/${packId}`;
+  } else {
+    window.location.href = '/exercises';
+  }
+}
+
 // Keyboard shortcuts
 function handleKeyDown(e: KeyboardEvent) {
   // Cmd/Ctrl + S to save
@@ -100,6 +130,11 @@ function handleKeyDown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     e.preventDefault();
     runCode();
+  }
+  // Cmd/Ctrl + Shift + F to format
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'f') {
+    e.preventDefault();
+    formatCode();
   }
 }
 
@@ -188,6 +223,7 @@ onUnmounted(() => {
         <!-- Editor -->
         <div class="flex-1 overflow-hidden">
           <MonacoEditor
+            ref="editorRef"
             v-model="currentCode"
             :filename="currentFile"
             language="go"
@@ -196,7 +232,13 @@ onUnmounted(() => {
 
         <!-- Output Panel -->
         <div class="h-64 flex-shrink-0 border-t border-gray-700 overflow-hidden">
-          <OutputPanel :run="currentRun" :running="running" />
+          <OutputPanel
+            :run="currentRun"
+            :running="running"
+            :exerciseId="workspace?.exercise_id"
+            @format="formatCode"
+            @nextExercise="goToNextExercise"
+          />
         </div>
       </div>
 

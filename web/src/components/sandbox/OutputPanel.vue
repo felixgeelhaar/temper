@@ -5,7 +5,20 @@ import type { Run } from '../../lib/api';
 const props = defineProps<{
   run: Run | null;
   running: boolean;
+  exerciseId?: string;
 }>();
+
+const emit = defineEmits<{
+  (e: 'format'): void;
+  (e: 'nextExercise'): void;
+}>();
+
+// Check if all checks passed
+const allPassed = computed(() => {
+  if (!props.run?.output) return false;
+  const o = props.run.output;
+  return o.format_passed && o.build_passed && o.test_passed;
+});
 
 // Format duration from nanoseconds to human readable
 function formatDuration(ns: number): string {
@@ -76,15 +89,25 @@ function parseTestOutput(jsonOutput: string): string {
   return parts.join('\n');
 }
 
+// Check specific failure states
+const formatFailed = computed(() => {
+  return props.run?.output && !props.run.output.format_passed;
+});
+
+const buildFailed = computed(() => {
+  return props.run?.output && !props.run.output.build_passed;
+});
+
 const output = computed(() => {
   if (!props.run?.output) return '';
 
   const parts: string[] = [];
 
   // Show format issues if any
-  if (props.run.output.format_output) {
+  if (props.run.output.format_output && !props.run.output.format_passed) {
     parts.push('═══ Format Issues ═══');
     parts.push('Code formatting does not match gofmt standards.');
+    parts.push('Click "Format Code" below to auto-fix.');
     parts.push('');
   }
 
@@ -157,7 +180,47 @@ const summary = computed(() => {
       <div v-else-if="!run" class="text-gray-500">
         Press ⌘+Enter to run your code
       </div>
-      <pre v-else class="text-gray-300 whitespace-pre-wrap">{{ output }}</pre>
+      <template v-else>
+        <!-- Success state -->
+        <div v-if="allPassed" class="mb-4 p-4 bg-green-900/30 border border-green-700 rounded-lg">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🎉</span>
+            <div>
+              <div class="text-green-400 font-semibold">All checks passed!</div>
+              <div class="text-green-300/80 text-xs mt-1">Great work! You've completed this exercise.</div>
+            </div>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button
+              @click="emit('nextExercise')"
+              class="btn btn-sm bg-green-600 hover:bg-green-500 text-white"
+            >
+              Next Exercise →
+            </button>
+            <a href="/exercises" class="btn btn-sm btn-ghost text-green-400">
+              Browse All
+            </a>
+          </div>
+        </div>
+
+        <pre class="text-gray-300 whitespace-pre-wrap">{{ output }}</pre>
+
+        <!-- Action buttons -->
+        <div v-if="formatFailed || buildFailed" class="mt-4 pt-4 border-t border-gray-700">
+          <div v-if="formatFailed" class="mb-2">
+            <button
+              @click="emit('format')"
+              class="btn btn-sm bg-yellow-600 hover:bg-yellow-500 text-white"
+            >
+              🔧 Format Code
+            </button>
+            <span class="text-xs text-gray-400 ml-2">Auto-fix formatting issues</span>
+          </div>
+          <div v-if="buildFailed" class="text-xs text-gray-400">
+            💡 Tip: Check the error messages above and fix the syntax errors in your code.
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>

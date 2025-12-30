@@ -118,3 +118,69 @@ body {
 .badge-l5 {
   @apply bg-purple-100 text-purple-800;
 }
+
+/* Small button variant */
+.btn-sm {
+  @apply px-3 py-1.5 text-xs;
+}
+
+/* Prose styles for markdown in dark mode */
+.prose-invert {
+  color: #d1d5db;
+}
+
+.prose-invert h1, .prose-invert h2, .prose-invert h3, .prose-invert h4 {
+  color: #f3f4f6;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.prose-invert p {
+  margin-bottom: 0.75em;
+}
+
+.prose-invert code {
+  @apply bg-gray-700 px-1.5 py-0.5 rounded text-yellow-300 text-sm;
+}
+
+.prose-invert pre {
+  @apply bg-gray-800 p-3 rounded-lg overflow-x-auto my-2;
+}
+
+.prose-invert pre code {
+  @apply bg-transparent px-0 py-0;
+}
+
+.prose-invert ul, .prose-invert ol {
+  @apply pl-5 my-2;
+}
+
+.prose-invert li {
+  @apply mb-1;
+}
+
+.prose-invert ul {
+  list-style-type: disc;
+}
+
+.prose-invert ol {
+  list-style-type: decimal;
+}
+
+.prose-invert a {
+  @apply text-blue-400 hover:text-blue-300 underline;
+}
+
+.prose-invert blockquote {
+  @apply border-l-4 border-gray-600 pl-4 italic text-gray-400 my-2;
+}
+
+.prose-invert strong {
+  @apply text-white font-semibold;
+}
+
+.prose-sm {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
