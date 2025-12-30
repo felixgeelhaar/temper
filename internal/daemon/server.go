@@ -18,6 +18,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/felixgeelhaar/temper/internal/runner"
 	"github.com/felixgeelhaar/temper/internal/session"
+	"github.com/felixgeelhaar/temper/internal/spec"
 	"github.com/google/uuid"
 )
 
@@ -34,6 +35,7 @@ type Server struct {
 	sessionService *session.Service
 	pairingService *pairing.Service
 	profileService *profile.Service
+	specService    *spec.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -41,6 +43,7 @@ type ServerConfig struct {
 	Config        *config.LocalConfig
 	ExercisePath  string // Primary exercise path
 	SessionsPath  string // Path for session storage
+	SpecsPath     string // Path for spec storage (workspace root for .specs/)
 }
 
 // NewServer creates a new daemon server
@@ -107,6 +110,16 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 
 	// Connect profile service to session service for event hooks
 	s.sessionService.SetProfileService(s.profileService)
+
+	// Initialize spec service
+	specsPath := cfg.SpecsPath
+	if specsPath == "" {
+		specsPath = "." // Default to current working directory
+	}
+	s.specService = spec.NewService(specsPath)
+
+	// Connect spec service to session service for feature guidance
+	s.sessionService.SetSpecService(s.specService)
 
 	// Initialize pairing service
 	s.pairingService = pairing.NewService(s.llmRegistry, cfg.Config.LLM.DefaultProvider)
@@ -210,6 +223,16 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("GET /v1/analytics/skills", s.handleAnalyticsSkills)
 	s.router.HandleFunc("GET /v1/analytics/errors", s.handleAnalyticsErrors)
 	s.router.HandleFunc("GET /v1/analytics/trend", s.handleAnalyticsTrend)
+
+	// Specs (Specular format)
+	s.router.HandleFunc("POST /v1/specs", s.handleCreateSpec)
+	s.router.HandleFunc("GET /v1/specs", s.handleListSpecs)
+	s.router.HandleFunc("POST /v1/specs/validate/{path...}", s.handleValidateSpec)
+	s.router.HandleFunc("PUT /v1/specs/criteria/{id}", s.handleMarkCriterionSatisfied)
+	s.router.HandleFunc("POST /v1/specs/lock/{path...}", s.handleLockSpec)
+	s.router.HandleFunc("GET /v1/specs/progress/{path...}", s.handleGetSpecProgress)
+	s.router.HandleFunc("GET /v1/specs/drift/{path...}", s.handleGetSpecDrift)
+	s.router.HandleFunc("GET /v1/specs/file/{path...}", s.handleGetSpec)
 }
 
 // Start starts the HTTP server
@@ -343,8 +366,11 @@ func (s *Server) handleGetExercise(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ExerciseID string `json:"exercise_id"`
-		Track      string `json:"track,omitempty"`
+		ExerciseID string            `json:"exercise_id,omitempty"` // For training intent
+		SpecPath   string            `json:"spec_path,omitempty"`   // For feature guidance intent
+		Intent     string            `json:"intent,omitempty"`      // Explicit intent (optional)
+		Code       map[string]string `json:"code,omitempty"`        // Initial code (for greenfield/feature)
+		Track      string            `json:"track,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -352,8 +378,9 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.ExerciseID == "" {
-		s.jsonError(w, http.StatusBadRequest, "exercise_id is required", nil)
+	// At least one of exercise_id or spec_path should be provided for non-greenfield
+	if req.ExerciseID == "" && req.SpecPath == "" && req.Intent != "greenfield" {
+		s.jsonError(w, http.StatusBadRequest, "exercise_id or spec_path is required", nil)
 		return
 	}
 
@@ -369,13 +396,37 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Map intent string to SessionIntent
+	var intent session.SessionIntent
+	switch req.Intent {
+	case "training":
+		intent = session.IntentTraining
+	case "feature_guidance":
+		intent = session.IntentFeatureGuidance
+	case "greenfield":
+		intent = session.IntentGreenfield
+	default:
+		intent = "" // Let the service infer it
+	}
+
 	sess, err := s.sessionService.Create(r.Context(), session.CreateRequest{
 		ExerciseID: req.ExerciseID,
+		SpecPath:   req.SpecPath,
+		Intent:     intent,
+		Code:       req.Code,
 		Policy:     policy,
 	})
 	if err != nil {
 		if err == session.ErrExerciseNotFound {
 			s.jsonError(w, http.StatusNotFound, "exercise not found", err)
+			return
+		}
+		if err == session.ErrSpecRequired {
+			s.jsonError(w, http.StatusBadRequest, "spec_path required for feature_guidance intent", err)
+			return
+		}
+		if err == session.ErrSpecInvalid {
+			s.jsonError(w, http.StatusBadRequest, "spec validation failed", err)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to create session", err)
@@ -804,4 +855,207 @@ func (s *Server) handleAnalyticsTrend(w http.ResponseWriter, r *http.Request) {
 	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
 		"trend": trend,
 	})
+}
+
+// Spec handlers
+
+func (s *Server) handleCreateSpec(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name string `json:"name"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.Name == "" {
+		s.jsonError(w, http.StatusBadRequest, "name is required", nil)
+		return
+	}
+
+	specObj, err := s.specService.Create(r.Context(), req.Name)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to create spec", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, specObj)
+}
+
+func (s *Server) handleListSpecs(w http.ResponseWriter, r *http.Request) {
+	specs, err := s.specService.List(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to list specs", err)
+		return
+	}
+
+	// Return summary info
+	result := make([]map[string]interface{}, 0, len(specs))
+	for _, sp := range specs {
+		progress := sp.GetProgress()
+		result = append(result, map[string]interface{}{
+			"name":      sp.Name,
+			"version":   sp.Version,
+			"file_path": sp.FilePath,
+			"progress": map[string]interface{}{
+				"satisfied": progress.SatisfiedCriteria,
+				"total":     progress.TotalCriteria,
+				"percent":   progress.PercentComplete,
+			},
+		})
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"specs": result,
+	})
+}
+
+func (s *Server) handleGetSpec(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	if path == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path is required", nil)
+		return
+	}
+
+	specObj, err := s.specService.Load(r.Context(), path)
+	if err != nil {
+		if err == spec.ErrSpecNotFound {
+			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to load spec", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, specObj)
+}
+
+func (s *Server) handleValidateSpec(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	if path == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path is required", nil)
+		return
+	}
+
+	validation, err := s.specService.Validate(r.Context(), path)
+	if err != nil {
+		if err == spec.ErrSpecNotFound {
+			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to validate spec", err)
+		return
+	}
+
+	status := http.StatusOK
+	if !validation.Valid {
+		status = http.StatusUnprocessableEntity
+	}
+
+	s.jsonResponse(w, status, validation)
+}
+
+func (s *Server) handleMarkCriterionSatisfied(w http.ResponseWriter, r *http.Request) {
+	criterionID := r.PathValue("id")
+
+	var req struct {
+		Path     string `json:"path"`
+		Evidence string `json:"evidence"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.Path == "" || criterionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path and criterion id are required", nil)
+		return
+	}
+
+	path := req.Path
+
+	if err := s.specService.MarkCriterionSatisfied(r.Context(), path, criterionID, req.Evidence); err != nil {
+		if err == spec.ErrSpecNotFound {
+			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			return
+		}
+		if err == spec.ErrCriterionNotFound {
+			s.jsonError(w, http.StatusNotFound, "criterion not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to mark criterion satisfied", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"success":      true,
+		"criterion_id": criterionID,
+		"satisfied":    true,
+	})
+}
+
+func (s *Server) handleLockSpec(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	if path == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path is required", nil)
+		return
+	}
+
+	lock, err := s.specService.Lock(r.Context(), path)
+	if err != nil {
+		if err == spec.ErrSpecNotFound {
+			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			return
+		}
+		if err == spec.ErrSpecInvalid {
+			s.jsonError(w, http.StatusUnprocessableEntity, "spec must be valid before locking", err)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to lock spec", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, lock)
+}
+
+func (s *Server) handleGetSpecProgress(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	if path == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path is required", nil)
+		return
+	}
+
+	progress, err := s.specService.GetProgress(r.Context(), path)
+	if err != nil {
+		if err == spec.ErrSpecNotFound {
+			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get progress", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, progress)
+}
+
+func (s *Server) handleGetSpecDrift(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	if path == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path is required", nil)
+		return
+	}
+
+	drift, err := s.specService.GetDrift(r.Context(), path)
+	if err != nil {
+		if err == spec.ErrSpecNotFound {
+			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get drift report", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, drift)
 }

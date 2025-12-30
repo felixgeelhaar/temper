@@ -7,13 +7,26 @@ import (
 	"github.com/google/uuid"
 )
 
+// SessionIntent represents the type of session (Training, Greenfield, Feature Guidance)
+type SessionIntent string
+
+const (
+	IntentTraining        SessionIntent = "training"
+	IntentGreenfield      SessionIntent = "greenfield"
+	IntentFeatureGuidance SessionIntent = "feature_guidance"
+)
+
 // Session represents an active pairing session
 type Session struct {
 	ID         string            `json:"id"`
-	ExerciseID string            `json:"exercise_id"`
+	ExerciseID string            `json:"exercise_id,omitempty"`
 	Code       map[string]string `json:"code"`
 	Policy     domain.LearningPolicy `json:"policy"`
 	Status     Status            `json:"status"`
+
+	// Session intent and spec (for feature guidance)
+	Intent   SessionIntent `json:"intent"`
+	SpecPath string        `json:"spec_path,omitempty"`
 
 	// Statistics
 	RunCount         int       `json:"run_count"`
@@ -67,7 +80,7 @@ type Intervention struct {
 	CreatedAt time.Time               `json:"created_at"`
 }
 
-// NewSession creates a new session for an exercise
+// NewSession creates a new session for an exercise (training intent)
 func NewSession(exerciseID string, code map[string]string, policy domain.LearningPolicy) *Session {
 	now := time.Now()
 	return &Session{
@@ -76,8 +89,38 @@ func NewSession(exerciseID string, code map[string]string, policy domain.Learnin
 		Code:       code,
 		Policy:     policy,
 		Status:     StatusActive,
+		Intent:     IntentTraining,
 		CreatedAt:  now,
 		UpdatedAt:  now,
+	}
+}
+
+// NewFeatureSession creates a new session for feature guidance with a spec
+func NewFeatureSession(specPath string, code map[string]string, policy domain.LearningPolicy) *Session {
+	now := time.Now()
+	return &Session{
+		ID:        uuid.New().String(),
+		Code:      code,
+		Policy:    policy,
+		Status:    StatusActive,
+		Intent:    IntentFeatureGuidance,
+		SpecPath:  specPath,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+// NewGreenfieldSession creates a new session for greenfield projects
+func NewGreenfieldSession(code map[string]string, policy domain.LearningPolicy) *Session {
+	now := time.Now()
+	return &Session{
+		ID:        uuid.New().String(),
+		Code:      code,
+		Policy:    policy,
+		Status:    StatusActive,
+		Intent:    IntentGreenfield,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 }
 

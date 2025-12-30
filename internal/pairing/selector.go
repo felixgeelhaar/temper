@@ -26,6 +26,9 @@ func (s *Selector) SelectLevel(intent domain.Intent, ctx InterventionContext, po
 	// Adjust based on run output
 	level = s.adjustForRunOutput(level, ctx.RunOutput)
 
+	// Adjust based on spec context (feature guidance sessions)
+	level = s.adjustForSpec(level, ctx)
+
 	return level
 }
 
@@ -113,6 +116,44 @@ func (s *Selector) adjustForRunOutput(level domain.InterventionLevel, output *do
 	// If many tests failing, provide more guidance
 	if output.TestsFailed > 3 && level < domain.L2LocationConcept {
 		return domain.L2LocationConcept
+	}
+
+	return level
+}
+
+// adjustForSpec adjusts level based on spec context for feature guidance sessions
+func (s *Selector) adjustForSpec(level domain.InterventionLevel, ctx InterventionContext) domain.InterventionLevel {
+	if !ctx.HasSpec() {
+		return level
+	}
+
+	// Feature guidance sessions are more structured
+	// We anchor feedback to acceptance criteria
+
+	// If there's a focus criterion, keep level focused
+	if ctx.FocusCriterion != nil {
+		// If working on a specific criterion, provide targeted help
+		// but maintain learning-first approach
+		return level
+	}
+
+	// Check spec progress - if many criteria satisfied, user is doing well
+	satisfied, total := ctx.SpecProgress()
+	if total > 0 {
+		progress := float64(satisfied) / float64(total)
+
+		// If significant progress, trust the user more
+		if progress > 0.5 && level > domain.L1CategoryHint {
+			return domain.InterventionLevel(int(level) - 1)
+		}
+	}
+
+	// Detect potential scope drift - if code is going off-spec,
+	// guide back gently
+	drift := ctx.CheckScopeDrift()
+	if drift != nil && len(drift.OutOfScopeAPIs) > 0 {
+		// Don't escalate level, but this info will be in the prompt
+		// to help anchor feedback to spec scope
 	}
 
 	return level

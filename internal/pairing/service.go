@@ -38,15 +38,7 @@ type InterventionRequest struct {
 	RunID       *uuid.UUID
 }
 
-// InterventionContext contains the context for intervention generation
-type InterventionContext struct {
-	Exercise    *domain.Exercise
-	Code        map[string]string
-	RunOutput   *domain.RunOutput
-	Profile     *domain.LearningProfile
-	CurrentFile string
-	CursorLine  int
-}
+// InterventionContext is defined in context.go with spec support
 
 // Intervene generates an intervention based on the request
 func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*domain.Intervention, error) {
@@ -61,13 +53,15 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 
 	// Build prompt for LLM
 	prompt := s.prompter.BuildPrompt(PromptRequest{
-		Intent:   req.Intent,
-		Level:    level,
-		Type:     interventionType,
-		Exercise: req.Context.Exercise,
-		Code:     req.Context.Code,
-		Output:   req.Context.RunOutput,
-		Profile:  req.Context.Profile,
+		Intent:         req.Intent,
+		Level:          level,
+		Type:           interventionType,
+		Exercise:       req.Context.Exercise,
+		Code:           req.Context.Code,
+		Output:         req.Context.RunOutput,
+		Profile:        req.Context.Profile,
+		Spec:           req.Context.Spec,
+		FocusCriterion: req.Context.FocusCriterion,
 	})
 
 	// Get LLM provider
@@ -115,13 +109,15 @@ func (s *Service) IntervenStream(ctx context.Context, req InterventionRequest) (
 	interventionType := s.selector.SelectType(req.Intent, level)
 
 	prompt := s.prompter.BuildPrompt(PromptRequest{
-		Intent:   req.Intent,
-		Level:    level,
-		Type:     interventionType,
-		Exercise: req.Context.Exercise,
-		Code:     req.Context.Code,
-		Output:   req.Context.RunOutput,
-		Profile:  req.Context.Profile,
+		Intent:         req.Intent,
+		Level:          level,
+		Type:           interventionType,
+		Exercise:       req.Context.Exercise,
+		Code:           req.Context.Code,
+		Output:         req.Context.RunOutput,
+		Profile:        req.Context.Profile,
+		Spec:           req.Context.Spec,
+		FocusCriterion: req.Context.FocusCriterion,
 	})
 
 	provider, err := s.llmRegistry.Default()

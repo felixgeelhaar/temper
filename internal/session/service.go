@@ -11,6 +11,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/felixgeelhaar/temper/internal/runner"
+	"github.com/felixgeelhaar/temper/internal/spec"
 	"github.com/google/uuid"
 )
 
@@ -19,6 +20,8 @@ var (
 	ErrExerciseNotFound  = errors.New("exercise not found")
 	ErrCooldownActive    = errors.New("intervention cooldown active")
 	ErrSessionNotActive  = errors.New("session is not active")
+	ErrSpecRequired      = errors.New("spec path required for feature guidance intent")
+	ErrSpecInvalid       = errors.New("spec validation failed")
 )
 
 // Service manages pairing sessions
@@ -27,6 +30,7 @@ type Service struct {
 	loader         *exercise.Loader
 	executor       runner.Executor
 	profileService *profile.Service // Optional: tracks learning progress
+	specService    *spec.Service    // Optional: spec management for feature guidance
 }
 
 // NewService creates a new session service
@@ -43,18 +47,107 @@ func (s *Service) SetProfileService(ps *profile.Service) {
 	s.profileService = ps
 }
 
+// SetSpecService sets the spec service for feature guidance sessions
+func (s *Service) SetSpecService(ss *spec.Service) {
+	s.specService = ss
+}
+
 // CreateRequest contains data for creating a session
 type CreateRequest struct {
-	ExerciseID string
+	ExerciseID string                // For training intent
+	SpecPath   string                // For feature guidance intent
+	Intent     SessionIntent         // Explicit intent (optional, inferred if empty)
+	Code       map[string]string     // Initial code (for greenfield/feature)
 	Policy     *domain.LearningPolicy
 }
 
 // Create starts a new pairing session
 func (s *Service) Create(ctx context.Context, req CreateRequest) (*Session, error) {
+	// Infer intent if not explicitly provided
+	intent := s.inferIntent(req)
+
+	// Use provided policy or default
+	policy := domain.DefaultPolicy()
+	if req.Policy != nil {
+		policy = *req.Policy
+	}
+
+	var session *Session
+
+	switch intent {
+	case IntentTraining:
+		// Training intent requires an exercise
+		if req.ExerciseID == "" {
+			return nil, fmt.Errorf("exercise ID required for training intent")
+		}
+		sess, err := s.createTrainingSession(ctx, req.ExerciseID, policy)
+		if err != nil {
+			return nil, err
+		}
+		session = sess
+
+	case IntentFeatureGuidance:
+		// Feature guidance requires a valid spec
+		if req.SpecPath == "" {
+			return nil, ErrSpecRequired
+		}
+		sess, err := s.createFeatureSession(ctx, req.SpecPath, req.Code, policy)
+		if err != nil {
+			return nil, err
+		}
+		session = sess
+
+	case IntentGreenfield:
+		// Greenfield creates a fresh session
+		session = NewGreenfieldSession(req.Code, policy)
+
+	default:
+		return nil, fmt.Errorf("unknown intent: %s", intent)
+	}
+
+	// Persist
+	if err := s.store.Save(session); err != nil {
+		return nil, fmt.Errorf("save session: %w", err)
+	}
+
+	// Notify profile service of session start
+	if s.profileService != nil {
+		if err := s.profileService.OnSessionStart(ctx, profile.SessionInfo{
+			ID:         session.ID,
+			ExerciseID: session.ExerciseID,
+			Status:     string(session.Status),
+			CreatedAt:  session.CreatedAt,
+		}); err != nil {
+			slog.Warn("failed to record session start in profile", "error", err)
+		}
+	}
+
+	return session, nil
+}
+
+// inferIntent determines session intent from request context
+func (s *Service) inferIntent(req CreateRequest) SessionIntent {
+	// If explicitly set, use that
+	if req.Intent != "" {
+		return req.Intent
+	}
+
+	// Infer based on what's provided
+	if req.ExerciseID != "" {
+		return IntentTraining
+	}
+	if req.SpecPath != "" {
+		return IntentFeatureGuidance
+	}
+	return IntentGreenfield
+}
+
+// createTrainingSession creates a session for an exercise
+func (s *Service) createTrainingSession(ctx context.Context, exerciseID string, policy domain.LearningPolicy) (*Session, error) {
 	// Parse exercise ID (pack/category/slug)
-	parts := splitExerciseID(req.ExerciseID)
+	parts := splitExerciseID(exerciseID)
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("invalid exercise ID format: %s", req.ExerciseID)
+		return nil, fmt.Errorf("invalid exercise ID format: %s", exerciseID)
 	}
 
 	packID := parts[0]
@@ -75,33 +168,27 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Session, erro
 		code[k] = v
 	}
 
-	// Use provided policy or default
-	policy := domain.DefaultPolicy()
-	if req.Policy != nil {
-		policy = *req.Policy
-	}
+	return NewSession(exerciseID, code, policy), nil
+}
 
-	// Create session
-	session := NewSession(req.ExerciseID, code, policy)
-
-	// Persist
-	if err := s.store.Save(session); err != nil {
-		return nil, fmt.Errorf("save session: %w", err)
-	}
-
-	// Notify profile service of session start
-	if s.profileService != nil {
-		if err := s.profileService.OnSessionStart(ctx, profile.SessionInfo{
-			ID:         session.ID,
-			ExerciseID: session.ExerciseID,
-			Status:     string(session.Status),
-			CreatedAt:  session.CreatedAt,
-		}); err != nil {
-			slog.Warn("failed to record session start in profile", "error", err)
+// createFeatureSession creates a session for feature guidance with spec
+func (s *Service) createFeatureSession(ctx context.Context, specPath string, code map[string]string, policy domain.LearningPolicy) (*Session, error) {
+	// Validate spec if spec service is available
+	if s.specService != nil {
+		validation, err := s.specService.Validate(ctx, specPath)
+		if err != nil {
+			return nil, fmt.Errorf("load spec: %w", err)
+		}
+		if !validation.Valid {
+			return nil, fmt.Errorf("%w: %v", ErrSpecInvalid, validation.Errors)
 		}
 	}
 
-	return session, nil
+	if code == nil {
+		code = make(map[string]string)
+	}
+
+	return NewFeatureSession(specPath, code, policy), nil
 }
 
 // Get retrieves a session by ID

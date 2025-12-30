@@ -24,6 +24,10 @@ type PromptRequest struct {
 	Code     map[string]string
 	Output   *domain.RunOutput
 	Profile  *domain.LearningProfile
+
+	// Spec context for feature guidance sessions
+	Spec           *domain.ProductSpec
+	FocusCriterion *domain.AcceptanceCriterion
 }
 
 // SystemPrompt returns the system prompt for a given level
@@ -140,9 +144,19 @@ func (p *Prompter) BuildPrompt(req PromptRequest) string {
 		}
 	}
 
+	// Spec context for feature guidance sessions
+	if req.Spec != nil {
+		sb.WriteString(p.buildSpecContext(req.Spec, req.FocusCriterion))
+	}
+
 	// Final instruction
 	sb.WriteString("## Your Task\n\n")
 	sb.WriteString(p.taskInstruction(req.Intent, req.Level, req.Type))
+
+	// Add spec-specific instructions if applicable
+	if req.Spec != nil {
+		sb.WriteString(p.specTaskAddendum(req.Spec, req.FocusCriterion))
+	}
 
 	return sb.String()
 }
@@ -204,4 +218,88 @@ func (p *Prompter) truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen] + "..."
+}
+
+// buildSpecContext creates the spec context section for feature guidance prompts
+func (p *Prompter) buildSpecContext(spec *domain.ProductSpec, focus *domain.AcceptanceCriterion) string {
+	var sb strings.Builder
+
+	sb.WriteString("## Product Specification Context\n\n")
+	sb.WriteString(fmt.Sprintf("**Spec**: %s (v%s)\n\n", spec.Name, spec.Version))
+
+	// Goals provide high-level direction
+	if len(spec.Goals) > 0 {
+		sb.WriteString("### Goals\n")
+		for _, goal := range spec.Goals {
+			sb.WriteString(fmt.Sprintf("- %s\n", goal))
+		}
+		sb.WriteString("\n")
+	}
+
+	// Current focus criterion
+	if focus != nil {
+		sb.WriteString("### Current Focus\n")
+		sb.WriteString(fmt.Sprintf("**Acceptance Criterion %s**: %s\n", focus.ID, focus.Description))
+		if focus.Satisfied {
+			sb.WriteString("Status: ✓ Satisfied\n")
+		} else {
+			sb.WriteString("Status: ⏳ In Progress\n")
+		}
+		sb.WriteString("\n")
+	}
+
+	// Progress overview
+	satisfied := 0
+	for _, ac := range spec.AcceptanceCriteria {
+		if ac.Satisfied {
+			satisfied++
+		}
+	}
+	sb.WriteString(fmt.Sprintf("### Progress: %d/%d criteria satisfied\n\n", satisfied, len(spec.AcceptanceCriteria)))
+
+	// Relevant features for context
+	sb.WriteString("### Features in Scope\n")
+	for _, feat := range spec.Features {
+		sb.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", feat.Title, feat.Priority, p.truncate(feat.Description, 100)))
+		if feat.API != nil {
+			sb.WriteString(fmt.Sprintf("  - API: %s %s\n", feat.API.Method, feat.API.Path))
+		}
+	}
+	sb.WriteString("\n")
+
+	// Non-functional requirements as constraints
+	if len(spec.NonFunctional.Performance) > 0 || len(spec.NonFunctional.Security) > 0 {
+		sb.WriteString("### Non-Functional Requirements\n")
+		for _, req := range spec.NonFunctional.Performance {
+			sb.WriteString(fmt.Sprintf("- Performance: %s\n", req))
+		}
+		for _, req := range spec.NonFunctional.Security {
+			sb.WriteString(fmt.Sprintf("- Security: %s\n", req))
+		}
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// specTaskAddendum adds spec-specific instructions to the task
+func (p *Prompter) specTaskAddendum(spec *domain.ProductSpec, focus *domain.AcceptanceCriterion) string {
+	var sb strings.Builder
+
+	sb.WriteString("\n\n### Spec-Anchored Guidance\n")
+	sb.WriteString("When providing feedback, always anchor to the product specification:\n")
+	sb.WriteString("- Focus on the current acceptance criterion\n")
+	sb.WriteString("- Keep suggestions within the defined feature scope\n")
+	sb.WriteString("- Reference non-functional requirements when relevant\n")
+
+	if focus != nil && !focus.Satisfied {
+		sb.WriteString(fmt.Sprintf("\nThe learner is working toward: **%s**\n", focus.Description))
+		sb.WriteString("Guide them to satisfy this criterion without solving it for them.\n")
+	}
+
+	// Warn about scope drift
+	sb.WriteString("\nIf the learner's code is drifting outside the spec scope, gently guide them back.\n")
+	sb.WriteString("Reference the spec's goals and features to keep the implementation focused.\n")
+
+	return sb.String()
 }
