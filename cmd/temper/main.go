@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,6 +17,12 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/config"
+	"github.com/felixgeelhaar/temper/internal/exercise"
+	"github.com/felixgeelhaar/temper/internal/llm"
+	mcpserver "github.com/felixgeelhaar/temper/internal/mcp"
+	"github.com/felixgeelhaar/temper/internal/pairing"
+	"github.com/felixgeelhaar/temper/internal/runner"
+	"github.com/felixgeelhaar/temper/internal/session"
 )
 
 const (
@@ -46,6 +54,8 @@ func main() {
 		err = cmdProvider(os.Args[2:])
 	case "exercise":
 		err = cmdExercise(os.Args[2:])
+	case "mcp":
+		err = cmdMCP()
 	case "help", "-h", "--help":
 		printUsage()
 	case "version", "-v", "--version":
@@ -83,6 +93,9 @@ Exercise Commands:
   exercise list   List available exercises
   exercise info   Show exercise details
 
+Integration Commands:
+  mcp             Start MCP server (for Cursor integration)
+
 Other:
   help            Show this help message
   version         Show version information
@@ -91,7 +104,8 @@ Examples:
   temper start                    # Start daemon
   temper doctor                   # Check Docker, LLM providers
   temper provider set-key claude  # Configure Claude API key
-  temper exercise list            # List exercises`)
+  temper exercise list            # List exercises
+  temper mcp                      # Start MCP server for Cursor`)
 }
 
 // cmdStart starts the daemon in the background
@@ -275,7 +289,7 @@ func cmdLogs() error {
 
 // cmdDoctor checks system requirements
 func cmdDoctor() error {
-	fmt.Println("Checking system requirements...\n")
+	fmt.Println("Checking system requirements...")
 
 	allGood := true
 
@@ -358,7 +372,7 @@ func cmdConfig() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	fmt.Println("Temper Configuration\n")
+	fmt.Println("Temper Configuration")
 
 	fmt.Println("Daemon:")
 	fmt.Printf("  bind: %s:%d\n", cfg.Daemon.Bind, cfg.Daemon.Port)
@@ -426,7 +440,7 @@ func cmdProviderList() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	fmt.Println("Configured LLM Providers:\n")
+	fmt.Println("Configured LLM Providers:")
 	for name, provider := range cfg.LLM.Providers {
 		status := "disabled"
 		if provider.Enabled {
@@ -544,7 +558,7 @@ func cmdExerciseList() error {
 		return fmt.Errorf("parse response: %w", err)
 	}
 
-	fmt.Println("Available Exercise Packs:\n")
+	fmt.Println("Available Exercise Packs:")
 	for _, pack := range result.Packs {
 		fmt.Printf("  %s (%s)\n", pack.Name, pack.ID)
 		fmt.Printf("    %s\n", pack.Description)
@@ -596,6 +610,89 @@ func cmdExerciseInfo(id string) error {
 	fmt.Printf("\nDescription:\n%s\n", exercise.Description)
 
 	return nil
+}
+
+// cmdMCP starts the MCP server for Cursor integration
+func cmdMCP() error {
+	// Load configuration
+	cfg, err := config.LoadLocalConfig()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	// Initialize LLM registry
+	registry := llm.NewRegistry()
+
+	// Setup LLM providers
+	for name, providerCfg := range cfg.LLM.Providers {
+		if !providerCfg.Enabled || (providerCfg.APIKey == "" && name != "ollama") {
+			continue
+		}
+
+		switch name {
+		case "claude":
+			provider := llm.NewClaudeProvider(llm.ClaudeConfig{
+				APIKey: providerCfg.APIKey,
+				Model:  providerCfg.Model,
+			})
+			registry.Register("claude", provider)
+		case "openai":
+			provider := llm.NewOpenAIProvider(llm.OpenAIConfig{
+				APIKey: providerCfg.APIKey,
+				Model:  providerCfg.Model,
+			})
+			registry.Register("openai", provider)
+		case "ollama":
+			provider := llm.NewOllamaProvider(llm.OllamaConfig{
+				BaseURL: providerCfg.URL,
+				Model:   providerCfg.Model,
+			})
+			registry.Register("ollama", provider)
+		}
+	}
+
+	// Initialize exercise loader
+	temperDir, err := config.TemperDir()
+	if err != nil {
+		return fmt.Errorf("get temper dir: %w", err)
+	}
+	exercisePath := filepath.Join(temperDir, "exercises")
+	loader := exercise.NewLoader(exercisePath)
+
+	// Initialize runner (local for MCP - Docker might not be available)
+	executor := runner.NewLocalExecutor("")
+
+	// Initialize session store
+	sessionsPath := filepath.Join(temperDir, "sessions")
+	sessionStore, err := session.NewStore(sessionsPath)
+	if err != nil {
+		return fmt.Errorf("create session store: %w", err)
+	}
+
+	// Create services
+	sessionService := session.NewService(sessionStore, loader, executor)
+	pairingService := pairing.NewService(registry, cfg.LLM.DefaultProvider)
+
+	// Create MCP server
+	mcpSrv := mcpserver.NewServer(mcpserver.Config{
+		SessionService: sessionService,
+		PairingService: pairingService,
+		ExerciseLoader: loader,
+	})
+
+	// Setup context with signal handling
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		cancel()
+	}()
+
+	// Serve on stdio
+	return mcpSrv.ServeStdio(ctx)
 }
 
 // Helper functions
