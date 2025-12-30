@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/config"
+	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/llm"
 	"github.com/felixgeelhaar/temper/internal/runner"
+	"github.com/felixgeelhaar/temper/internal/session"
 )
 
 // Server represents the Temper daemon HTTP server
@@ -21,15 +24,17 @@ type Server struct {
 	router   *http.ServeMux
 
 	// Services
-	llmRegistry  *llm.Registry
+	llmRegistry    *llm.Registry
 	exerciseLoader *exercise.Loader
 	runnerExecutor runner.Executor
+	sessionService *session.Service
 }
 
 // ServerConfig holds configuration for creating a new server
 type ServerConfig struct {
 	Config        *config.LocalConfig
 	ExercisePath  string // Primary exercise path
+	SessionsPath  string // Path for session storage
 }
 
 // NewServer creates a new daemon server
@@ -68,6 +73,22 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	} else {
 		s.runnerExecutor = runner.NewLocalExecutor("")
 	}
+
+	// Initialize session service
+	sessionsPath := cfg.SessionsPath
+	if sessionsPath == "" {
+		temperDir, err := config.TemperDir()
+		if err != nil {
+			return nil, fmt.Errorf("get temper dir: %w", err)
+		}
+		sessionsPath = filepath.Join(temperDir, "sessions")
+	}
+
+	sessionStore, err := session.NewStore(sessionsPath)
+	if err != nil {
+		return nil, fmt.Errorf("create session store: %w", err)
+	}
+	s.sessionService = session.NewService(sessionStore, s.exerciseLoader, s.runnerExecutor)
 
 	// Setup routes
 	s.setupRoutes()
@@ -289,23 +310,90 @@ func (s *Server) handleGetExercise(w http.ResponseWriter, r *http.Request) {
 	s.jsonResponse(w, http.StatusOK, ex)
 }
 
-// Session handlers (placeholder - will be implemented in session package)
+// Session handlers
 
 func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "session management not yet implemented", nil)
+	var req struct {
+		ExerciseID string `json:"exercise_id"`
+		Track      string `json:"track,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.ExerciseID == "" {
+		s.jsonError(w, http.StatusBadRequest, "exercise_id is required", nil)
+		return
+	}
+
+	// Get learning policy from config
+	var policy *domain.LearningPolicy
+	if req.Track != "" {
+		if track, ok := s.cfg.Learning.Tracks[req.Track]; ok {
+			policy = &domain.LearningPolicy{
+				MaxLevel:        domain.InterventionLevel(track.MaxLevel),
+				CooldownSeconds: track.CooldownSeconds,
+				Track:           req.Track,
+			}
+		}
+	}
+
+	sess, err := s.sessionService.Create(r.Context(), session.CreateRequest{
+		ExerciseID: req.ExerciseID,
+		Policy:     policy,
+	})
+	if err != nil {
+		if err == session.ErrExerciseNotFound {
+			s.jsonError(w, http.StatusNotFound, "exercise not found", err)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to create session", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, sess)
 }
 
 func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "session management not yet implemented", nil)
+	id := r.PathValue("id")
+
+	sess, err := s.sessionService.Get(r.Context(), id)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, sess)
 }
 
 func (s *Server) handleDeleteSession(w http.ResponseWriter, r *http.Request) {
-	s.jsonError(w, http.StatusNotImplemented, "session management not yet implemented", nil)
+	id := r.PathValue("id")
+
+	if err := s.sessionService.Delete(r.Context(), id); err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to delete session", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"deleted": true,
+	})
 }
 
 // Run handlers
 
 func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+
 	var req struct {
 		Code   map[string]string `json:"code"`
 		Format bool              `json:"format"`
@@ -318,10 +406,35 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If session ID is provided, use session service
+	if sessionID != "" {
+		run, err := s.sessionService.RunCode(r.Context(), sessionID, session.RunRequest{
+			Code:   req.Code,
+			Format: req.Format,
+			Build:  req.Build,
+			Test:   req.Test,
+		})
+		if err != nil {
+			if err == session.ErrSessionNotFound {
+				s.jsonError(w, http.StatusNotFound, "session not found", nil)
+				return
+			}
+			if err == session.ErrSessionNotActive {
+				s.jsonError(w, http.StatusBadRequest, "session is not active", nil)
+				return
+			}
+			s.jsonError(w, http.StatusInternalServerError, "run failed", err)
+			return
+		}
+
+		s.jsonResponse(w, http.StatusOK, run)
+		return
+	}
+
+	// Standalone run (no session)
 	ctx := r.Context()
 	result := make(map[string]interface{})
 
-	// Run format check
 	if req.Format {
 		formatResult, err := s.runnerExecutor.RunFormat(ctx, req.Code)
 		if err != nil {
@@ -334,7 +447,6 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Run build check
 	if req.Build {
 		buildResult, err := s.runnerExecutor.RunBuild(ctx, req.Code)
 		if err != nil {
@@ -346,14 +458,12 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 			"output": buildResult.Output,
 		}
 
-		// Don't run tests if build failed
 		if !buildResult.OK {
 			s.jsonResponse(w, http.StatusOK, result)
 			return
 		}
 	}
 
-	// Run tests
 	if req.Test {
 		testResult, err := s.runnerExecutor.RunTests(ctx, req.Code, []string{"-v"})
 		if err != nil {
