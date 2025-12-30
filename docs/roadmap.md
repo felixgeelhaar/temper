@@ -1,7 +1,7 @@
 # Temper Roadmap
 
 **Product:** Temper
-**Status:** v1 in progress
+**Status:** v1 core complete
 
 ---
 
@@ -81,7 +81,7 @@
 |---------|--------|-------|
 | Hint dependency tracking | ✅ | `temper stats` |
 | Escalation reduction | ✅ | Tracked over time |
-| Evidence-based appreciation | ⏳ | Calm, professional tone |
+| Evidence-based appreciation | ✅ | Calm, professional tone |
 
 ---
 
@@ -118,7 +118,9 @@
 1. ~~**Spec-driven workflow**~~ ✅ — Specular format with validation, locking, drift detection
 2. ~~**Intent inference**~~ ✅ — Auto-detect Training/Greenfield/Feature from context
 3. ~~**Neovim plugin**~~ ✅ — Full feature parity with VS Code extension
-4. **Evidence-based appreciation** — Progress recognition without gamification
+4. ~~**Evidence-based appreciation**~~ ✅ — Progress recognition without gamification
+
+**v1 Core Features Complete!**
 
 ---
 

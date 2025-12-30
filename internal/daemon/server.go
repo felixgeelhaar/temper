@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/felixgeelhaar/temper/internal/appreciation"
 	"github.com/felixgeelhaar/temper/internal/config"
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
@@ -29,13 +30,14 @@ type Server struct {
 	router   *http.ServeMux
 
 	// Services
-	llmRegistry    *llm.Registry
-	exerciseLoader *exercise.Loader
-	runnerExecutor runner.Executor
-	sessionService *session.Service
-	pairingService *pairing.Service
-	profileService *profile.Service
-	specService    *spec.Service
+	llmRegistry          *llm.Registry
+	exerciseLoader       *exercise.Loader
+	runnerExecutor       runner.Executor
+	sessionService       *session.Service
+	pairingService       *pairing.Service
+	profileService       *profile.Service
+	specService          *spec.Service
+	appreciationService  *appreciation.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -123,6 +125,9 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 
 	// Initialize pairing service
 	s.pairingService = pairing.NewService(s.llmRegistry, cfg.Config.LLM.DefaultProvider)
+
+	// Initialize appreciation service
+	s.appreciationService = appreciation.NewService()
 
 	// Setup routes
 	s.setupRoutes()
@@ -507,7 +512,36 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.jsonResponse(w, http.StatusOK, run)
+		// Build response with optional appreciation
+		response := map[string]interface{}{
+			"run": run,
+		}
+
+		// Check for appreciation moments after successful run
+		if run.Result != nil && run.Result.TestOK {
+			sess, err := s.sessionService.Get(r.Context(), sessionID)
+			if err == nil {
+				// Convert session.RunResult to domain.RunOutput for appreciation detection
+				testsPassed := 0
+				if run.Result.TestOK {
+					testsPassed = 1 // At least 1 test passed for AllTestsPassed() to return true
+				}
+				runOutput := &domain.RunOutput{
+					TestOK:      run.Result.TestOK,
+					BuildOK:     run.Result.BuildOK,
+					TestsPassed: testsPassed,
+					TestsFailed: 0,
+				}
+
+				// Use a fixed user ID for now (single user mode)
+				userID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+				if msg := s.appreciationService.CheckSession(userID, sess, runOutput); msg != nil {
+					response["appreciation"] = msg
+				}
+			}
+		}
+
+		s.jsonResponse(w, http.StatusOK, response)
 		return
 	}
 
@@ -823,7 +857,51 @@ func (s *Server) handleAnalyticsOverview(w http.ResponseWriter, r *http.Request)
 		s.jsonError(w, http.StatusInternalServerError, "failed to get analytics overview", err)
 		return
 	}
-	s.jsonResponse(w, http.StatusOK, overview)
+
+	// Build response with optional appreciation for progress
+	response := map[string]interface{}{
+		"overview": overview,
+	}
+
+	// Check for progress appreciation moments
+	storedProfile, err := s.profileService.GetProfile(r.Context())
+	if err == nil && storedProfile != nil {
+		// Convert StoredProfile to domain.LearningProfile for appreciation check
+		learningProfile := s.convertToDomainProfile(storedProfile)
+
+		// Use a fixed user ID for now (single user mode)
+		userID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+		if msg := s.appreciationService.CheckProgress(userID, learningProfile, nil); msg != nil {
+			response["appreciation"] = msg
+		}
+	}
+
+	s.jsonResponse(w, http.StatusOK, response)
+}
+
+// convertToDomainProfile converts a profile.StoredProfile to domain.LearningProfile
+func (s *Server) convertToDomainProfile(stored *profile.StoredProfile) *domain.LearningProfile {
+	if stored == nil {
+		return nil
+	}
+
+	// Convert topic skills
+	topicSkills := make(map[string]domain.SkillLevel)
+	for topic, skill := range stored.TopicSkills {
+		topicSkills[topic] = domain.SkillLevel{
+			Level:    skill.Level,
+			Attempts: skill.Attempts,
+		}
+	}
+
+	return &domain.LearningProfile{
+		TopicSkills:    topicSkills,
+		TotalExercises: stored.TotalExercises,
+		TotalRuns:      stored.TotalRuns,
+		HintRequests:   stored.HintRequests,
+		AvgTimeToGreen: time.Duration(stored.AvgTimeToGreenMs) * time.Millisecond,
+		UpdatedAt:      stored.UpdatedAt,
+	}
 }
 
 func (s *Server) handleAnalyticsSkills(w http.ResponseWriter, r *http.Request) {
