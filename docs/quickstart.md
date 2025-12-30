@@ -193,51 +193,67 @@ curl -X POST http://localhost:7432/v1/sessions \
 3. Use `temper_start` tool to begin a session
 4. Use `temper_hint`, `temper_run`, etc.
 
-## Learning Tracks
+## Session Intents
 
-Choose a track based on your goals:
+Every session operates under one of these intents:
 
-| Track | Max Level | Cooldown | Best For |
-|-------|-----------|----------|----------|
-| `practice` | L3 | 60s | Daily practice |
-| `interview-prep` | L2 | 120s | Interview preparation |
-| `learning` | L4 | 30s | Learning new concepts |
+| Intent | Description | Best For |
+|--------|-------------|----------|
+| **Training** | Structured exercises | Deliberate practice, learning fundamentals |
+| **Greenfield** | New project guidance | Starting fresh, building from scratch |
+| **Feature Guidance** | Extending existing code | Real work in existing repositories |
 
-Set your track:
-```bash
-# In VS Code: Temper: Set Learning Mode
-# In Neovim: :TemperMode practice
-# Via API:
-curl -X PUT http://localhost:7432/v1/sessions/{id}/policy \
-  -H "Content-Type: application/json" \
-  -d '{"track": "interview-prep"}'
+Intent:
+- Is inferred automatically from context
+- Is always visible in your editor
+- Can be changed at any time
+
+Intent determines guidance style, intervention limits, and progress interpretation.
+
+## The Active Pairing Loop
+
+During a session, you work in a loop:
+
+```
+1. Request the next step
+2. Write code yourself
+3. Run checks locally
+4. Receive targeted feedback
+5. Adjust and continue
 ```
 
-## Common Workflows
+The system provides:
+- **Hints** — Nudges in the right direction
+- **Questions** — Prompts to think deeper
+- **Reviews** — Feedback on your approach
+- **Risk notices** — Warnings about risky patterns
 
-### Practice Session
+It does **not**:
+- Jump ahead of you
+- Generate full solutions by default
+- Bypass tests or specs
+
+### Training Session (Exercises)
 
 1. Start daemon: `temper start`
-2. Open your editor
-3. Start session: Select exercise
-4. Write code
-5. Run checks (`Ctrl+Shift+R` in VS Code)
-6. Get hints when stuck (`Ctrl+Shift+H`)
-7. Complete the exercise
-8. End session
+2. Open your editor (VS Code, Cursor, or Neovim)
+3. Start session: Select an exercise
+4. Follow the pairing loop
+5. Complete and reflect
 
-### Code Review
+### Feature Guidance (Real Work)
 
-1. Write your solution
-2. Request review: `Temper: Request Review`
-3. Review feedback at your current level
-4. Iterate based on feedback
+1. Create a spec defining intent and acceptance criteria
+2. Start a Feature Guidance session
+3. Request next step guidance
+4. Write code, run checks, get feedback
+5. Iterate until spec is satisfied
 
 ### Getting Unstuck
 
 1. Try solving it yourself first
-2. Request a hint (L1-L2)
-3. If still stuck, use "I'm Stuck" (adaptive)
+2. Request a hint (starts at L1)
+3. Escalate only if truly stuck
 4. Cooldown prevents over-reliance on hints
 
 ## Troubleshooting

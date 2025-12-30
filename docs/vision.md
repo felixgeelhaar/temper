@@ -1,83 +1,142 @@
-Product Vision Document
-Product: Temper — Adaptive AI Pair for Craft Learning
-⸻
+# Product Vision Document
 
-1. The Problem (From First Principles)
-   High-quality work in knowledge domains is learned through practice, feedback, and judgment.
-   Yet modern tools force a damaging tradeoff:
-   • Traditional learning (docs, courses, templates)
-   → slow feedback, poor context, shallow transfer
-   • Generative AI (copilots, agents, one-shot generators)
-   → fast output, but collapses the learning loop by doing the work for you
-   As a result:
-   • Learners finish tasks without understanding
-   • Professionals lose deliberate practice
-   • Organizations gain speed but lose long-term capability
-   The industry is optimizing for output while silently eroding craft.
-   ⸻
-2. The Vision
-   We envision a world where AI:
-   • Protects learning instead of bypassing it
-   • Adapts its role dynamically as people grow
-   • Helps humans become better thinkers, not passive reviewers
-   • Preserves authorship, intent, and judgment
-   Vision Statement
-   An adaptive AI pair that helps people master complex crafts by thinking with them — not instead of them.
-   ⸻
-3. What We Mean by “Craft”
-   A craft is a domain where:
-   • There is no single correct answer
-   • Judgment and tradeoffs matter
-   • Quality emerges through iteration
-   • Experience compounds over time
-   Examples:
-   • Software engineering
-   • Product management
-   • System design
-   • Sales strategy
-   • Marketing narrative
-   • Business & technical writing
-   This product is not designed for:
-   • One-shot generation
-   • Simple Q&A
-   • Task automation
-   ⸻
-4. Who This Is For
-   Primary (Entry Wedge)
-   • Developers learning new languages, paradigms, or design principles
-   • Engineers who want depth, not shortcuts
-   • Interview candidates who want integrity in preparation
-   Secondary (Expansion)
-   • Product managers learning discovery, PRDs, vision
-   • Founders refining strategy and narrative
-   • Sales & marketing professionals developing judgment
-   Tertiary (Organizational)
-   • Teams onboarding new hires
-   • Organizations investing in durable skill growth
-   ⸻
-5. The Learning Contract (Core Belief)
-   This product enforces a learning contract:
-   • When the user has no mental model → AI may lead
-   • When the user is learning → AI must pair
-   • When the user is capable → AI must step back
-   • The human remains the author at all times
-   This contract is system-enforced, not optional.
-   ⸻
-6. North Star Outcome
-   “I understand why this works — and can apply it elsewhere.”
-   Long-term impact:
-   • Reduced dependency on AI
-   • Stronger judgment
-   • Transferable skill, not memorization
-   ⸻
-7. Why We Win
-   Incumbents are structurally constrained:
-   • Productivity tools must optimize for speed
-   • Content platforms optimize for completion
-   • Generators optimize for plausibility
-   None can withhold help by design.
-   Our differentiation is:
-   • Behavioral
-   • Philosophical
-   • Systemic
-   Which makes it hard to copy without breaking existing products.
+**Product:** Temper — Learning-First AI Pairing
+
+---
+
+## 1. The Problem (From First Principles)
+
+High-quality software work is learned through practice, feedback, and judgment.
+Yet modern tools force a damaging tradeoff:
+
+**Traditional learning** (docs, courses, tutorials)
+→ slow feedback, poor context, happens outside real work
+
+**Generative AI** (copilots, agents, one-shot generators)
+→ fast output, but collapses the learning loop by doing the work for you
+
+As a result:
+- Beginners become dependent on solutions they don't understand
+- Experienced developers lose opportunities to sharpen judgment
+- Learning happens outside real projects, not within them
+- Tools lack restraint, context, and respect for authorship
+
+The industry is optimizing for output while silently eroding craft.
+
+---
+
+## 2. The Vision
+
+### Vision Statement
+
+**Temper helps developers learn by shipping real work — without surrendering authorship to AI.**
+
+We envision a world where AI:
+- Protects learning instead of bypassing it
+- Guides through real-world tasks, not isolated exercises
+- Uses structured specs, deliberate feedback, and restrained assistance
+- Measures progress by independence, clarity, and judgment — not speed
+
+---
+
+## 3. Who This Is For
+
+### Primary: The Practicing Developer
+
+- Uses Neovim, VS Code, or Cursor
+- Works in real repositories (open source or company code)
+- Wants to learn while building, not in isolation
+- Values autonomy, quality, and long-term skill growth
+
+This includes:
+- Junior developers learning fundamentals
+- Mid-level engineers expanding scope
+- Senior/staff engineers refining judgment and architecture skills
+
+### Secondary: The Self-Directed Learner
+
+- Uses exercises or greenfield projects
+- Wants deliberate practice without "AI doing it for me"
+- Values progress visibility and earned confidence
+
+---
+
+## 4. The Learning Contract (Core Belief)
+
+This product enforces a learning contract:
+
+| User State | AI Behavior |
+|------------|-------------|
+| No mental model | May lead with questions and hints |
+| Learning | Must pair — guide, not generate |
+| Capable | Must step back — observe, not intervene |
+
+**The human remains the author at all times.**
+
+This contract is policy-enforced, not prompt-based.
+
+---
+
+## 5. Product Principles (Non-negotiable)
+
+| Principle | Description |
+|-----------|-------------|
+| **User remains the author** | AI never silently writes code |
+| **Learning over output** | Faster code is not success; deeper understanding is |
+| **Restraint is enforced** | Guardrails are policy-based, not optional |
+| **Spec-driven work** | Clear intent precedes implementation |
+| **Language agnostic** | The system reasons about work, not syntax |
+| **Local-first and private** | No mandatory cloud, no silent data extraction |
+
+---
+
+## 6. North Star Outcome
+
+> "I understand why this works — and can apply it elsewhere."
+
+### Success signals:
+- Reduced dependency on hints over time
+- Faster convergence without escalation
+- Ability to solve novel problems independently
+- Confidence that is earned, not given
+
+---
+
+## 7. Why We Win
+
+Incumbents are structurally constrained:
+- Productivity tools must optimize for speed
+- Content platforms optimize for completion
+- Generators optimize for plausibility
+
+**None can withhold help by design.**
+
+Our differentiation is:
+- **Behavioral** — AI restraint as a feature
+- **Philosophical** — Learning over output
+- **Systemic** — Policy-enforced, not prompt-based
+
+This makes it hard to copy without breaking existing products.
+
+---
+
+## 8. What We're NOT
+
+- ❌ An autonomous coding agent
+- ❌ A speed/volume optimizer
+- ❌ A replacement for code reviews or human mentorship
+- ❌ A chat-first experience
+- ❌ A gamified learning platform (no streaks, points, leaderboards)
+
+---
+
+## 9. The Experience
+
+Temper runs as a local daemon and integrates into your editor.
+
+There is:
+- No required web UI
+- No mandatory SaaS account
+- No chat-first experience
+
+You work in your editor. Temper guides from within.
