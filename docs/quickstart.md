@@ -106,7 +106,7 @@ Checking system requirements...
 
 Docker:    ✓
 LLM:       ✓ (claude ready)
-Exercises: ✓ (1 pack)
+Exercises: ✓ (3 packs, 41 exercises)
 
 All checks passed!
 ```
@@ -131,6 +131,11 @@ temper logs
 ```bash
 # List available exercises
 temper exercise list
+
+# Available packs:
+#   Go Fundamentals (go-v1) - 14 exercises
+#   Python Fundamentals (python-v1) - 13 exercises
+#   TypeScript Fundamentals (typescript-v1) - 14 exercises
 
 # Start a session (via daemon API)
 curl -X POST http://localhost:7432/v1/sessions \
@@ -269,6 +274,37 @@ temper provider list
 
 # Verify API key
 temper doctor
+```
+
+## Track Your Progress
+
+View your learning statistics:
+
+```bash
+# Overview of all stats
+temper stats
+
+# Skill progression by topic
+temper stats skills
+
+# Common error patterns
+temper stats errors
+
+# Hint dependency trend over time
+temper stats trend
+```
+
+Example output:
+```
+Learning Statistics
+==================
+Total Sessions:     15
+Completed:          12 (80.0%)
+Total Exercises:    8
+Total Runs:         142
+Total Hints:        23
+Hint Dependency:    16.2%
+Avg Time to Green:  4m30s
 ```
 
 ## Next Steps

@@ -3,6 +3,11 @@ Product: Temper
 (Outcome-driven, strategy-first — not a feature list)
 ⸻
 
+## Implementation Status
+
+✅ = Complete | 🔨 = In Progress | ⏳ = Planned
+
+⸻
 1. Executive Summary
    This product provides adaptive AI pairing for learning complex crafts.
    It enables users to:
@@ -15,7 +20,7 @@ Product: Temper
    Primary problem
    AI tools optimize for completion, not comprehension.
    Secondary problems
-   • Learners don’t know what to practice next
+   • Learners don't know what to practice next
    • Feedback is binary or generic
    • Over-assistance creates fragile competence
    Explicit anti-goals
@@ -25,15 +30,15 @@ Product: Temper
    ⸻
 3. Personas & Jobs-To-Be-Done
    Developer (Beginner → Staff+)
-   • “Help me build correct mental models.”
-   • “Help me reason in new paradigms.”
+   • "Help me build correct mental models."
+   • "Help me reason in new paradigms."
    Product Manager
-   • “Help me think in outcomes, not features.”
-   • “Challenge my assumptions.”
+   • "Help me think in outcomes, not features."
+   • "Challenge my assumptions."
    Interview Candidate
-   • “Help me practice under constraints without cheating.”
+   • "Help me practice under constraints without cheating."
    Organization (Later)
-   • “Help people grow skills we can trust.”
+   • "Help people grow skills we can trust."
    ⸻
 4. Product Principles (Non-Negotiable)
 5. AI restraint is a feature
@@ -43,36 +48,50 @@ Product: Temper
 9. Progression is earned
    ⸻
 10. Core Capabilities (Domain-Agnostic)
-    Adaptive Intervention Engine
+
+    Adaptive Intervention Engine ✅
     Determines the minimum helpful action:
-    • Question
-    • Hint
-    • Conceptual nudge
-    • Structural critique
-    • Direct explanation (only when appropriate)
-    Learning Profile
+    • Question (L0)
+    • Hint (L1)
+    • Conceptual nudge (L2)
+    • Structural critique (L3)
+    • Direct explanation (L4-L5, gated)
+
+    Learning Profile ✅
     Tracks:
-    • Skill level
-    • Confidence
-    • Dependency
-    • Blind spots
-    • Growth trajectory
-    Craft Workspace
+    • ✅ Skill level (per topic)
+    • ✅ Dependency (hint reliance)
+    • ✅ Blind spots (error patterns)
+    • ✅ Growth trajectory (trend over time)
+    • 🔨 Confidence (self-assessment)
+
+    Craft Workspace ✅
     A controlled environment to:
-    • Create artifacts (code, PRDs, narratives, strategies)
-    • Iterate
-    • Reflect
-    Pairing Modes (Dynamic)
+    • ✅ Create artifacts (code workspaces)
+    • ✅ Iterate (run checks, get feedback)
+    • ⏳ Reflect (session retrospectives)
+
+    Pairing Modes (Dynamic) 🔨
     • Teach → Pair → Review
-    Modes shift automatically based on behavior.
-    Learning Journey Orchestration
-    • Suggests what to practice next
-    • Adapts difficulty and autonomy
-    • Detects plateaus and over-reliance
+    • ✅ Intent buttons (user-selected)
+    • ⏳ Modes shift automatically based on behavior
+
+    Learning Journey Orchestration ⏳
+    • ⏳ Suggests what to practice next
+    • ⏳ Adapts difficulty and autonomy
+    • ⏳ Detects plateaus and over-reliance
+
+    Exercise System ✅
+    • ✅ 41 exercises across 3 language packs
+    • ✅ Go Fundamentals (14 exercises)
+    • ✅ Python Fundamentals (13 exercises)
+    • ✅ TypeScript Fundamentals (14 exercises)
+    • ✅ Structured rubrics and check recipes
+    • ✅ Progressive hints (L0-L3)
     ⸻
 11. Success Metrics (Outcome-Based)
     • Self-reported understanding
-    • Reduction in AI dependency
+    • ✅ Reduction in AI dependency (hint dependency tracking)
     • Ability to solve novel problems
     • Retention through increasing difficulty
     • Evidence of transfer learning
