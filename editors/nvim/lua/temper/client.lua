@@ -175,4 +175,71 @@ function M.is_running(callback)
 	end)
 end
 
+-- Spec management (Specular format)
+
+-- Create a new spec
+function M.create_spec(name, callback)
+	request("POST", "/v1/specs", { name = name }, callback)
+end
+
+-- List all specs
+function M.list_specs(callback)
+	request("GET", "/v1/specs", nil, callback)
+end
+
+-- Get a spec by path
+function M.get_spec(path, callback)
+	request("GET", "/v1/specs/file/" .. path, nil, callback)
+end
+
+-- Validate a spec
+function M.validate_spec(path, callback)
+	request("POST", "/v1/specs/validate/" .. path, nil, callback)
+end
+
+-- Get spec progress
+function M.get_spec_progress(path, callback)
+	request("GET", "/v1/specs/progress/" .. path, nil, callback)
+end
+
+-- Lock a spec (generate SpecLock)
+function M.lock_spec(path, callback)
+	request("POST", "/v1/specs/lock/" .. path, nil, callback)
+end
+
+-- Get spec drift
+function M.get_spec_drift(path, callback)
+	request("GET", "/v1/specs/drift/" .. path, nil, callback)
+end
+
+-- Mark criterion as satisfied
+function M.mark_criterion_satisfied(path, criterion_id, evidence, callback)
+	request("PUT", "/v1/specs/criteria/" .. criterion_id, {
+		path = path,
+		evidence = evidence or "",
+	}, callback)
+end
+
+-- Analytics/Stats
+
+-- Get analytics overview
+function M.get_stats_overview(callback)
+	request("GET", "/v1/analytics/overview", nil, callback)
+end
+
+-- Get skills breakdown
+function M.get_stats_skills(callback)
+	request("GET", "/v1/analytics/skills", nil, callback)
+end
+
+-- Get error patterns
+function M.get_stats_errors(callback)
+	request("GET", "/v1/analytics/errors", nil, callback)
+end
+
+-- Get hint dependency trend
+function M.get_stats_trend(callback)
+	request("GET", "/v1/analytics/trend", nil, callback)
+end
+
 return M

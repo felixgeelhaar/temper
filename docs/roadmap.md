@@ -36,7 +36,7 @@
 |--------|--------|-------|
 | VS Code | ✅ | Extension available |
 | Cursor | ✅ | MCP server integration |
-| Neovim | ⏳ | Lua plugin planned |
+| Neovim | ✅ | Lua plugin with full feature parity |
 
 ### Session Model
 
@@ -117,7 +117,7 @@
 
 1. ~~**Spec-driven workflow**~~ ✅ — Specular format with validation, locking, drift detection
 2. ~~**Intent inference**~~ ✅ — Auto-detect Training/Greenfield/Feature from context
-3. **Neovim plugin** — Complete editor coverage
+3. ~~**Neovim plugin**~~ ✅ — Full feature parity with VS Code extension
 4. **Evidence-based appreciation** — Progress recognition without gamification
 
 ---

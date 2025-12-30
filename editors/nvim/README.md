@@ -74,22 +74,59 @@ require("temper").setup({
 
 ## Commands
 
+### Session Management
+
 | Command | Description |
 |---------|-------------|
 | `:TemperStart <pack/exercise>` | Start a session with an exercise |
 | `:TemperStop` | End current session |
 | `:TemperStatus` | Show session status |
+| `:TemperHealth` | Check daemon health |
+
+### Pairing Commands
+
+| Command | Description |
+|---------|-------------|
 | `:TemperHint` | Request a hint |
 | `:TemperReview` | Request code review |
 | `:TemperStuck` | Signal that you're stuck |
 | `:TemperNext` | Ask what to do next |
 | `:TemperExplain` | Request an explanation |
+
+### Code Execution
+
+| Command | Description |
+|---------|-------------|
 | `:TemperRun` | Run format/build/test checks |
 | `:TemperFormat` | Format current file |
+
+### Spec Commands (Specular format)
+
+| Command | Description |
+|---------|-------------|
+| `:TemperSpecCreate <name>` | Create a new spec scaffold |
+| `:TemperSpecList` | List specs in workspace |
+| `:TemperSpecValidate <path>` | Validate spec completeness |
+| `:TemperSpecStatus <path>` | Show spec progress |
+| `:TemperSpecLock <path>` | Generate SpecLock for drift detection |
+| `:TemperSpecDrift <path>` | Show drift from locked spec |
+
+### Stats/Analytics
+
+| Command | Description |
+|---------|-------------|
+| `:TemperStats` | Show learning statistics overview |
+| `:TemperStatsSkills` | Show skill progression by topic |
+| `:TemperStatsErrors` | Show common error patterns |
+| `:TemperStatsTrend` | Show hint dependency over time |
+
+### Other
+
+| Command | Description |
+|---------|-------------|
 | `:TemperMode <mode>` | Set learning track (practice/interview-prep) |
 | `:TemperExercises` | List available exercises |
 | `:TemperToggle` | Toggle the Temper panel |
-| `:TemperHealth` | Check daemon health |
 
 ## Workflow
 

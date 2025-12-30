@@ -143,6 +143,48 @@ function M.create_commands()
 	vim.api.nvim_create_user_command("TemperHealth", function()
 		M.health_check()
 	end, { desc = "Check daemon health" })
+
+	-- Spec commands (Specular format)
+	vim.api.nvim_create_user_command("TemperSpecCreate", function(opts)
+		M.spec_create(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Create a new spec scaffold" })
+
+	vim.api.nvim_create_user_command("TemperSpecList", function()
+		M.spec_list()
+	end, { desc = "List specs in workspace" })
+
+	vim.api.nvim_create_user_command("TemperSpecValidate", function(opts)
+		M.spec_validate(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Validate spec completeness" })
+
+	vim.api.nvim_create_user_command("TemperSpecStatus", function(opts)
+		M.spec_status(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Show spec progress" })
+
+	vim.api.nvim_create_user_command("TemperSpecLock", function(opts)
+		M.spec_lock(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Generate SpecLock for drift detection" })
+
+	vim.api.nvim_create_user_command("TemperSpecDrift", function(opts)
+		M.spec_drift(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Show drift from locked spec" })
+
+	-- Stats/Analytics commands
+	vim.api.nvim_create_user_command("TemperStats", function()
+		M.stats_overview()
+	end, { desc = "Show learning statistics overview" })
+
+	vim.api.nvim_create_user_command("TemperStatsSkills", function()
+		M.stats_skills()
+	end, { desc = "Show skill progression by topic" })
+
+	vim.api.nvim_create_user_command("TemperStatsErrors", function()
+		M.stats_errors()
+	end, { desc = "Show common error patterns" })
+
+	vim.api.nvim_create_user_command("TemperStatsTrend", function()
+		M.stats_trend()
+	end, { desc = "Show hint dependency over time" })
 end
 
 -- Setup keymaps
@@ -382,6 +424,332 @@ function M.health_check()
 		else
 			ui.notify("Daemon is not running. Start with: temper start", vim.log.levels.ERROR)
 		end
+	end)
+end
+
+-- Spec commands (Specular format)
+
+-- Create a new spec
+function M.spec_create(name)
+	if not name then
+		ui.notify("Usage: :TemperSpecCreate <name>", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Creating spec...")
+
+	client.create_spec(name, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		ui.notify("Spec created: " .. (result.file_path or name))
+		M.spec_list()
+	end)
+end
+
+-- List specs
+function M.spec_list()
+	ui.show_loading("Loading specs...")
+
+	client.list_specs(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		if result.specs and #result.specs > 0 then
+			local lines = { "## Specs in Workspace", "" }
+			for _, spec in ipairs(result.specs) do
+				table.insert(lines, string.format("### %s (v%s)", spec.name or "Unnamed", spec.version or "1.0.0"))
+				table.insert(lines, string.format("- Path: `%s`", spec.file_path or "unknown"))
+				if spec.goals and #spec.goals > 0 then
+					table.insert(lines, "- Goals: " .. #spec.goals)
+				end
+				if spec.acceptance_criteria then
+					local satisfied = 0
+					for _, ac in ipairs(spec.acceptance_criteria) do
+						if ac.satisfied then
+							satisfied = satisfied + 1
+						end
+					end
+					table.insert(lines, string.format("- Progress: %d/%d criteria", satisfied, #spec.acceptance_criteria))
+				end
+				table.insert(lines, "")
+			end
+			ui.set_panel_content(lines, "Temper - Specs")
+		else
+			ui.set_panel_content({ "", "  No specs found in .specs/ directory", "" }, "Temper - Specs")
+		end
+	end)
+end
+
+-- Validate a spec
+function M.spec_validate(path)
+	if not path then
+		ui.notify("Usage: :TemperSpecValidate <path>", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Validating spec...")
+
+	client.validate_spec(path, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Spec Validation", "" }
+		if result.valid then
+			table.insert(lines, "✓ Spec is valid")
+		else
+			table.insert(lines, "✗ Spec has issues")
+		end
+		table.insert(lines, "")
+
+		if result.errors and #result.errors > 0 then
+			table.insert(lines, "### Errors")
+			for _, e in ipairs(result.errors) do
+				table.insert(lines, "- " .. e)
+			end
+			table.insert(lines, "")
+		end
+
+		if result.warnings and #result.warnings > 0 then
+			table.insert(lines, "### Warnings")
+			for _, w in ipairs(result.warnings) do
+				table.insert(lines, "- " .. w)
+			end
+		end
+
+		ui.set_panel_content(lines, "Temper - Validate")
+	end)
+end
+
+-- Show spec progress
+function M.spec_status(path)
+	if not path then
+		ui.notify("Usage: :TemperSpecStatus <path>", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Loading spec progress...")
+
+	client.get_spec_progress(path, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Spec Progress", "" }
+		table.insert(lines, string.format("**Progress:** %d/%d criteria (%.0f%%)",
+			result.satisfied or 0, result.total or 0, result.percent or 0))
+		table.insert(lines, "")
+
+		if result.criteria then
+			table.insert(lines, "### Acceptance Criteria")
+			for _, ac in ipairs(result.criteria) do
+				local status = ac.satisfied and "✓" or "○"
+				table.insert(lines, string.format("- %s [%s] %s", status, ac.id, ac.description or ""))
+			end
+		end
+
+		ui.set_panel_content(lines, "Temper - Progress")
+	end)
+end
+
+-- Lock a spec
+function M.spec_lock(path)
+	if not path then
+		ui.notify("Usage: :TemperSpecLock <path>", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Generating SpecLock...")
+
+	client.lock_spec(path, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## SpecLock Generated", "" }
+		table.insert(lines, string.format("**Version:** %s", result.version or "unknown"))
+		table.insert(lines, "")
+
+		if result.features then
+			table.insert(lines, "### Locked Features")
+			for id, feat in pairs(result.features) do
+				table.insert(lines, string.format("- **%s**: `%s`", id, (feat.hash or ""):sub(1, 12) .. "..."))
+			end
+		end
+
+		ui.set_panel_content(lines, "Temper - Lock")
+		ui.notify("SpecLock generated")
+	end)
+end
+
+-- Show spec drift
+function M.spec_drift(path)
+	if not path then
+		ui.notify("Usage: :TemperSpecDrift <path>", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Checking for drift...")
+
+	client.get_spec_drift(path, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Spec Drift Detection", "" }
+
+		if result.has_drift then
+			table.insert(lines, "⚠ Drift detected!")
+			table.insert(lines, "")
+			if result.drifted_features and #result.drifted_features > 0 then
+				table.insert(lines, "### Changed Features")
+				for _, feat in ipairs(result.drifted_features) do
+					table.insert(lines, "- " .. feat)
+				end
+			end
+		else
+			table.insert(lines, "✓ No drift - spec matches lock")
+		end
+
+		ui.set_panel_content(lines, "Temper - Drift")
+	end)
+end
+
+-- Stats/Analytics commands
+
+-- Show stats overview
+function M.stats_overview()
+	ui.show_loading("Loading statistics...")
+
+	client.get_stats_overview(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Learning Statistics", "" }
+
+		if result.total_sessions then
+			table.insert(lines, string.format("**Total Sessions:** %d", result.total_sessions))
+		end
+		if result.total_runs then
+			table.insert(lines, string.format("**Total Runs:** %d", result.total_runs))
+		end
+		if result.total_hints then
+			table.insert(lines, string.format("**Total Hints:** %d", result.total_hints))
+		end
+		if result.hint_dependency then
+			table.insert(lines, string.format("**Hint Dependency:** %.1f%%", result.hint_dependency * 100))
+		end
+
+		table.insert(lines, "")
+		table.insert(lines, "Use `:TemperStatsSkills`, `:TemperStatsErrors`, `:TemperStatsTrend` for details")
+
+		ui.set_panel_content(lines, "Temper - Stats")
+	end)
+end
+
+-- Show skills breakdown
+function M.stats_skills()
+	ui.show_loading("Loading skills...")
+
+	client.get_stats_skills(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Skill Progression", "" }
+
+		if result.skills and #result.skills > 0 then
+			for _, skill in ipairs(result.skills) do
+				local level = skill.level or 0
+				local bar = string.rep("█", level) .. string.rep("░", 5 - level)
+				table.insert(lines, string.format("**%s** [%s] L%d", skill.topic or "Unknown", bar, level))
+				if skill.exercises_completed then
+					table.insert(lines, string.format("  - Completed: %d exercises", skill.exercises_completed))
+				end
+				table.insert(lines, "")
+			end
+		else
+			table.insert(lines, "No skill data yet. Complete some exercises!")
+		end
+
+		ui.set_panel_content(lines, "Temper - Skills")
+	end)
+end
+
+-- Show error patterns
+function M.stats_errors()
+	ui.show_loading("Loading error patterns...")
+
+	client.get_stats_errors(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Common Error Patterns", "" }
+
+		if result.patterns and #result.patterns > 0 then
+			for _, pattern in ipairs(result.patterns) do
+				table.insert(lines, string.format("### %s", pattern.category or "Unknown"))
+				table.insert(lines, string.format("- Count: %d occurrences", pattern.count or 0))
+				if pattern.last_seen then
+					table.insert(lines, string.format("- Last seen: %s", pattern.last_seen))
+				end
+				if pattern.suggestion then
+					table.insert(lines, string.format("- Suggestion: %s", pattern.suggestion))
+				end
+				table.insert(lines, "")
+			end
+		else
+			table.insert(lines, "No error patterns recorded yet.")
+		end
+
+		ui.set_panel_content(lines, "Temper - Errors")
+	end)
+end
+
+-- Show hint dependency trend
+function M.stats_trend()
+	ui.show_loading("Loading trend data...")
+
+	client.get_stats_trend(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Hint Dependency Trend", "" }
+
+		if result.data_points and #result.data_points > 0 then
+			table.insert(lines, "### Recent Sessions")
+			for _, point in ipairs(result.data_points) do
+				local pct = (point.dependency or 0) * 100
+				local bar_len = math.floor(pct / 5)
+				local bar = string.rep("▓", bar_len) .. string.rep("░", 20 - bar_len)
+				table.insert(lines, string.format("%s [%s] %.0f%%", point.date or "?", bar, pct))
+			end
+			table.insert(lines, "")
+			if result.trend then
+				table.insert(lines, string.format("**Trend:** %s", result.trend))
+			end
+		else
+			table.insert(lines, "Not enough data for trend analysis.")
+			table.insert(lines, "Complete more sessions to see your progress!")
+		end
+
+		ui.set_panel_content(lines, "Temper - Trend")
 	end)
 end
 
