@@ -20,6 +20,7 @@ var (
 // Service manages patch lifecycle
 type Service struct {
 	extractor *Extractor
+	logger    *Logger
 	mu        sync.RWMutex
 	patches   map[uuid.UUID]*domain.Patch       // patchID -> patch
 	sessions  map[uuid.UUID][]*domain.Patch     // sessionID -> patches
@@ -34,6 +35,32 @@ func NewService() *Service {
 		sessions:  make(map[uuid.UUID][]*domain.Patch),
 		pending:   make(map[uuid.UUID]*domain.Patch),
 	}
+}
+
+// NewServiceWithLogger creates a new patch service with logging enabled
+func NewServiceWithLogger(logDir string) (*Service, error) {
+	logger, err := NewLogger(logDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Service{
+		extractor: NewExtractor(),
+		logger:    logger,
+		patches:   make(map[uuid.UUID]*domain.Patch),
+		sessions:  make(map[uuid.UUID][]*domain.Patch),
+		pending:   make(map[uuid.UUID]*domain.Patch),
+	}, nil
+}
+
+// SetLogger sets the logger for the service
+func (s *Service) SetLogger(logger *Logger) {
+	s.logger = logger
+}
+
+// GetLogger returns the logger (may be nil if logging is disabled)
+func (s *Service) GetLogger() *Logger {
+	return s.logger
 }
 
 // ExtractFromIntervention extracts patches from an intervention and stores them
@@ -51,6 +78,11 @@ func (s *Service) ExtractFromIntervention(intervention *domain.Intervention, ses
 		p.CreatedAt = now
 		s.patches[p.ID] = p
 		s.sessions[sessionID] = append(s.sessions[sessionID], p)
+
+		// Log patch creation
+		if s.logger != nil {
+			_ = s.logger.Log(LogActionCreated, p)
+		}
 	}
 
 	// Set the first pending patch for the session
@@ -120,6 +152,11 @@ func (s *Service) Preview(patchID uuid.UUID) (*domain.PatchPreview, error) {
 	}
 	if additions > 50 {
 		warnings = append(warnings, "Large change: adds many lines")
+	}
+
+	// Log preview action
+	if s.logger != nil {
+		_ = s.logger.Log(LogActionPreviewed, patch)
 	}
 
 	return &domain.PatchPreview{
@@ -194,6 +231,11 @@ func (s *Service) Apply(patchID uuid.UUID) (file string, content string, err err
 	patch.Status = domain.PatchStatusApplied
 	patch.AppliedAt = &now
 
+	// Log applied action
+	if s.logger != nil {
+		_ = s.logger.Log(LogActionApplied, patch)
+	}
+
 	// Move to next pending patch in session
 	s.advancePending(patch.SessionID, patchID)
 
@@ -229,6 +271,11 @@ func (s *Service) Reject(patchID uuid.UUID) error {
 
 	patch.Status = domain.PatchStatusRejected
 
+	// Log rejected action
+	if s.logger != nil {
+		_ = s.logger.Log(LogActionRejected, patch)
+	}
+
 	// Move to next pending patch
 	s.advancePending(patch.SessionID, patchID)
 
@@ -257,6 +304,11 @@ func (s *Service) ExpireSession(sessionID uuid.UUID) {
 	for _, p := range patches {
 		if p.Status == domain.PatchStatusPending {
 			p.Status = domain.PatchStatusExpired
+
+			// Log expired action
+			if s.logger != nil {
+				_ = s.logger.Log(LogActionExpired, p)
+			}
 		}
 	}
 	delete(s.pending, sessionID)

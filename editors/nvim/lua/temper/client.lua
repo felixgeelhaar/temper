@@ -276,4 +276,20 @@ function M.list_patches(session_id, callback)
 	request("GET", "/v1/sessions/" .. session_id .. "/patches", nil, callback)
 end
 
+-- Patch log/audit trail
+
+-- Get patch log entries
+function M.get_patch_log(limit, callback)
+	local url = "/v1/patches/log"
+	if limit and limit > 0 then
+		url = url .. "?limit=" .. limit
+	end
+	request("GET", url, nil, callback)
+end
+
+-- Get patch statistics
+function M.get_patch_stats(callback)
+	request("GET", "/v1/patches/stats", nil, callback)
+end
+
 return M

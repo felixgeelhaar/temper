@@ -129,6 +129,8 @@ require("temper").setup({
 | `:TemperPatchApply` | Apply pending patch to your code |
 | `:TemperPatchReject` | Reject pending patch |
 | `:TemperPatches` | List all patches in current session |
+| `:TemperPatchLog [limit]` | View patch audit log (all or limited entries) |
+| `:TemperPatchLogStats` | View patch statistics and acceptance rate |
 
 ### Other
 

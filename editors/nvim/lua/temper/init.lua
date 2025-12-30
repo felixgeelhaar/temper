@@ -209,6 +209,19 @@ function M.create_commands()
 	vim.api.nvim_create_user_command("TemperPatches", function()
 		M.list_patches()
 	end, { desc = "List all patches in session" })
+
+	-- Patch log/audit commands
+	vim.api.nvim_create_user_command("TemperPatchLog", function(opts)
+		local limit = nil
+		if opts.args and opts.args ~= "" then
+			limit = tonumber(opts.args)
+		end
+		M.patch_log(limit)
+	end, { nargs = "?", desc = "Show patch audit log (optional: limit)" })
+
+	vim.api.nvim_create_user_command("TemperPatchLogStats", function()
+		M.patch_log_stats()
+	end, { desc = "Show patch statistics" })
 end
 
 -- Setup keymaps
@@ -967,6 +980,82 @@ function M.list_patches()
 		end
 
 		ui.set_panel_content(lines, "Temper - Patches")
+	end)
+end
+
+-- View patch audit log
+function M.patch_log(limit)
+	ui.show_loading("Loading patch log...")
+
+	client.get_patch_log(limit, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Patch Audit Log", "" }
+
+		if result.count == 0 then
+			table.insert(lines, "No patch activity recorded yet.")
+		else
+			table.insert(lines, string.format("**Showing:** %d entries", result.count))
+			table.insert(lines, "")
+
+			for _, entry in ipairs(result.entries or {}) do
+				local action_icon = "○"
+				if entry.action == "applied" then action_icon = "✓"
+				elseif entry.action == "rejected" then action_icon = "✗"
+				elseif entry.action == "expired" then action_icon = "⏱"
+				elseif entry.action == "created" then action_icon = "+"
+				elseif entry.action == "previewed" then action_icon = "👁"
+				end
+
+				table.insert(lines, string.format("### %s %s", action_icon, entry.action))
+				table.insert(lines, string.format("- File: `%s`", entry.file or "unknown"))
+				table.insert(lines, string.format("- Description: %s", entry.description or "-"))
+				table.insert(lines, string.format("- Lines: +%d / -%d", entry.lines_added or 0, entry.lines_removed or 0))
+				table.insert(lines, string.format("- Time: %s", entry.timestamp or "-"))
+				table.insert(lines, "")
+			end
+		end
+
+		ui.set_panel_content(lines, "Temper - Patch Log")
+	end)
+end
+
+-- View patch statistics
+function M.patch_log_stats()
+	ui.show_loading("Loading patch stats...")
+
+	client.get_patch_stats(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Patch Statistics", "" }
+
+		table.insert(lines, string.format("**Total Patches:** %d", result.total_patches or 0))
+		table.insert(lines, "")
+		table.insert(lines, "### By Status")
+		table.insert(lines, string.format("- ✓ Applied: %d", result.applied or 0))
+		table.insert(lines, string.format("- ✗ Rejected: %d", result.rejected or 0))
+		table.insert(lines, string.format("- ⏱ Expired: %d", result.expired or 0))
+		table.insert(lines, "")
+		table.insert(lines, "### Code Changes (Applied)")
+		table.insert(lines, string.format("- Lines Added: +%d", result.total_lines_added or 0))
+		table.insert(lines, string.format("- Lines Removed: -%d", result.total_lines_removed or 0))
+		table.insert(lines, "")
+
+		-- Calculate acceptance rate if there are patches
+		local total = result.total_patches or 0
+		local applied = result.applied or 0
+		if total > 0 then
+			local rate = math.floor((applied / total) * 100)
+			table.insert(lines, string.format("**Acceptance Rate:** %d%%", rate))
+		end
+
+		ui.set_panel_content(lines, "Temper - Patch Stats")
 	end)
 end
 

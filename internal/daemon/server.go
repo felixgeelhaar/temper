@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,8 +132,15 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	// Initialize appreciation service
 	s.appreciationService = appreciation.NewService()
 
-	// Initialize patch service
-	s.patchService = patch.NewService()
+	// Initialize patch service with logging
+	patchLogDir := filepath.Join(temperDir, "patches")
+	patchService, err := patch.NewServiceWithLogger(patchLogDir)
+	if err != nil {
+		slog.Warn("Patch logging not available", "error", err)
+		s.patchService = patch.NewService()
+	} else {
+		s.patchService = patchService
+	}
 
 	// Setup routes
 	s.setupRoutes()
@@ -250,6 +258,10 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("POST /v1/sessions/{id}/patch/apply", s.handlePatchApply)
 	s.router.HandleFunc("POST /v1/sessions/{id}/patch/reject", s.handlePatchReject)
 	s.router.HandleFunc("GET /v1/sessions/{id}/patches", s.handleListPatches)
+
+	// Patch logs
+	s.router.HandleFunc("GET /v1/patches/log", s.handlePatchLog)
+	s.router.HandleFunc("GET /v1/patches/stats", s.handlePatchStats)
 }
 
 // Start starts the HTTP server
@@ -1495,4 +1507,45 @@ func (s *Server) handleListPatches(w http.ResponseWriter, r *http.Request) {
 		"patches": patches,
 		"count":   len(patches),
 	})
+}
+
+func (s *Server) handlePatchLog(w http.ResponseWriter, r *http.Request) {
+	logger := s.patchService.GetLogger()
+	if logger == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "patch logging not available", nil)
+		return
+	}
+
+	// Parse optional query params
+	limitStr := r.URL.Query().Get("limit")
+	sessionID := r.URL.Query().Get("session_id")
+
+	var entries []patch.LogEntry
+	if sessionID != "" {
+		entries = logger.GetSessionEntries(sessionID)
+	} else if limitStr != "" {
+		limit := 50 // default
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+		entries = logger.GetRecentEntries(limit)
+	} else {
+		entries = logger.GetEntries()
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"entries": entries,
+		"count":   len(entries),
+	})
+}
+
+func (s *Server) handlePatchStats(w http.ResponseWriter, r *http.Request) {
+	logger := s.patchService.GetLogger()
+	if logger == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "patch logging not available", nil)
+		return
+	}
+
+	stats := logger.GetStats()
+	s.jsonResponse(w, http.StatusOK, stats)
 }

@@ -73,7 +73,7 @@
 | No automatic changes | ✅ | Policy enforced |
 | Explicit escalation | ✅ | User must request L4/L5 with justification |
 | Patch preview | ✅ | Show before apply |
-| Patch logging | ⏳ | Local audit trail |
+| Patch logging | ✅ | Local audit trail with JSONL format |
 
 ### Progress & Appreciation
 
