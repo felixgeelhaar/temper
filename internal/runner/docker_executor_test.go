@@ -267,7 +267,7 @@ func TestDockerExecutor_ResourceLimits(t *testing.T) {
 
 	cfg := runner.DockerConfig{
 		BaseImage:  "golang:1.23-alpine",
-		MemoryMB:   256, // Go compiler needs ~200MB minimum on ARM64
+		MemoryMB:   384, // Go compiler needs ~300MB on ARM64 with CPU throttling
 		CPULimit:   0.5,
 		NetworkOff: true,
 		Timeout:    90 * time.Second, // Go builds need time in containers
