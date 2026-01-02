@@ -428,12 +428,12 @@ func cmdLogs() error {
 	if offset < 0 {
 		offset = 0
 	}
-	file.Seek(offset, 0)
+	_, _ = file.Seek(offset, 0)
 
 	// Skip partial first line if we seeked
 	if offset > 0 {
 		reader := bufio.NewReader(file)
-		reader.ReadString('\n')
+		_, _ = reader.ReadString('\n')
 	}
 
 	// Print remaining lines
@@ -838,7 +838,7 @@ func cmdSpecCreate(name string) error {
 		var errResp struct {
 			Error string `json:"error"`
 		}
-		json.NewDecoder(resp.Body).Decode(&errResp)
+		_ = json.NewDecoder(resp.Body).Decode(&errResp)
 		return fmt.Errorf("create spec failed: %s", errResp.Error)
 	}
 

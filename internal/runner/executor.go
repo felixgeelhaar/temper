@@ -135,7 +135,7 @@ func (e *LocalExecutor) RunBuild(ctx context.Context, code map[string]string) (*
 	// Initialize go.mod if not present
 	if _, ok := code["go.mod"]; !ok {
 		modContent := "module exercise\n\ngo 1.22\n"
-		os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644)
+		_ = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644)
 	}
 
 	// Run go build
@@ -167,7 +167,7 @@ func (e *LocalExecutor) RunTests(ctx context.Context, code map[string]string, fl
 	// Initialize go.mod if not present
 	if _, ok := code["go.mod"]; !ok {
 		modContent := "module exercise\n\ngo 1.22\n"
-		os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644)
+		_ = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(modContent), 0644)
 	}
 
 	// Run go test with JSON output
@@ -196,7 +196,7 @@ func createTempCodeDir(code map[string]string) (string, error) {
 		filePath := filepath.Join(tmpDir, filename)
 		// Create parent directories if needed
 		if dir := filepath.Dir(filePath); dir != tmpDir {
-			os.MkdirAll(dir, 0755)
+			_ = os.MkdirAll(dir, 0755)
 		}
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 			removeTempDir(tmpDir)
@@ -316,7 +316,7 @@ func (e *DockerExecutor) Close() error {
 // EnsureImage pulls the base image if not present
 func (e *DockerExecutor) EnsureImage(ctx context.Context) error {
 	// Check if image exists locally
-	_, _, err := e.client.ImageInspectWithRaw(ctx, e.baseImage)
+	_, err := e.client.ImageInspect(ctx, e.baseImage)
 	if err == nil {
 		return nil // Image exists
 	}
@@ -329,7 +329,7 @@ func (e *DockerExecutor) EnsureImage(ctx context.Context) error {
 	defer reader.Close()
 
 	// Wait for pull to complete
-	io.Copy(io.Discard, reader)
+	_, _ = io.Copy(io.Discard, reader)
 	return nil
 }
 
@@ -487,7 +487,7 @@ func (e *DockerExecutor) runInContainer(ctx context.Context, code map[string]str
 	defer func() {
 		removeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		e.client.ContainerRemove(removeCtx, containerID, container.RemoveOptions{Force: true})
+		_ = e.client.ContainerRemove(removeCtx, containerID, container.RemoveOptions{Force: true})
 	}()
 
 	// Copy code files to container
@@ -515,7 +515,7 @@ func (e *DockerExecutor) runInContainer(ctx context.Context, code map[string]str
 		// Timeout - kill the container
 		killCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		e.client.ContainerKill(killCtx, containerID, "KILL")
+		_ = e.client.ContainerKill(killCtx, containerID, "KILL")
 		return "", -1, ctx.Err()
 	}
 

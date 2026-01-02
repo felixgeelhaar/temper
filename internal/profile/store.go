@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/storage/local"
-	"github.com/google/uuid"
 )
 
 const (
@@ -135,9 +134,4 @@ func (s *Store) List() ([]string, error) {
 // Exists checks if a profile exists
 func (s *Store) Exists(id string) bool {
 	return s.store.Exists(collectionProfiles, id)
-}
-
-// Helper to generate a unique ID
-func newID() string {
-	return uuid.New().String()
 }

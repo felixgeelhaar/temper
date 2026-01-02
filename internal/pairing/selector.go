@@ -149,12 +149,9 @@ func (s *Selector) adjustForSpec(level domain.InterventionLevel, ctx Interventio
 	}
 
 	// Detect potential scope drift - if code is going off-spec,
-	// guide back gently
-	drift := ctx.CheckScopeDrift()
-	if drift != nil && len(drift.OutOfScopeAPIs) > 0 {
-		// Don't escalate level, but this info will be in the prompt
-		// to help anchor feedback to spec scope
-	}
+	// guide back gently. This info will be in the prompt
+	// to help anchor feedback to spec scope.
+	// (Scope drift detection happens upstream, level adjustment not needed here)
 
 	return level
 }

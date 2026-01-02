@@ -161,46 +161,43 @@ func (c *Connection) declareQueues() error {
 func (c *Connection) handleReconnect() {
 	notifyClose := c.conn.NotifyClose(make(chan *amqp.Error, 1))
 
-	for {
-		select {
-		case err := <-notifyClose:
-			if err == nil {
-				return // Normal close
-			}
+	for err := range notifyClose {
+		if err == nil {
+			return // Normal close
+		}
 
-			c.mu.Lock()
-			if c.closed {
-				c.mu.Unlock()
-				return
-			}
+		c.mu.Lock()
+		if c.closed {
 			c.mu.Unlock()
-
-			slog.Warn("RabbitMQ connection closed, attempting to reconnect",
-				"error", err,
-				"reconnects", c.reconnects,
-			)
-
-			// Exponential backoff
-			for i := 0; i < 10; i++ {
-				c.reconnects++
-				backoff := time.Duration(1<<i) * time.Second
-				if backoff > 30*time.Second {
-					backoff = 30 * time.Second
-				}
-				time.Sleep(backoff)
-
-				if err := c.connect(); err != nil {
-					slog.Error("reconnection failed", "error", err, "attempt", i+1)
-					continue
-				}
-
-				slog.Info("reconnected to RabbitMQ", "attempts", i+1)
-				return
-			}
-
-			slog.Error("failed to reconnect to RabbitMQ after 10 attempts")
 			return
 		}
+		c.mu.Unlock()
+
+		slog.Warn("RabbitMQ connection closed, attempting to reconnect",
+			"error", err,
+			"reconnects", c.reconnects,
+		)
+
+		// Exponential backoff
+		for i := 0; i < 10; i++ {
+			c.reconnects++
+			backoff := time.Duration(1<<i) * time.Second
+			if backoff > 30*time.Second {
+				backoff = 30 * time.Second
+			}
+			time.Sleep(backoff)
+
+			if err := c.connect(); err != nil {
+				slog.Error("reconnection failed", "error", err, "attempt", i+1)
+				continue
+			}
+
+			slog.Info("reconnected to RabbitMQ", "attempts", i+1)
+			return
+		}
+
+		slog.Error("failed to reconnect to RabbitMQ after 10 attempts")
+		return
 	}
 }
 

@@ -291,9 +291,8 @@ func (s *Server) handleIntervention(ctx context.Context, input InterventionInput
 		Content:   intervention.Content,
 		CreatedAt: time.Now(),
 	}
-	if err := s.sessionService.RecordIntervention(ctx, sessionIntervention); err != nil {
-		// Log but don't fail
-	}
+	// Record intervention - log but don't fail on error
+	_ = s.sessionService.RecordIntervention(ctx, sessionIntervention)
 
 	return InterventionOutput{
 		Level:   int(intervention.Level),

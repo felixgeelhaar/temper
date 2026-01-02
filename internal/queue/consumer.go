@@ -128,7 +128,7 @@ func (c *Consumer) processMessage(ctx context.Context, workerID int, msg amqp.De
 			"error", err,
 		)
 		// Reject without requeue for malformed messages
-		msg.Reject(false)
+		_ = msg.Reject(false)
 		return
 	}
 
