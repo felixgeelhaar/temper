@@ -292,10 +292,8 @@ func cmdStart() error {
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
-	// Detach from parent process
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	// Detach from parent process (platform-specific)
+	configureDaemonProcess(cmd)
 
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start daemon: %w", err)
