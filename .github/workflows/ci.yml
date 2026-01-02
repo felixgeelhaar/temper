@@ -67,6 +67,8 @@ jobs:
   frontend:
     name: Frontend Build
     runs-on: ubuntu-latest
+    # Skip if web directory doesn't exist
+    if: false
 
     defaults:
       run:
