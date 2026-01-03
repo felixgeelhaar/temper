@@ -1,0 +1,188 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          EXT=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            EXT=".exe"
+          fi
+
+          # Build temper CLI
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+            -o temper-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} ./cmd/temper
+
+          # Build temperd daemon
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+            -o temperd-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} ./cmd/temperd
+
+      - name: Package (Unix)
+        if: matrix.goos != 'windows'
+        run: |
+          mkdir -p dist
+          tar -czvf dist/temper-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz \
+            temper-${{ matrix.goos }}-${{ matrix.goarch }} \
+            temperd-${{ matrix.goos }}-${{ matrix.goarch }} \
+            README.md LICENSE
+
+      - name: Package (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          mkdir -p dist
+          zip dist/temper-${{ matrix.goos }}-${{ matrix.goarch }}.zip \
+            temper-${{ matrix.goos }}-${{ matrix.goarch }}.exe \
+            temperd-${{ matrix.goos }}-${{ matrix.goarch }}.exe \
+            README.md LICENSE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: temper-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} release/ \;
+          ls -la release/
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Tap
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: felixgeelhaar/homebrew-tap
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download release assets
+        run: |
+          mkdir -p downloads
+          VERSION=${{ steps.version.outputs.version }}
+          BASE_URL="https://github.com/felixgeelhaar/temper/releases/download/v${VERSION}"
+
+          curl -sL "${BASE_URL}/temper-darwin-amd64.tar.gz" -o downloads/darwin_amd64.tar.gz
+          curl -sL "${BASE_URL}/temper-darwin-arm64.tar.gz" -o downloads/darwin_arm64.tar.gz
+          curl -sL "${BASE_URL}/temper-linux-amd64.tar.gz" -o downloads/linux_amd64.tar.gz
+          curl -sL "${BASE_URL}/temper-linux-arm64.tar.gz" -o downloads/linux_arm64.tar.gz
+
+      - name: Calculate SHA256 checksums
+        id: sha
+        run: |
+          echo "darwin_amd64=$(sha256sum downloads/darwin_amd64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "darwin_arm64=$(sha256sum downloads/darwin_arm64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "linux_amd64=$(sha256sum downloads/linux_amd64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "linux_arm64=$(sha256sum downloads/linux_arm64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - name: Update formula in tap
+        working-directory: homebrew-tap
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Update version
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/temper.rb
+
+          # Update SHA256 checksums (replace existing or placeholder)
+          sed -i "s/sha256 \".*\" # darwin-arm64/sha256 \"${{ steps.sha.outputs.darwin_arm64 }}\" # darwin-arm64/" Formula/temper.rb
+          sed -i "s/sha256 \".*\" # darwin-amd64/sha256 \"${{ steps.sha.outputs.darwin_amd64 }}\" # darwin-amd64/" Formula/temper.rb
+          sed -i "s/sha256 \".*\" # linux-arm64/sha256 \"${{ steps.sha.outputs.linux_arm64 }}\" # linux-arm64/" Formula/temper.rb
+          sed -i "s/sha256 \".*\" # linux-amd64/sha256 \"${{ steps.sha.outputs.linux_amd64 }}\" # linux-amd64/" Formula/temper.rb
+
+          # Also handle PLACEHOLDER format
+          sed -i "s/PLACEHOLDER_DARWIN_ARM64/${{ steps.sha.outputs.darwin_arm64 }}/" Formula/temper.rb
+          sed -i "s/PLACEHOLDER_DARWIN_AMD64/${{ steps.sha.outputs.darwin_amd64 }}/" Formula/temper.rb
+          sed -i "s/PLACEHOLDER_LINUX_ARM64/${{ steps.sha.outputs.linux_arm64 }}/" Formula/temper.rb
+          sed -i "s/PLACEHOLDER_LINUX_AMD64/${{ steps.sha.outputs.linux_amd64 }}/" Formula/temper.rb
+
+      - name: Commit and push to tap
+        working-directory: homebrew-tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/temper.rb
+          git diff --staged --quiet || git commit -m "temper: update to v${{ steps.version.outputs.version }}"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
