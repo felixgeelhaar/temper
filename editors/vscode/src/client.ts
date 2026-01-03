@@ -205,8 +205,8 @@ export class TemperClient {
     }
 
     async discoverDocs(specPath: string, docsPaths?: string[]): Promise<{ documents: Document[] }> {
-        const encodedPath = encodeURIComponent(specPath);
-        return this.request('POST', `/v1/specs/${encodedPath}/authoring/discover`, {
+        return this.request('POST', '/v1/authoring/discover', {
+            spec_path: specPath,
             docs_paths: docsPaths || ['docs/', 'README.md'],
         });
     }

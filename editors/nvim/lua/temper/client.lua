@@ -316,12 +316,11 @@ end
 
 -- Discover project documentation
 function M.discover_docs(spec_path, docs_paths, callback)
-	-- URL encode the spec path
-	local encoded_path = spec_path:gsub("/", "%%2F")
 	local body = {
+		spec_path = spec_path,
 		docs_paths = docs_paths or { "docs/", "README.md" },
 	}
-	request("POST", "/v1/specs/" .. encoded_path .. "/authoring/discover", body, callback)
+	request("POST", "/v1/authoring/discover", body, callback)
 end
 
 -- Get section suggestions

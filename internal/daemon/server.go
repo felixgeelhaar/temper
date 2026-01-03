@@ -265,7 +265,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("GET /v1/patches/stats", s.handlePatchStats)
 
 	// Spec Authoring
-	s.router.HandleFunc("POST /v1/specs/{path...}/authoring/discover", s.handleAuthoringDiscover)
+	s.router.HandleFunc("POST /v1/authoring/discover", s.handleAuthoringDiscover)
 	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/suggest", s.handleAuthoringSuggest)
 	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/apply", s.handleAuthoringApply)
 	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/hint", s.handleAuthoringHint)
@@ -1564,13 +1564,8 @@ func (s *Server) handlePatchStats(w http.ResponseWriter, r *http.Request) {
 // Spec Authoring handlers
 
 func (s *Server) handleAuthoringDiscover(w http.ResponseWriter, r *http.Request) {
-	specPath := r.PathValue("path")
-	if specPath == "" {
-		s.jsonError(w, http.StatusBadRequest, "spec path required", nil)
-		return
-	}
-
 	var req struct {
+		SpecPath  string   `json:"spec_path"`
 		DocsPaths []string `json:"docs_paths"`
 		Recursive bool     `json:"recursive"`
 	}
