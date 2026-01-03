@@ -25,6 +25,9 @@ import (
 	"github.com/felixgeelhaar/temper/internal/session"
 )
 
+// Version is set at build time via ldflags
+var Version = "dev"
+
 const (
 	daemonAddr = "http://127.0.0.1:7432"
 	pidFile    = "temperd.pid"
@@ -65,7 +68,7 @@ func main() {
 	case "help", "-h", "--help":
 		printUsage()
 	case "version", "-v", "--version":
-		fmt.Println("temper v0.1.0")
+		fmt.Printf("temper %s\n", Version)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
 		printUsage()
