@@ -1,0 +1,343 @@
+id: unit-tests
+title: Unit Testing
+description: |
+  Learn Rust's built-in testing framework.
+
+  ## Learning Objectives
+  - Write test functions with #[test]
+  - Use assertion macros
+  - Organize tests in modules
+  - Test for panics and errors
+
+  ## Instructions
+  Write comprehensive tests for a calculator module.
+
+difficulty: intermediate
+tags:
+  - testing
+  - unit-tests
+  - assertions
+  - test-organization
+
+prerequisites:
+  - intermediate/error-handling
+
+starter:
+  src/lib.rs: |
+    //! Calculator module to test.
+
+    /// Add two numbers.
+    pub fn add(a: i32, b: i32) -> i32 {
+        a + b
+    }
+
+    /// Subtract b from a.
+    pub fn subtract(a: i32, b: i32) -> i32 {
+        a - b
+    }
+
+    /// Multiply two numbers.
+    pub fn multiply(a: i32, b: i32) -> i32 {
+        a * b
+    }
+
+    /// Divide a by b, returning None if b is zero.
+    pub fn divide(a: i32, b: i32) -> Option<i32> {
+        if b == 0 {
+            None
+        } else {
+            Some(a / b)
+        }
+    }
+
+    /// Calculate factorial. Panics if n > 20.
+    pub fn factorial(n: u64) -> u64 {
+        if n > 20 {
+            panic!("Input too large: {} > 20", n);
+        }
+        (1..=n).product()
+    }
+
+    /// Check if a number is prime.
+    pub fn is_prime(n: u64) -> bool {
+        if n < 2 {
+            return false;
+        }
+        if n == 2 {
+            return true;
+        }
+        if n % 2 == 0 {
+            return false;
+        }
+        let sqrt = (n as f64).sqrt() as u64;
+        (3..=sqrt).step_by(2).all(|i| n % i != 0)
+    }
+
+    /// Parse and add two number strings.
+    pub fn parse_and_add(a: &str, b: &str) -> Result<i32, std::num::ParseIntError> {
+        let x = a.parse::<i32>()?;
+        let y = b.parse::<i32>()?;
+        Ok(x + y)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        // TODO: Complete the test functions
+
+        #[test]
+        fn test_add_positive() {
+            // TODO: Test add(2, 3) == 5
+        }
+
+        #[test]
+        fn test_add_negative() {
+            // TODO: Test add(-1, -2) == -3
+        }
+
+        #[test]
+        fn test_add_zero() {
+            // TODO: Test add(5, 0) == 5
+        }
+
+        #[test]
+        fn test_subtract() {
+            // TODO: Test subtract(5, 3) == 2
+        }
+
+        #[test]
+        fn test_multiply() {
+            // TODO: Test multiply(4, 3) == 12
+        }
+
+        #[test]
+        fn test_divide_valid() {
+            // TODO: Test divide(10, 2) == Some(5)
+        }
+
+        #[test]
+        fn test_divide_by_zero() {
+            // TODO: Test divide(5, 0) == None
+        }
+
+        #[test]
+        fn test_factorial_zero() {
+            // TODO: Test factorial(0) == 1
+        }
+
+        #[test]
+        fn test_factorial_five() {
+            // TODO: Test factorial(5) == 120
+        }
+
+        #[test]
+        #[should_panic(expected = "too large")]
+        fn test_factorial_panics() {
+            // TODO: Call factorial with value > 20
+        }
+
+        #[test]
+        fn test_is_prime() {
+            // TODO: Test various prime and non-prime numbers
+            // 2, 3, 5, 7, 11 are prime
+            // 1, 4, 6, 8, 9 are not prime
+        }
+
+        #[test]
+        fn test_parse_and_add_valid() {
+            // TODO: Test parse_and_add("10", "20") == Ok(30)
+        }
+
+        #[test]
+        fn test_parse_and_add_invalid() {
+            // TODO: Test parse_and_add("abc", "20").is_err()
+        }
+    }
+
+tests:
+  src/test_runner.rs: |
+    //! This file runs the tests in lib.rs
+    //! The actual tests should be in the tests module in lib.rs
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: testing
+      name: Test Quality
+      description: Comprehensive test coverage
+      weight: 0.5
+      signals:
+        - tests_edge_cases
+        - tests_errors
+
+hints:
+  L0:
+    - "What assertion macro checks equality?"
+    - "How do you test that a function panics?"
+  L1:
+    - "assert_eq!(actual, expected) for equality"
+    - "#[should_panic] attribute for panic tests"
+  L2:
+    - "#[should_panic(expected = \"message\")] for specific message"
+    - "result.is_err() to check for error Result"
+  L3:
+    - |
+      ```rust
+      #[test]
+      fn test_is_prime() {
+          assert!(is_prime(2));
+          assert!(is_prime(3));
+          assert!(is_prime(11));
+          assert!(!is_prime(1));
+          assert!(!is_prime(4));
+          assert!(!is_prime(9));
+      }
+
+      #[test]
+      #[should_panic(expected = "too large")]
+      fn test_factorial_panics() {
+          factorial(21);
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    pub fn add(a: i32, b: i32) -> i32 {
+        a + b
+    }
+
+    pub fn subtract(a: i32, b: i32) -> i32 {
+        a - b
+    }
+
+    pub fn multiply(a: i32, b: i32) -> i32 {
+        a * b
+    }
+
+    pub fn divide(a: i32, b: i32) -> Option<i32> {
+        if b == 0 {
+            None
+        } else {
+            Some(a / b)
+        }
+    }
+
+    pub fn factorial(n: u64) -> u64 {
+        if n > 20 {
+            panic!("Input too large: {} > 20", n);
+        }
+        (1..=n).product()
+    }
+
+    pub fn is_prime(n: u64) -> bool {
+        if n < 2 {
+            return false;
+        }
+        if n == 2 {
+            return true;
+        }
+        if n % 2 == 0 {
+            return false;
+        }
+        let sqrt = (n as f64).sqrt() as u64;
+        (3..=sqrt).step_by(2).all(|i| n % i != 0)
+    }
+
+    pub fn parse_and_add(a: &str, b: &str) -> Result<i32, std::num::ParseIntError> {
+        let x = a.parse::<i32>()?;
+        let y = b.parse::<i32>()?;
+        Ok(x + y)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_add_positive() {
+            assert_eq!(add(2, 3), 5);
+        }
+
+        #[test]
+        fn test_add_negative() {
+            assert_eq!(add(-1, -2), -3);
+        }
+
+        #[test]
+        fn test_add_zero() {
+            assert_eq!(add(5, 0), 5);
+        }
+
+        #[test]
+        fn test_subtract() {
+            assert_eq!(subtract(5, 3), 2);
+        }
+
+        #[test]
+        fn test_multiply() {
+            assert_eq!(multiply(4, 3), 12);
+        }
+
+        #[test]
+        fn test_divide_valid() {
+            assert_eq!(divide(10, 2), Some(5));
+        }
+
+        #[test]
+        fn test_divide_by_zero() {
+            assert_eq!(divide(5, 0), None);
+        }
+
+        #[test]
+        fn test_factorial_zero() {
+            assert_eq!(factorial(0), 1);
+        }
+
+        #[test]
+        fn test_factorial_five() {
+            assert_eq!(factorial(5), 120);
+        }
+
+        #[test]
+        #[should_panic(expected = "too large")]
+        fn test_factorial_panics() {
+            factorial(21);
+        }
+
+        #[test]
+        fn test_is_prime() {
+            assert!(is_prime(2));
+            assert!(is_prime(3));
+            assert!(is_prime(5));
+            assert!(is_prime(7));
+            assert!(is_prime(11));
+            assert!(!is_prime(1));
+            assert!(!is_prime(4));
+            assert!(!is_prime(6));
+            assert!(!is_prime(8));
+            assert!(!is_prime(9));
+        }
+
+        #[test]
+        fn test_parse_and_add_valid() {
+            assert_eq!(parse_and_add("10", "20"), Ok(30));
+        }
+
+        #[test]
+        fn test_parse_and_add_invalid() {
+            assert!(parse_and_add("abc", "20").is_err());
+        }
+    }

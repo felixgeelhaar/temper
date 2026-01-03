@@ -1,0 +1,39 @@
+id: python-v1
+name: Python Fundamentals
+version: 1.0.0
+description: |
+  Learn Python through deliberate practice. This pack covers the fundamentals
+  of Python programming, from basic syntax to advanced async patterns.
+  Based on best practices from Exercism's Python track.
+language: python
+difficulty_range:
+  - beginner
+  - intermediate
+  - advanced
+
+default_policy:
+  max_level: 3
+  patching_enabled: false
+  cooldown_seconds: 60
+  track: practice
+
+exercises:
+  # Basics (5 exercises)
+  - basics/hello-world
+  - basics/variables
+  - basics/functions
+  - basics/control-flow
+  - basics/lists
+  - basics/dictionaries
+  # Intermediate (5 exercises)
+  - intermediate/classes
+  - intermediate/methods
+  - intermediate/errors
+  - intermediate/protocols
+  # Testing (2 exercises)
+  - testing/unit-tests
+  - testing/pytest-fixtures
+  # Advanced (3 exercises)
+  - advanced/generators
+  - advanced/async
+  - advanced/http-client

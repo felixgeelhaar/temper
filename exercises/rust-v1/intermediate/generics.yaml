@@ -1,0 +1,371 @@
+id: generics
+title: Generics
+description: |
+  Learn Rust generics for type-safe abstractions.
+
+  ## Learning Objectives
+  - Write generic functions
+  - Define generic structs
+  - Use trait bounds with generics
+  - Understand monomorphization
+
+  ## Instructions
+  Build generic data structures.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - generics
+  - type-parameters
+  - bounds
+
+prerequisites:
+  - intermediate/traits
+
+starter:
+  src/lib.rs: |
+    //! Generic types and functions.
+
+    use std::cmp::Ordering;
+
+    /// Find the larger of two comparable values.
+    pub fn max<T: PartialOrd>(a: T, b: T) -> T {
+        // TODO: Return larger value
+        todo!()
+    }
+
+    /// Find the smaller of two comparable values.
+    pub fn min<T: PartialOrd>(a: T, b: T) -> T {
+        // TODO: Return smaller value
+        todo!()
+    }
+
+    /// A pair of two values of the same type.
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct Pair<T> {
+        pub first: T,
+        pub second: T,
+    }
+
+    impl<T> Pair<T> {
+        /// Create a new pair.
+        pub fn new(first: T, second: T) -> Self {
+            // TODO: Create pair
+            todo!()
+        }
+
+        /// Swap the elements.
+        pub fn swap(self) -> Pair<T> {
+            // TODO: Return pair with swapped elements
+            todo!()
+        }
+    }
+
+    impl<T: Clone> Pair<T> {
+        /// Get both elements as a tuple.
+        pub fn to_tuple(&self) -> (T, T) {
+            // TODO: Clone and return as tuple
+            todo!()
+        }
+    }
+
+    impl<T: PartialOrd> Pair<T> {
+        /// Get the larger element.
+        pub fn max(&self) -> &T {
+            // TODO: Return reference to larger element
+            todo!()
+        }
+    }
+
+    /// A generic stack data structure.
+    #[derive(Debug, Clone)]
+    pub struct Stack<T> {
+        items: Vec<T>,
+    }
+
+    impl<T> Stack<T> {
+        /// Create an empty stack.
+        pub fn new() -> Self {
+            // TODO: Create empty stack
+            todo!()
+        }
+
+        /// Push item onto stack.
+        pub fn push(&mut self, item: T) {
+            // TODO: Add to top of stack
+            todo!()
+        }
+
+        /// Pop item from stack.
+        pub fn pop(&mut self) -> Option<T> {
+            // TODO: Remove and return top item
+            todo!()
+        }
+
+        /// Peek at top item without removing.
+        pub fn peek(&self) -> Option<&T> {
+            // TODO: Return reference to top item
+            todo!()
+        }
+
+        /// Check if stack is empty.
+        pub fn is_empty(&self) -> bool {
+            // TODO: Return true if no items
+            todo!()
+        }
+
+        /// Get number of items.
+        pub fn len(&self) -> usize {
+            // TODO: Return count
+            todo!()
+        }
+    }
+
+    impl<T> Default for Stack<T> {
+        fn default() -> Self {
+            Stack::new()
+        }
+    }
+
+    /// Apply a function to each element, returning new collection.
+    pub fn map_vec<T, U, F>(vec: Vec<T>, f: F) -> Vec<U>
+    where
+        F: Fn(T) -> U,
+    {
+        // TODO: Apply f to each element
+        todo!()
+    }
+
+    /// Filter elements matching predicate.
+    pub fn filter_vec<T, F>(vec: Vec<T>, predicate: F) -> Vec<T>
+    where
+        F: Fn(&T) -> bool,
+    {
+        // TODO: Keep elements where predicate returns true
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_max() {
+        assert_eq!(max(1, 2), 2);
+        assert_eq!(max(5, 3), 5);
+        assert_eq!(max("a", "b"), "b");
+    }
+
+    #[test]
+    fn test_min() {
+        assert_eq!(min(1, 2), 1);
+        assert_eq!(min(5, 3), 3);
+    }
+
+    #[test]
+    fn test_pair_new() {
+        let p = Pair::new(1, 2);
+        assert_eq!(p.first, 1);
+        assert_eq!(p.second, 2);
+    }
+
+    #[test]
+    fn test_pair_swap() {
+        let p = Pair::new(1, 2).swap();
+        assert_eq!(p.first, 2);
+        assert_eq!(p.second, 1);
+    }
+
+    #[test]
+    fn test_pair_to_tuple() {
+        let p = Pair::new(1, 2);
+        assert_eq!(p.to_tuple(), (1, 2));
+    }
+
+    #[test]
+    fn test_pair_max() {
+        let p = Pair::new(1, 5);
+        assert_eq!(*p.max(), 5);
+    }
+
+    #[test]
+    fn test_stack_push_pop() {
+        let mut stack = Stack::new();
+        stack.push(1);
+        stack.push(2);
+        assert_eq!(stack.pop(), Some(2));
+        assert_eq!(stack.pop(), Some(1));
+        assert_eq!(stack.pop(), None);
+    }
+
+    #[test]
+    fn test_stack_peek() {
+        let mut stack = Stack::new();
+        stack.push(42);
+        assert_eq!(stack.peek(), Some(&42));
+        assert_eq!(stack.len(), 1); // Still there
+    }
+
+    #[test]
+    fn test_stack_is_empty() {
+        let mut stack: Stack<i32> = Stack::new();
+        assert!(stack.is_empty());
+        stack.push(1);
+        assert!(!stack.is_empty());
+    }
+
+    #[test]
+    fn test_map_vec() {
+        let v = vec![1, 2, 3];
+        let doubled = map_vec(v, |x| x * 2);
+        assert_eq!(doubled, vec![2, 4, 6]);
+    }
+
+    #[test]
+    fn test_filter_vec() {
+        let v = vec![1, 2, 3, 4, 5];
+        let evens = filter_vec(v, |x| x % 2 == 0);
+        assert_eq!(evens, vec![2, 4]);
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: generics
+      name: Generic Patterns
+      description: Proper generic usage
+      weight: 0.5
+      signals:
+        - uses_type_parameters
+        - uses_trait_bounds
+
+hints:
+  L0:
+    - "How do you specify a trait bound on a generic type?"
+    - "What's the where clause used for?"
+  L1:
+    - "Bound syntax: <T: Trait> or where T: Trait"
+    - "Multiple bounds: T: Trait1 + Trait2"
+  L2:
+    - "Stack uses Vec internally: items.push(), items.pop()"
+    - "peek: items.last()"
+  L3:
+    - |
+      ```rust
+      pub fn map_vec<T, U, F>(vec: Vec<T>, f: F) -> Vec<U>
+      where
+          F: Fn(T) -> U,
+      {
+          vec.into_iter().map(f).collect()
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    use std::cmp::Ordering;
+
+    pub fn max<T: PartialOrd>(a: T, b: T) -> T {
+        if a >= b { a } else { b }
+    }
+
+    pub fn min<T: PartialOrd>(a: T, b: T) -> T {
+        if a <= b { a } else { b }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct Pair<T> {
+        pub first: T,
+        pub second: T,
+    }
+
+    impl<T> Pair<T> {
+        pub fn new(first: T, second: T) -> Self {
+            Pair { first, second }
+        }
+
+        pub fn swap(self) -> Pair<T> {
+            Pair {
+                first: self.second,
+                second: self.first,
+            }
+        }
+    }
+
+    impl<T: Clone> Pair<T> {
+        pub fn to_tuple(&self) -> (T, T) {
+            (self.first.clone(), self.second.clone())
+        }
+    }
+
+    impl<T: PartialOrd> Pair<T> {
+        pub fn max(&self) -> &T {
+            if self.first >= self.second {
+                &self.first
+            } else {
+                &self.second
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Stack<T> {
+        items: Vec<T>,
+    }
+
+    impl<T> Stack<T> {
+        pub fn new() -> Self {
+            Stack { items: Vec::new() }
+        }
+
+        pub fn push(&mut self, item: T) {
+            self.items.push(item);
+        }
+
+        pub fn pop(&mut self) -> Option<T> {
+            self.items.pop()
+        }
+
+        pub fn peek(&self) -> Option<&T> {
+            self.items.last()
+        }
+
+        pub fn is_empty(&self) -> bool {
+            self.items.is_empty()
+        }
+
+        pub fn len(&self) -> usize {
+            self.items.len()
+        }
+    }
+
+    impl<T> Default for Stack<T> {
+        fn default() -> Self {
+            Stack::new()
+        }
+    }
+
+    pub fn map_vec<T, U, F>(vec: Vec<T>, f: F) -> Vec<U>
+    where
+        F: Fn(T) -> U,
+    {
+        vec.into_iter().map(f).collect()
+    }
+
+    pub fn filter_vec<T, F>(vec: Vec<T>, predicate: F) -> Vec<T>
+    where
+        F: Fn(&T) -> bool,
+    {
+        vec.into_iter().filter(|x| predicate(x)).collect()
+    }

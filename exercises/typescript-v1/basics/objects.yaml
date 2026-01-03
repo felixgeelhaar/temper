@@ -1,0 +1,267 @@
+id: objects
+title: Objects
+description: |
+  Learn TypeScript object types and manipulation.
+
+  ## Learning Objectives
+  - Define object types and interfaces
+  - Use object destructuring
+  - Spread objects for immutable updates
+  - Work with optional properties
+
+  ## Instructions
+  Implement object manipulation functions.
+
+difficulty: beginner
+tags:
+  - basics
+  - objects
+  - destructuring
+  - spread
+
+prerequisites:
+  - basics/arrays
+
+starter:
+  objects.ts: |
+    /**
+     * Object operations in TypeScript.
+     */
+
+    interface Person {
+      name: string;
+      age: number;
+      email?: string;
+    }
+
+    /**
+     * Create a person object.
+     *
+     * @param name - Person's name
+     * @param age - Person's age
+     * @param email - Optional email
+     * @returns A Person object
+     */
+    export function createPerson(
+      name: string,
+      age: number,
+      email?: string
+    ): Person {
+      // TODO: Return person object
+      return { name: "", age: 0 };
+    }
+
+    /**
+     * Get person's name and age as a formatted string.
+     * Use destructuring.
+     *
+     * @param person - The person
+     * @returns Format: "Name (age years old)"
+     */
+    export function describePerson(person: Person): string {
+      // TODO: Use destructuring, format string
+      return "";
+    }
+
+    /**
+     * Update a person's age immutably.
+     *
+     * @param person - Original person
+     * @param newAge - New age
+     * @returns New person object with updated age
+     */
+    export function birthday(person: Person, newAge: number): Person {
+      // TODO: Use spread to create new object
+      return person;
+    }
+
+    /**
+     * Merge two objects, with second object's values taking precedence.
+     *
+     * @param base - Base object
+     * @param updates - Updates to apply
+     * @returns Merged object
+     */
+    export function merge<T extends object>(base: T, updates: Partial<T>): T {
+      // TODO: Merge with spread
+      return base;
+    }
+
+    /**
+     * Pick specific keys from an object.
+     *
+     * @param obj - Source object
+     * @param keys - Keys to pick
+     * @returns Object with only specified keys
+     */
+    export function pick<T extends object, K extends keyof T>(
+      obj: T,
+      keys: K[]
+    ): Pick<T, K> {
+      // TODO: Create object with only specified keys
+      return {} as Pick<T, K>;
+    }
+
+    /**
+     * Check if person has email.
+     *
+     * @param person - The person to check
+     * @returns true if email exists
+     */
+    export function hasEmail(person: Person): boolean {
+      // TODO: Check if email property exists and is not undefined
+      return false;
+    }
+
+tests:
+  objects.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      createPerson, describePerson, birthday, merge, pick, hasEmail
+    } from "./objects";
+
+    describe("createPerson", () => {
+      it("creates person with required fields", () => {
+        const person = createPerson("Alice", 30);
+        expect(person.name).toBe("Alice");
+        expect(person.age).toBe(30);
+      });
+
+      it("creates person with email", () => {
+        const person = createPerson("Bob", 25, "bob@example.com");
+        expect(person.email).toBe("bob@example.com");
+      });
+    });
+
+    describe("describePerson", () => {
+      it("formats person description", () => {
+        const person = { name: "Alice", age: 30 };
+        expect(describePerson(person)).toBe("Alice (30 years old)");
+      });
+    });
+
+    describe("birthday", () => {
+      it("creates new object with updated age", () => {
+        const original = { name: "Alice", age: 30 };
+        const updated = birthday(original, 31);
+        expect(updated.age).toBe(31);
+        expect(original.age).toBe(30); // Original unchanged
+      });
+
+      it("preserves other properties", () => {
+        const original = { name: "Alice", age: 30, email: "a@b.com" };
+        const updated = birthday(original, 31);
+        expect(updated.email).toBe("a@b.com");
+      });
+    });
+
+    describe("merge", () => {
+      it("merges objects", () => {
+        const base = { a: 1, b: 2 };
+        const updates = { b: 3, c: 4 } as Partial<typeof base & { c: number }>;
+        const result = merge(base, updates);
+        expect(result).toEqual({ a: 1, b: 3, c: 4 });
+      });
+    });
+
+    describe("pick", () => {
+      it("picks specified keys", () => {
+        const obj = { name: "Alice", age: 30, email: "a@b.com" };
+        const result = pick(obj, ["name", "age"]);
+        expect(result).toEqual({ name: "Alice", age: 30 });
+        expect((result as any).email).toBeUndefined();
+      });
+    });
+
+    describe("hasEmail", () => {
+      it("returns true when email exists", () => {
+        expect(hasEmail({ name: "A", age: 1, email: "a@b.com" })).toBe(true);
+      });
+
+      it("returns false when no email", () => {
+        expect(hasEmail({ name: "A", age: 1 })).toBe(false);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: objects
+      name: Object Operations
+      description: Uses spread and destructuring
+      weight: 0.5
+      signals:
+        - uses_spread
+        - uses_destructuring
+
+hints:
+  L0:
+    - "How do you destructure an object?"
+    - "How do you create a copy with one changed property?"
+  L1:
+    - "Destructure: const { name, age } = person"
+    - "Update: { ...original, age: newAge }"
+  L2:
+    - "Pick: keys.reduce((acc, k) => ({ ...acc, [k]: obj[k] }), {})"
+  L3:
+    - |
+      ```typescript
+      export function birthday(person: Person, newAge: number): Person {
+        return { ...person, age: newAge };
+      }
+      ```
+
+solution:
+  objects.ts: |
+    interface Person {
+      name: string;
+      age: number;
+      email?: string;
+    }
+
+    export function createPerson(
+      name: string,
+      age: number,
+      email?: string
+    ): Person {
+      return email ? { name, age, email } : { name, age };
+    }
+
+    export function describePerson(person: Person): string {
+      const { name, age } = person;
+      return `${name} (${age} years old)`;
+    }
+
+    export function birthday(person: Person, newAge: number): Person {
+      return { ...person, age: newAge };
+    }
+
+    export function merge<T extends object>(base: T, updates: Partial<T>): T {
+      return { ...base, ...updates };
+    }
+
+    export function pick<T extends object, K extends keyof T>(
+      obj: T,
+      keys: K[]
+    ): Pick<T, K> {
+      return keys.reduce(
+        (acc, key) => ({ ...acc, [key]: obj[key] }),
+        {} as Pick<T, K>
+      );
+    }
+
+    export function hasEmail(person: Person): boolean {
+      return person.email !== undefined;
+    }

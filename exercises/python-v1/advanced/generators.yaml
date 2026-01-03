@@ -1,0 +1,353 @@
+id: generators
+title: Generators and Iterators
+description: |
+  Learn Python's generator functions and iterator protocol.
+
+  ## Learning Objectives
+  - Create generator functions with yield
+  - Understand lazy evaluation
+  - Implement the iterator protocol
+  - Use generator expressions
+
+  ## Instructions
+  Implement generators for efficient data processing.
+
+difficulty: advanced
+tags:
+  - advanced
+  - generators
+  - iterators
+  - lazy-evaluation
+
+prerequisites:
+  - intermediate/classes
+  - basics/control-flow
+
+starter:
+  generators.py: |
+    """Generator functions and iterator implementations."""
+    from typing import Iterator, Generator, Iterable, TypeVar
+
+    T = TypeVar("T")
+
+
+    def fibonacci(limit: int) -> Generator[int, None, None]:
+        """Generate Fibonacci numbers up to limit.
+
+        Args:
+            limit: Maximum value to generate
+
+        Yields:
+            Fibonacci numbers: 0, 1, 1, 2, 3, 5, 8, ...
+        """
+        # TODO: Implement Fibonacci generator
+        pass
+
+
+    def chunks(items: list[T], size: int) -> Generator[list[T], None, None]:
+        """Split a list into chunks of specified size.
+
+        Args:
+            items: List to split
+            size: Size of each chunk
+
+        Yields:
+            Lists of up to 'size' elements
+        """
+        # TODO: Yield chunks of the list
+        pass
+
+
+    def flatten(nested: Iterable[Iterable[T]]) -> Generator[T, None, None]:
+        """Flatten a nested iterable one level.
+
+        Args:
+            nested: Iterable of iterables
+
+        Yields:
+            Individual items from nested iterables
+        """
+        # TODO: Yield items from each sub-iterable
+        pass
+
+
+    def take_while_positive(numbers: Iterable[int]) -> Generator[int, None, None]:
+        """Yield numbers while they are positive.
+
+        Stop as soon as a non-positive number is encountered.
+
+        Args:
+            numbers: Iterable of integers
+
+        Yields:
+            Positive numbers until first non-positive
+        """
+        # TODO: Yield while positive, stop on non-positive
+        pass
+
+
+    class Range:
+        """Custom range implementation using iterator protocol.
+
+        Example:
+            for i in Range(1, 5):
+                print(i)  # Prints 1, 2, 3, 4
+        """
+
+        def __init__(self, start: int, stop: int, step: int = 1):
+            """Initialize range.
+
+            Args:
+                start: Starting value (inclusive)
+                stop: Ending value (exclusive)
+                step: Step between values (default 1)
+            """
+            self.start = start
+            self.stop = stop
+            self.step = step
+
+        def __iter__(self) -> Iterator[int]:
+            """Return iterator for this range.
+
+            Returns:
+                Iterator that yields values in range
+            """
+            # TODO: Return an iterator (can be self or generator)
+            pass
+
+        def __len__(self) -> int:
+            """Return number of items in range."""
+            if self.step > 0:
+                return max(0, (self.stop - self.start + self.step - 1) // self.step)
+            return max(0, (self.start - self.stop - self.step - 1) // (-self.step))
+
+
+    def infinite_counter(start: int = 0) -> Generator[int, None, None]:
+        """Generate infinite sequence of integers.
+
+        Args:
+            start: Starting value
+
+        Yields:
+            Integers starting from start, incrementing by 1
+        """
+        # TODO: Yield infinite sequence
+        pass
+
+tests:
+  test_generators.py: |
+    """Tests for generators and iterators."""
+    import pytest
+    from generators import (
+        fibonacci, chunks, flatten, take_while_positive,
+        Range, infinite_counter
+    )
+
+
+    class TestFibonacci:
+        def test_small_limit(self):
+            assert list(fibonacci(10)) == [0, 1, 1, 2, 3, 5, 8]
+
+        def test_zero_limit(self):
+            assert list(fibonacci(0)) == []
+
+        def test_one_limit(self):
+            assert list(fibonacci(1)) == [0, 1, 1]
+
+
+    class TestChunks:
+        def test_even_split(self):
+            result = list(chunks([1, 2, 3, 4], 2))
+            assert result == [[1, 2], [3, 4]]
+
+        def test_uneven_split(self):
+            result = list(chunks([1, 2, 3, 4, 5], 2))
+            assert result == [[1, 2], [3, 4], [5]]
+
+        def test_empty_list(self):
+            assert list(chunks([], 3)) == []
+
+        def test_chunk_larger_than_list(self):
+            result = list(chunks([1, 2], 5))
+            assert result == [[1, 2]]
+
+
+    class TestFlatten:
+        def test_nested_lists(self):
+            result = list(flatten([[1, 2], [3, 4], [5]]))
+            assert result == [1, 2, 3, 4, 5]
+
+        def test_empty_sublists(self):
+            result = list(flatten([[1], [], [2, 3]]))
+            assert result == [1, 2, 3]
+
+        def test_empty_outer(self):
+            assert list(flatten([])) == []
+
+
+    class TestTakeWhilePositive:
+        def test_stops_at_negative(self):
+            result = list(take_while_positive([1, 2, 3, -1, 4, 5]))
+            assert result == [1, 2, 3]
+
+        def test_stops_at_zero(self):
+            result = list(take_while_positive([1, 2, 0, 3]))
+            assert result == [1, 2]
+
+        def test_all_positive(self):
+            result = list(take_while_positive([1, 2, 3]))
+            assert result == [1, 2, 3]
+
+        def test_starts_negative(self):
+            result = list(take_while_positive([-1, 2, 3]))
+            assert result == []
+
+
+    class TestRange:
+        def test_basic_range(self):
+            assert list(Range(0, 5)) == [0, 1, 2, 3, 4]
+
+        def test_start_stop(self):
+            assert list(Range(2, 6)) == [2, 3, 4, 5]
+
+        def test_with_step(self):
+            assert list(Range(0, 10, 2)) == [0, 2, 4, 6, 8]
+
+        def test_len(self):
+            assert len(Range(0, 10)) == 10
+            assert len(Range(0, 10, 2)) == 5
+
+
+    class TestInfiniteCounter:
+        def test_starts_at_zero(self):
+            gen = infinite_counter()
+            assert next(gen) == 0
+            assert next(gen) == 1
+            assert next(gen) == 2
+
+        def test_starts_at_value(self):
+            gen = infinite_counter(10)
+            assert next(gen) == 10
+            assert next(gen) == 11
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: generators
+      name: Generator Usage
+      description: Proper use of yield and generators
+      weight: 0.4
+      signals:
+        - uses_yield
+        - uses_generator
+
+    - id: iterator
+      name: Iterator Protocol
+      description: Correct __iter__ implementation
+      weight: 0.2
+      signals:
+        - implements_iter
+
+hints:
+  L0:
+    - "What keyword makes a function a generator?"
+    - "How do you make an object iterable?"
+  L1:
+    - "Use 'yield' to make a generator function"
+    - "Implement __iter__ to make objects iterable"
+  L2:
+    - "Fibonacci: a, b = b, a + b"
+    - "Chunks: use slicing items[i:i+size]"
+  L3:
+    - |
+      ```python
+      def fibonacci(limit: int) -> Generator[int, None, None]:
+          a, b = 0, 1
+          while a <= limit:
+              yield a
+              a, b = b, a + b
+
+      def __iter__(self) -> Iterator[int]:
+          current = self.start
+          while current < self.stop:
+              yield current
+              current += self.step
+      ```
+
+solution:
+  generators.py: |
+    """Generator functions and iterator implementations."""
+    from typing import Iterator, Generator, Iterable, TypeVar
+
+    T = TypeVar("T")
+
+
+    def fibonacci(limit: int) -> Generator[int, None, None]:
+        """Generate Fibonacci numbers up to limit."""
+        a, b = 0, 1
+        while a <= limit:
+            yield a
+            a, b = b, a + b
+
+
+    def chunks(items: list[T], size: int) -> Generator[list[T], None, None]:
+        """Split a list into chunks of specified size."""
+        for i in range(0, len(items), size):
+            yield items[i:i + size]
+
+
+    def flatten(nested: Iterable[Iterable[T]]) -> Generator[T, None, None]:
+        """Flatten a nested iterable one level."""
+        for sublist in nested:
+            for item in sublist:
+                yield item
+
+
+    def take_while_positive(numbers: Iterable[int]) -> Generator[int, None, None]:
+        """Yield numbers while they are positive."""
+        for n in numbers:
+            if n <= 0:
+                return
+            yield n
+
+
+    class Range:
+        """Custom range implementation using iterator protocol."""
+
+        def __init__(self, start: int, stop: int, step: int = 1):
+            self.start = start
+            self.stop = stop
+            self.step = step
+
+        def __iter__(self) -> Iterator[int]:
+            current = self.start
+            while current < self.stop:
+                yield current
+                current += self.step
+
+        def __len__(self) -> int:
+            if self.step > 0:
+                return max(0, (self.stop - self.start + self.step - 1) // self.step)
+            return max(0, (self.start - self.stop - self.step - 1) // (-self.step))
+
+
+    def infinite_counter(start: int = 0) -> Generator[int, None, None]:
+        """Generate infinite sequence of integers."""
+        current = start
+        while True:
+            yield current
+            current += 1

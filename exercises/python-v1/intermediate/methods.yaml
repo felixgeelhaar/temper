@@ -1,0 +1,335 @@
+id: methods
+title: Methods and Properties
+description: |
+  Learn to define instance methods, class methods, static methods, and properties.
+
+  ## Learning Objectives
+  - Define instance methods with self
+  - Use @classmethod for alternative constructors
+  - Use @staticmethod for utility functions
+  - Use @property for computed attributes
+
+  ## Instructions
+  Implement a BankAccount class with various method types.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - methods
+  - decorators
+  - oop
+
+prerequisites:
+  - intermediate/classes
+
+starter:
+  bank_account.py: |
+    """Bank account with various method types."""
+    from dataclasses import dataclass, field
+    from datetime import datetime
+
+
+    @dataclass
+    class Transaction:
+        """A single transaction record."""
+        amount: float
+        timestamp: datetime
+        description: str
+
+
+    class BankAccount:
+        """A bank account with balance tracking and transaction history."""
+
+        # Class variable for minimum balance
+        MINIMUM_BALANCE: float = 0.0
+
+        def __init__(self, owner: str, initial_balance: float = 0.0):
+            """Initialize account with owner and optional starting balance.
+
+            Args:
+                owner: Account owner's name
+                initial_balance: Starting balance (default 0.0)
+            """
+            self._owner = owner
+            self._balance = initial_balance
+            self._transactions: list[Transaction] = []
+
+        # TODO: Add @property for balance (read-only)
+
+        # TODO: Add @property for owner (read-only)
+
+        def deposit(self, amount: float, description: str = "Deposit") -> bool:
+            """Deposit money into the account.
+
+            Args:
+                amount: Amount to deposit (must be positive)
+                description: Transaction description
+
+            Returns:
+                True if successful, False otherwise
+            """
+            # TODO: Validate amount > 0
+            # TODO: Add to balance
+            # TODO: Record transaction
+            pass
+
+        def withdraw(self, amount: float, description: str = "Withdrawal") -> bool:
+            """Withdraw money from the account.
+
+            Args:
+                amount: Amount to withdraw
+                description: Transaction description
+
+            Returns:
+                True if successful, False if insufficient funds
+            """
+            # TODO: Check sufficient funds
+            # TODO: Deduct from balance
+            # TODO: Record transaction
+            pass
+
+        @classmethod
+        def from_dict(cls, data: dict) -> "BankAccount":
+            """Create account from dictionary data.
+
+            Alternative constructor pattern.
+
+            Args:
+                data: Dictionary with 'owner' and optional 'balance' keys
+
+            Returns:
+                New BankAccount instance
+            """
+            # TODO: Extract owner and balance from dict
+            pass
+
+        @staticmethod
+        def validate_amount(amount: float) -> bool:
+            """Check if an amount is valid for transactions.
+
+            Args:
+                amount: The amount to validate
+
+            Returns:
+                True if amount is positive and finite
+            """
+            # TODO: Validate amount is positive and not inf/nan
+            pass
+
+        def get_statement(self) -> str:
+            """Generate account statement.
+
+            Returns:
+                Formatted statement string
+            """
+            # TODO: Return formatted statement with transactions
+            pass
+
+tests:
+  test_bank_account.py: |
+    """Tests for BankAccount class."""
+    import pytest
+    import math
+    from bank_account import BankAccount
+
+
+    class TestProperties:
+        def test_balance_property(self):
+            account = BankAccount("Alice", 100.0)
+            assert account.balance == 100.0
+
+        def test_balance_is_readonly(self):
+            account = BankAccount("Alice", 100.0)
+            with pytest.raises(AttributeError):
+                account.balance = 200.0
+
+        def test_owner_property(self):
+            account = BankAccount("Alice")
+            assert account.owner == "Alice"
+
+
+    class TestDeposit:
+        def test_valid_deposit(self):
+            account = BankAccount("Alice")
+            assert account.deposit(50.0) is True
+            assert account.balance == 50.0
+
+        def test_negative_deposit(self):
+            account = BankAccount("Alice", 100.0)
+            assert account.deposit(-10.0) is False
+            assert account.balance == 100.0
+
+
+    class TestWithdraw:
+        def test_valid_withdrawal(self):
+            account = BankAccount("Alice", 100.0)
+            assert account.withdraw(50.0) is True
+            assert account.balance == 50.0
+
+        def test_insufficient_funds(self):
+            account = BankAccount("Alice", 50.0)
+            assert account.withdraw(100.0) is False
+            assert account.balance == 50.0
+
+
+    class TestClassMethod:
+        def test_from_dict(self):
+            data = {"owner": "Bob", "balance": 500.0}
+            account = BankAccount.from_dict(data)
+            assert account.owner == "Bob"
+            assert account.balance == 500.0
+
+        def test_from_dict_no_balance(self):
+            data = {"owner": "Carol"}
+            account = BankAccount.from_dict(data)
+            assert account.owner == "Carol"
+            assert account.balance == 0.0
+
+
+    class TestStaticMethod:
+        def test_valid_amount(self):
+            assert BankAccount.validate_amount(100.0) is True
+
+        def test_negative_amount(self):
+            assert BankAccount.validate_amount(-10.0) is False
+
+        def test_zero_amount(self):
+            assert BankAccount.validate_amount(0.0) is False
+
+        def test_infinity(self):
+            assert BankAccount.validate_amount(math.inf) is False
+
+
+    class TestStatement:
+        def test_statement_format(self):
+            account = BankAccount("Alice", 100.0)
+            account.deposit(50.0, "Paycheck")
+            statement = account.get_statement()
+            assert "Alice" in statement
+            assert "150" in statement
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: properties
+      name: Property Usage
+      description: Uses @property correctly
+      weight: 0.3
+      signals:
+        - uses_property_decorator
+
+    - id: method-types
+      name: Method Types
+      description: Uses classmethod and staticmethod correctly
+      weight: 0.3
+      signals:
+        - uses_classmethod
+        - uses_staticmethod
+
+hints:
+  L0:
+    - "What decorator makes an attribute read-only?"
+    - "How do you create an alternative constructor?"
+  L1:
+    - "@property creates a read-only attribute"
+    - "@classmethod receives cls as first argument"
+  L2:
+    - "Properties: @property def name(self): return self._name"
+    - "Class methods: @classmethod def create(cls, data): return cls(...)"
+  L3:
+    - |
+      ```python
+      @property
+      def balance(self) -> float:
+          return self._balance
+
+      @classmethod
+      def from_dict(cls, data: dict) -> "BankAccount":
+          return cls(data["owner"], data.get("balance", 0.0))
+      ```
+
+solution:
+  bank_account.py: |
+    """Bank account with various method types."""
+    from dataclasses import dataclass
+    from datetime import datetime
+    import math
+
+
+    @dataclass
+    class Transaction:
+        """A single transaction record."""
+        amount: float
+        timestamp: datetime
+        description: str
+
+
+    class BankAccount:
+        """A bank account with balance tracking and transaction history."""
+
+        MINIMUM_BALANCE: float = 0.0
+
+        def __init__(self, owner: str, initial_balance: float = 0.0):
+            self._owner = owner
+            self._balance = initial_balance
+            self._transactions: list[Transaction] = []
+
+        @property
+        def balance(self) -> float:
+            """Get current balance (read-only)."""
+            return self._balance
+
+        @property
+        def owner(self) -> str:
+            """Get account owner (read-only)."""
+            return self._owner
+
+        def deposit(self, amount: float, description: str = "Deposit") -> bool:
+            if not self.validate_amount(amount):
+                return False
+            self._balance += amount
+            self._transactions.append(
+                Transaction(amount, datetime.now(), description)
+            )
+            return True
+
+        def withdraw(self, amount: float, description: str = "Withdrawal") -> bool:
+            if not self.validate_amount(amount):
+                return False
+            if self._balance - amount < self.MINIMUM_BALANCE:
+                return False
+            self._balance -= amount
+            self._transactions.append(
+                Transaction(-amount, datetime.now(), description)
+            )
+            return True
+
+        @classmethod
+        def from_dict(cls, data: dict) -> "BankAccount":
+            return cls(data["owner"], data.get("balance", 0.0))
+
+        @staticmethod
+        def validate_amount(amount: float) -> bool:
+            return amount > 0 and math.isfinite(amount)
+
+        def get_statement(self) -> str:
+            lines = [f"Account Statement for {self._owner}", "=" * 40]
+            for t in self._transactions:
+                lines.append(f"{t.timestamp:%Y-%m-%d} | {t.description}: ${t.amount:,.2f}")
+            lines.append("=" * 40)
+            lines.append(f"Current Balance: ${self._balance:,.2f}")
+            return "\n".join(lines)

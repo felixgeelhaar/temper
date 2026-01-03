@@ -1,0 +1,266 @@
+id: enums
+title: Enums and Pattern Matching
+description: |
+  Learn Rust enums and pattern matching.
+
+  ## Learning Objectives
+  - Define enums with variants
+  - Use pattern matching with match
+  - Work with Option and Result
+  - Implement methods on enums
+
+  ## Instructions
+  Build a message system using enums.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - enums
+  - pattern-matching
+  - option
+
+prerequisites:
+  - intermediate/structs
+
+starter:
+  src/lib.rs: |
+    //! Enums and pattern matching.
+
+    /// A message that can be sent.
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum Message {
+        Quit,
+        Move { x: i32, y: i32 },
+        Write(String),
+        ChangeColor(u8, u8, u8),
+    }
+
+    impl Message {
+        /// Create a quit message.
+        pub fn quit() -> Self {
+            // TODO: Return Quit variant
+            todo!()
+        }
+
+        /// Create a move message.
+        pub fn move_to(x: i32, y: i32) -> Self {
+            // TODO: Return Move variant
+            todo!()
+        }
+
+        /// Create a write message.
+        pub fn write(text: &str) -> Self {
+            // TODO: Return Write variant
+            todo!()
+        }
+
+        /// Get message type as string.
+        pub fn message_type(&self) -> &str {
+            // TODO: Match on self and return type name
+            // "quit", "move", "write", "color"
+            todo!()
+        }
+
+        /// Check if message is a quit message.
+        pub fn is_quit(&self) -> bool {
+            // TODO: Return true if Quit variant
+            todo!()
+        }
+    }
+
+    /// Safe division that returns None for division by zero.
+    pub fn safe_divide(a: i32, b: i32) -> Option<i32> {
+        // TODO: Return Some(a/b) if b != 0, else None
+        todo!()
+    }
+
+    /// Find first even number in slice.
+    pub fn find_first_even(numbers: &[i32]) -> Option<i32> {
+        // TODO: Return Some(n) for first even, or None
+        todo!()
+    }
+
+    /// Get element at index, returning None if out of bounds.
+    pub fn safe_get<T: Clone>(slice: &[T], index: usize) -> Option<T> {
+        // TODO: Return Some(element) if valid, else None
+        todo!()
+    }
+
+    /// Parse string to i32, returning descriptive error.
+    pub fn parse_number(s: &str) -> Result<i32, String> {
+        // TODO: Parse s, return Ok or Err with message
+        todo!()
+    }
+
+    /// Chain multiple Option operations.
+    /// Returns None if any step fails.
+    pub fn add_parsed(a: &str, b: &str) -> Option<i32> {
+        // TODO: Parse both strings, add if both succeed
+        // Use ? operator or and_then
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_message_quit() {
+        let msg = Message::quit();
+        assert_eq!(msg, Message::Quit);
+        assert!(msg.is_quit());
+    }
+
+    #[test]
+    fn test_message_move() {
+        let msg = Message::move_to(10, 20);
+        assert_eq!(msg, Message::Move { x: 10, y: 20 });
+        assert_eq!(msg.message_type(), "move");
+    }
+
+    #[test]
+    fn test_message_write() {
+        let msg = Message::write("hello");
+        assert_eq!(msg, Message::Write("hello".to_string()));
+        assert_eq!(msg.message_type(), "write");
+    }
+
+    #[test]
+    fn test_safe_divide() {
+        assert_eq!(safe_divide(10, 2), Some(5));
+        assert_eq!(safe_divide(10, 0), None);
+    }
+
+    #[test]
+    fn test_find_first_even() {
+        assert_eq!(find_first_even(&[1, 3, 4, 5]), Some(4));
+        assert_eq!(find_first_even(&[1, 3, 5]), None);
+        assert_eq!(find_first_even(&[]), None);
+    }
+
+    #[test]
+    fn test_safe_get() {
+        let arr = vec![1, 2, 3];
+        assert_eq!(safe_get(&arr, 1), Some(2));
+        assert_eq!(safe_get(&arr, 10), None);
+    }
+
+    #[test]
+    fn test_parse_number() {
+        assert_eq!(parse_number("42"), Ok(42));
+        assert!(parse_number("abc").is_err());
+    }
+
+    #[test]
+    fn test_add_parsed() {
+        assert_eq!(add_parsed("10", "20"), Some(30));
+        assert_eq!(add_parsed("10", "abc"), None);
+        assert_eq!(add_parsed("abc", "20"), None);
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: enums
+      name: Enum Patterns
+      description: Proper enum and matching usage
+      weight: 0.5
+      signals:
+        - uses_match
+        - uses_option
+
+hints:
+  L0:
+    - "How do you create an enum variant?"
+    - "What does the match expression return?"
+  L1:
+    - "Variant creation: Message::Move { x: 1, y: 2 }"
+    - "Match must cover all variants (use _ for catch-all)"
+  L2:
+    - "Option: Some(value) or None"
+    - "Use if let for single variant matching"
+  L3:
+    - |
+      ```rust
+      pub fn add_parsed(a: &str, b: &str) -> Option<i32> {
+          let x = a.parse::<i32>().ok()?;
+          let y = b.parse::<i32>().ok()?;
+          Some(x + y)
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum Message {
+        Quit,
+        Move { x: i32, y: i32 },
+        Write(String),
+        ChangeColor(u8, u8, u8),
+    }
+
+    impl Message {
+        pub fn quit() -> Self {
+            Message::Quit
+        }
+
+        pub fn move_to(x: i32, y: i32) -> Self {
+            Message::Move { x, y }
+        }
+
+        pub fn write(text: &str) -> Self {
+            Message::Write(text.to_string())
+        }
+
+        pub fn message_type(&self) -> &str {
+            match self {
+                Message::Quit => "quit",
+                Message::Move { .. } => "move",
+                Message::Write(_) => "write",
+                Message::ChangeColor(_, _, _) => "color",
+            }
+        }
+
+        pub fn is_quit(&self) -> bool {
+            matches!(self, Message::Quit)
+        }
+    }
+
+    pub fn safe_divide(a: i32, b: i32) -> Option<i32> {
+        if b == 0 {
+            None
+        } else {
+            Some(a / b)
+        }
+    }
+
+    pub fn find_first_even(numbers: &[i32]) -> Option<i32> {
+        numbers.iter().find(|&&n| n % 2 == 0).copied()
+    }
+
+    pub fn safe_get<T: Clone>(slice: &[T], index: usize) -> Option<T> {
+        slice.get(index).cloned()
+    }
+
+    pub fn parse_number(s: &str) -> Result<i32, String> {
+        s.parse::<i32>()
+            .map_err(|e| format!("Failed to parse '{}': {}", s, e))
+    }
+
+    pub fn add_parsed(a: &str, b: &str) -> Option<i32> {
+        let x = a.parse::<i32>().ok()?;
+        let y = b.parse::<i32>().ok()?;
+        Some(x + y)
+    }

@@ -1,0 +1,38 @@
+id: typescript-v1
+name: TypeScript Fundamentals
+version: 1.0.0
+description: |
+  Learn TypeScript through deliberate practice. This pack covers the fundamentals
+  of TypeScript, from basic types to advanced patterns.
+language: typescript
+difficulty_range:
+  - beginner
+  - intermediate
+  - advanced
+
+default_policy:
+  max_level: 3
+  patching_enabled: false
+  cooldown_seconds: 60
+  track: practice
+
+exercises:
+  # Basics (6 exercises)
+  - basics/hello-world
+  - basics/types
+  - basics/variables
+  - basics/functions
+  - basics/arrays
+  - basics/objects
+  # Intermediate (5 exercises)
+  - intermediate/interfaces
+  - intermediate/classes
+  - intermediate/generics
+  - intermediate/unions
+  - intermediate/errors
+  # Testing (2 exercises)
+  - testing/unit-tests
+  - testing/mocking
+  # Advanced (2 exercises)
+  - advanced/async
+  - advanced/http-fetch

@@ -1,0 +1,372 @@
+id: errors
+title: Error Handling
+description: |
+  Learn Python's exception handling with try/except/finally and custom exceptions.
+
+  ## Learning Objectives
+  - Use try/except/finally blocks
+  - Raise exceptions appropriately
+  - Create custom exception classes
+  - Use exception chaining
+
+  ## Instructions
+  Implement a configuration parser with proper error handling.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - exceptions
+  - error-handling
+  - best-practices
+
+prerequisites:
+  - intermediate/classes
+
+starter:
+  config.py: |
+    """Configuration parser with proper error handling."""
+    from typing import Any
+
+
+    class ConfigError(Exception):
+        """Base exception for configuration errors."""
+        pass
+
+
+    class MissingKeyError(ConfigError):
+        """Raised when a required configuration key is missing."""
+
+        def __init__(self, key: str):
+            self.key = key
+            super().__init__(f"Missing required configuration key: {key}")
+
+
+    class InvalidValueError(ConfigError):
+        """Raised when a configuration value is invalid."""
+
+        def __init__(self, key: str, value: Any, reason: str):
+            self.key = key
+            self.value = value
+            self.reason = reason
+            super().__init__(f"Invalid value for '{key}': {value}. {reason}")
+
+
+    class Config:
+        """Configuration container with validation."""
+
+        REQUIRED_KEYS = ["host", "port"]
+
+        def __init__(self, data: dict[str, Any]):
+            """Initialize config from dictionary.
+
+            Args:
+                data: Configuration dictionary
+
+            Raises:
+                MissingKeyError: If required key is missing
+                InvalidValueError: If value validation fails
+            """
+            self._data = data
+            self._validate()
+
+        def _validate(self) -> None:
+            """Validate configuration data.
+
+            Raises:
+                MissingKeyError: If required key is missing
+                InvalidValueError: If value is invalid
+            """
+            # TODO: Check for required keys
+            # TODO: Validate port is integer between 1-65535
+            pass
+
+        def get(self, key: str, default: Any = None) -> Any:
+            """Get configuration value.
+
+            Args:
+                key: Configuration key
+                default: Default value if key not found
+
+            Returns:
+                Configuration value or default
+            """
+            return self._data.get(key, default)
+
+        def get_required(self, key: str) -> Any:
+            """Get required configuration value.
+
+            Args:
+                key: Configuration key
+
+            Returns:
+                Configuration value
+
+            Raises:
+                MissingKeyError: If key is not found
+            """
+            # TODO: Raise MissingKeyError if key not in data
+            pass
+
+
+    def parse_config_file(content: str) -> Config:
+        """Parse configuration from file content.
+
+        Format: key=value (one per line)
+
+        Args:
+            content: Configuration file content
+
+        Returns:
+            Parsed Config object
+
+        Raises:
+            ConfigError: If parsing fails
+        """
+        # TODO: Parse key=value pairs
+        # TODO: Convert port to integer
+        # TODO: Handle parse errors with exception chaining
+        pass
+
+
+    def safe_get_config(content: str) -> Config | None:
+        """Safely attempt to parse config, returning None on failure.
+
+        Args:
+            content: Configuration content
+
+        Returns:
+            Config if successful, None otherwise
+        """
+        # TODO: Try to parse, catch ConfigError, return None
+        pass
+
+tests:
+  test_config.py: |
+    """Tests for configuration error handling."""
+    import pytest
+    from config import (
+        Config, ConfigError, MissingKeyError, InvalidValueError,
+        parse_config_file, safe_get_config
+    )
+
+
+    class TestMissingKeyError:
+        def test_error_message(self):
+            error = MissingKeyError("database")
+            assert "database" in str(error)
+            assert error.key == "database"
+
+
+    class TestInvalidValueError:
+        def test_error_message(self):
+            error = InvalidValueError("port", "abc", "must be integer")
+            assert "port" in str(error)
+            assert "abc" in str(error)
+            assert error.key == "port"
+            assert error.value == "abc"
+
+
+    class TestConfigValidation:
+        def test_valid_config(self):
+            config = Config({"host": "localhost", "port": 8080})
+            assert config.get("host") == "localhost"
+
+        def test_missing_required_key(self):
+            with pytest.raises(MissingKeyError) as exc_info:
+                Config({"host": "localhost"})
+            assert exc_info.value.key == "port"
+
+        def test_invalid_port_type(self):
+            with pytest.raises(InvalidValueError) as exc_info:
+                Config({"host": "localhost", "port": "abc"})
+            assert exc_info.value.key == "port"
+
+        def test_invalid_port_range(self):
+            with pytest.raises(InvalidValueError):
+                Config({"host": "localhost", "port": 70000})
+
+
+    class TestConfigGet:
+        def test_get_existing(self):
+            config = Config({"host": "localhost", "port": 8080})
+            assert config.get("host") == "localhost"
+
+        def test_get_missing_with_default(self):
+            config = Config({"host": "localhost", "port": 8080})
+            assert config.get("timeout", 30) == 30
+
+        def test_get_required_success(self):
+            config = Config({"host": "localhost", "port": 8080})
+            assert config.get_required("host") == "localhost"
+
+        def test_get_required_missing(self):
+            config = Config({"host": "localhost", "port": 8080})
+            with pytest.raises(MissingKeyError):
+                config.get_required("database")
+
+
+    class TestParseConfigFile:
+        def test_valid_config(self):
+            content = "host=localhost\nport=8080"
+            config = parse_config_file(content)
+            assert config.get("host") == "localhost"
+            assert config.get("port") == 8080
+
+        def test_invalid_format(self):
+            content = "invalid line"
+            with pytest.raises(ConfigError):
+                parse_config_file(content)
+
+
+    class TestSafeGetConfig:
+        def test_valid_returns_config(self):
+            content = "host=localhost\nport=8080"
+            config = safe_get_config(content)
+            assert config is not None
+            assert config.get("host") == "localhost"
+
+        def test_invalid_returns_none(self):
+            content = "invalid"
+            config = safe_get_config(content)
+            assert config is None
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: exceptions
+      name: Custom Exceptions
+      description: Proper custom exception hierarchy
+      weight: 0.3
+      signals:
+        - extends_exception
+        - stores_context
+
+    - id: handling
+      name: Error Handling
+      description: Uses try/except correctly
+      weight: 0.3
+      signals:
+        - uses_try_except
+        - uses_raise_from
+
+hints:
+  L0:
+    - "How do you check if a key exists in a dictionary?"
+    - "What exception should you raise for invalid input?"
+  L1:
+    - "Use 'key in dict' to check for keys"
+    - "Use 'raise ExceptionClass(args)' to raise"
+  L2:
+    - "Port must be int and 1 <= port <= 65535"
+    - "Use 'raise NewError from original' for chaining"
+  L3:
+    - |
+      ```python
+      def _validate(self) -> None:
+          for key in self.REQUIRED_KEYS:
+              if key not in self._data:
+                  raise MissingKeyError(key)
+          port = self._data.get("port")
+          if not isinstance(port, int):
+              raise InvalidValueError("port", port, "must be integer")
+          if not (1 <= port <= 65535):
+              raise InvalidValueError("port", port, "must be 1-65535")
+      ```
+
+solution:
+  config.py: |
+    """Configuration parser with proper error handling."""
+    from typing import Any
+
+
+    class ConfigError(Exception):
+        """Base exception for configuration errors."""
+        pass
+
+
+    class MissingKeyError(ConfigError):
+        """Raised when a required configuration key is missing."""
+
+        def __init__(self, key: str):
+            self.key = key
+            super().__init__(f"Missing required configuration key: {key}")
+
+
+    class InvalidValueError(ConfigError):
+        """Raised when a configuration value is invalid."""
+
+        def __init__(self, key: str, value: Any, reason: str):
+            self.key = key
+            self.value = value
+            self.reason = reason
+            super().__init__(f"Invalid value for '{key}': {value}. {reason}")
+
+
+    class Config:
+        """Configuration container with validation."""
+
+        REQUIRED_KEYS = ["host", "port"]
+
+        def __init__(self, data: dict[str, Any]):
+            self._data = data
+            self._validate()
+
+        def _validate(self) -> None:
+            for key in self.REQUIRED_KEYS:
+                if key not in self._data:
+                    raise MissingKeyError(key)
+
+            port = self._data.get("port")
+            if not isinstance(port, int):
+                raise InvalidValueError("port", port, "must be integer")
+            if not (1 <= port <= 65535):
+                raise InvalidValueError("port", port, "must be between 1 and 65535")
+
+        def get(self, key: str, default: Any = None) -> Any:
+            return self._data.get(key, default)
+
+        def get_required(self, key: str) -> Any:
+            if key not in self._data:
+                raise MissingKeyError(key)
+            return self._data[key]
+
+
+    def parse_config_file(content: str) -> Config:
+        try:
+            data: dict[str, Any] = {}
+            for line in content.strip().split("\n"):
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    raise ValueError(f"Invalid line format: {line}")
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                # Convert port to int
+                if key == "port":
+                    value = int(value)
+                data[key] = value
+            return Config(data)
+        except (ValueError, TypeError) as e:
+            raise ConfigError(f"Failed to parse config: {e}") from e
+
+
+    def safe_get_config(content: str) -> Config | None:
+        try:
+            return parse_config_file(content)
+        except ConfigError:
+            return None

@@ -1,0 +1,244 @@
+id: strings
+title: Strings
+description: |
+  Learn Rust string handling.
+
+  ## Learning Objectives
+  - Understand String vs &str
+  - Manipulate strings
+  - Parse and format strings
+  - Handle UTF-8 correctly
+
+  ## Instructions
+  Implement string manipulation functions.
+
+difficulty: beginner
+tags:
+  - basics
+  - strings
+  - utf8
+
+prerequisites:
+  - basics/primitive-types
+
+starter:
+  src/lib.rs: |
+    //! String handling in Rust.
+
+    /// Create a greeting string.
+    pub fn greet(name: &str) -> String {
+        // TODO: Return "Hello, {name}!"
+        todo!()
+    }
+
+    /// Count the number of words in a string.
+    /// Words are separated by whitespace.
+    pub fn word_count(s: &str) -> usize {
+        // TODO: Split by whitespace and count
+        todo!()
+    }
+
+    /// Reverse a string.
+    pub fn reverse_string(s: &str) -> String {
+        // TODO: Reverse the characters
+        todo!()
+    }
+
+    /// Check if a string contains only digits.
+    pub fn is_numeric(s: &str) -> bool {
+        // TODO: Check all chars are digits
+        todo!()
+    }
+
+    /// Convert string to title case (first letter of each word uppercase).
+    pub fn to_title_case(s: &str) -> String {
+        // TODO: Capitalize first letter of each word
+        todo!()
+    }
+
+    /// Remove all vowels from a string.
+    pub fn remove_vowels(s: &str) -> String {
+        // TODO: Filter out a, e, i, o, u (both cases)
+        todo!()
+    }
+
+    /// Count occurrences of a character.
+    pub fn count_char(s: &str, c: char) -> usize {
+        // TODO: Count how many times c appears in s
+        todo!()
+    }
+
+    /// Truncate string to max length, adding "..." if truncated.
+    pub fn truncate(s: &str, max_len: usize) -> String {
+        // TODO: If s.len() > max_len, take first max_len-3 chars + "..."
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_greet() {
+        assert_eq!(greet("World"), "Hello, World!");
+        assert_eq!(greet("Rustacean"), "Hello, Rustacean!");
+    }
+
+    #[test]
+    fn test_word_count() {
+        assert_eq!(word_count("hello world"), 2);
+        assert_eq!(word_count("one"), 1);
+        assert_eq!(word_count(""), 0);
+        assert_eq!(word_count("  spaced   out  "), 2);
+    }
+
+    #[test]
+    fn test_reverse_string() {
+        assert_eq!(reverse_string("hello"), "olleh");
+        assert_eq!(reverse_string(""), "");
+        assert_eq!(reverse_string("a"), "a");
+    }
+
+    #[test]
+    fn test_is_numeric() {
+        assert!(is_numeric("12345"));
+        assert!(!is_numeric("123a5"));
+        assert!(!is_numeric(""));
+        assert!(is_numeric("0"));
+    }
+
+    #[test]
+    fn test_to_title_case() {
+        assert_eq!(to_title_case("hello world"), "Hello World");
+        assert_eq!(to_title_case("RUST"), "Rust");
+        assert_eq!(to_title_case("already Title"), "Already Title");
+    }
+
+    #[test]
+    fn test_remove_vowels() {
+        assert_eq!(remove_vowels("hello"), "hll");
+        assert_eq!(remove_vowels("AEIOU"), "");
+        assert_eq!(remove_vowels("rhythm"), "rhythm");
+    }
+
+    #[test]
+    fn test_count_char() {
+        assert_eq!(count_char("hello", 'l'), 2);
+        assert_eq!(count_char("hello", 'z'), 0);
+        assert_eq!(count_char("", 'a'), 0);
+    }
+
+    #[test]
+    fn test_truncate() {
+        assert_eq!(truncate("hello", 10), "hello");
+        assert_eq!(truncate("hello world", 8), "hello...");
+        assert_eq!(truncate("hi", 3), "hi");
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: strings
+      name: String Handling
+      description: Proper string manipulation
+      weight: 0.5
+      signals:
+        - uses_string_methods
+        - handles_utf8
+
+hints:
+  L0:
+    - "How do you create a String from a &str?"
+    - "How do you iterate over characters?"
+  L1:
+    - "Use format!() macro for string formatting"
+    - "s.chars() gives an iterator over characters"
+  L2:
+    - "Reverse: s.chars().rev().collect()"
+    - "Title case: capitalize first char of each split_whitespace()"
+  L3:
+    - |
+      ```rust
+      pub fn to_title_case(s: &str) -> String {
+          s.split_whitespace()
+              .map(|word| {
+                  let mut chars = word.chars();
+                  match chars.next() {
+                      None => String::new(),
+                      Some(first) => {
+                          first.to_uppercase().to_string()
+                              + &chars.as_str().to_lowercase()
+                      }
+                  }
+              })
+              .collect::<Vec<_>>()
+              .join(" ")
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    pub fn greet(name: &str) -> String {
+        format!("Hello, {}!", name)
+    }
+
+    pub fn word_count(s: &str) -> usize {
+        s.split_whitespace().count()
+    }
+
+    pub fn reverse_string(s: &str) -> String {
+        s.chars().rev().collect()
+    }
+
+    pub fn is_numeric(s: &str) -> bool {
+        !s.is_empty() && s.chars().all(|c| c.is_ascii_digit())
+    }
+
+    pub fn to_title_case(s: &str) -> String {
+        s.split_whitespace()
+            .map(|word| {
+                let mut chars = word.chars();
+                match chars.next() {
+                    None => String::new(),
+                    Some(first) => {
+                        first.to_uppercase().to_string()
+                            + &chars.as_str().to_lowercase()
+                    }
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    pub fn remove_vowels(s: &str) -> String {
+        s.chars()
+            .filter(|c| !matches!(c.to_ascii_lowercase(), 'a' | 'e' | 'i' | 'o' | 'u'))
+            .collect()
+    }
+
+    pub fn count_char(s: &str, c: char) -> usize {
+        s.chars().filter(|&ch| ch == c).count()
+    }
+
+    pub fn truncate(s: &str, max_len: usize) -> String {
+        if s.len() <= max_len {
+            s.to_string()
+        } else if max_len <= 3 {
+            s.chars().take(max_len).collect()
+        } else {
+            let chars: String = s.chars().take(max_len - 3).collect();
+            format!("{}...", chars)
+        }
+    }

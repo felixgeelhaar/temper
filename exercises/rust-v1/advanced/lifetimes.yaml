@@ -1,0 +1,282 @@
+id: lifetimes
+title: Lifetimes
+description: |
+  Learn Rust lifetime annotations.
+
+  ## Learning Objectives
+  - Understand why lifetimes are needed
+  - Annotate function lifetimes
+  - Use lifetime elision rules
+  - Work with struct lifetimes
+
+  ## Instructions
+  Fix lifetime issues in the provided code.
+
+difficulty: advanced
+tags:
+  - advanced
+  - lifetimes
+  - borrowing
+  - references
+
+prerequisites:
+  - intermediate/ownership
+
+starter:
+  src/lib.rs: |
+    //! Lifetime annotations in Rust.
+
+    /// Return the longer of two string slices.
+    /// Both inputs and output share the same lifetime.
+    pub fn longest<'a>(a: &'a str, b: &'a str) -> &'a str {
+        // TODO: Return the longer string
+        todo!()
+    }
+
+    /// Return the first word of a string (up to first space).
+    pub fn first_word(s: &str) -> &str {
+        // TODO: Return slice up to first space, or whole string
+        todo!()
+    }
+
+    /// A struct that holds a reference to a string.
+    #[derive(Debug)]
+    pub struct Excerpt<'a> {
+        pub text: &'a str,
+    }
+
+    impl<'a> Excerpt<'a> {
+        /// Create a new excerpt.
+        pub fn new(text: &'a str) -> Self {
+            // TODO: Create excerpt
+            todo!()
+        }
+
+        /// Get the length of the excerpt.
+        pub fn len(&self) -> usize {
+            // TODO: Return text length
+            todo!()
+        }
+
+        /// Check if excerpt is empty.
+        pub fn is_empty(&self) -> bool {
+            // TODO: Check if text is empty
+            todo!()
+        }
+
+        /// Get first n characters as new excerpt.
+        pub fn take(&self, n: usize) -> Excerpt<'a> {
+            // TODO: Return excerpt with first n chars
+            todo!()
+        }
+    }
+
+    /// Split a string at a delimiter, returning both parts.
+    pub fn split_at_char<'a>(s: &'a str, c: char) -> (&'a str, &'a str) {
+        // TODO: Split at first occurrence of c
+        // Return (before, after) or (s, "") if not found
+        todo!()
+    }
+
+    /// Find common prefix of two strings.
+    pub fn common_prefix<'a>(a: &'a str, b: &str) -> &'a str {
+        // TODO: Return the common prefix from a
+        todo!()
+    }
+
+    /// A config struct that borrows its values.
+    #[derive(Debug)]
+    pub struct Config<'a> {
+        pub host: &'a str,
+        pub port: u16,
+    }
+
+    impl<'a> Config<'a> {
+        pub fn new(host: &'a str, port: u16) -> Self {
+            // TODO: Create config
+            todo!()
+        }
+
+        pub fn address(&self) -> String {
+            // TODO: Return "host:port" as owned String
+            todo!()
+        }
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_longest() {
+        assert_eq!(longest("short", "longer"), "longer");
+        assert_eq!(longest("hello", "hi"), "hello");
+    }
+
+    #[test]
+    fn test_first_word() {
+        assert_eq!(first_word("hello world"), "hello");
+        assert_eq!(first_word("oneword"), "oneword");
+        assert_eq!(first_word(""), "");
+    }
+
+    #[test]
+    fn test_excerpt_new() {
+        let text = String::from("Hello, world!");
+        let excerpt = Excerpt::new(&text);
+        assert_eq!(excerpt.text, "Hello, world!");
+    }
+
+    #[test]
+    fn test_excerpt_len() {
+        let excerpt = Excerpt::new("Hello");
+        assert_eq!(excerpt.len(), 5);
+    }
+
+    #[test]
+    fn test_excerpt_take() {
+        let excerpt = Excerpt::new("Hello, world!");
+        let short = excerpt.take(5);
+        assert_eq!(short.text, "Hello");
+    }
+
+    #[test]
+    fn test_split_at_char() {
+        assert_eq!(split_at_char("hello=world", '='), ("hello", "world"));
+        assert_eq!(split_at_char("nodelimiter", '='), ("nodelimiter", ""));
+    }
+
+    #[test]
+    fn test_common_prefix() {
+        assert_eq!(common_prefix("hello", "help"), "hel");
+        assert_eq!(common_prefix("rust", "ruby"), "ru");
+        assert_eq!(common_prefix("abc", "xyz"), "");
+    }
+
+    #[test]
+    fn test_config() {
+        let host = String::from("localhost");
+        let config = Config::new(&host, 8080);
+        assert_eq!(config.address(), "localhost:8080");
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: lifetimes
+      name: Lifetime Usage
+      description: Proper lifetime annotations
+      weight: 0.5
+      signals:
+        - uses_lifetime_annotations
+        - no_unnecessary_lifetimes
+
+hints:
+  L0:
+    - "What does the 'a lifetime annotation mean?"
+    - "When can you omit lifetime annotations?"
+  L1:
+    - "'a means 'lives at least as long as a'"
+    - "Elision: single input ref → output gets same lifetime"
+  L2:
+    - "Use char_indices() to find position of char"
+    - "split_at() to split string at byte position"
+  L3:
+    - |
+      ```rust
+      pub fn split_at_char<'a>(s: &'a str, c: char) -> (&'a str, &'a str) {
+          match s.find(c) {
+              Some(pos) => (&s[..pos], &s[pos + c.len_utf8()..]),
+              None => (s, ""),
+          }
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    pub fn longest<'a>(a: &'a str, b: &'a str) -> &'a str {
+        if a.len() >= b.len() { a } else { b }
+    }
+
+    pub fn first_word(s: &str) -> &str {
+        match s.find(' ') {
+            Some(pos) => &s[..pos],
+            None => s,
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct Excerpt<'a> {
+        pub text: &'a str,
+    }
+
+    impl<'a> Excerpt<'a> {
+        pub fn new(text: &'a str) -> Self {
+            Excerpt { text }
+        }
+
+        pub fn len(&self) -> usize {
+            self.text.len()
+        }
+
+        pub fn is_empty(&self) -> bool {
+            self.text.is_empty()
+        }
+
+        pub fn take(&self, n: usize) -> Excerpt<'a> {
+            let end = self.text.char_indices()
+                .nth(n)
+                .map(|(i, _)| i)
+                .unwrap_or(self.text.len());
+            Excerpt::new(&self.text[..end])
+        }
+    }
+
+    pub fn split_at_char<'a>(s: &'a str, c: char) -> (&'a str, &'a str) {
+        match s.find(c) {
+            Some(pos) => (&s[..pos], &s[pos + c.len_utf8()..]),
+            None => (s, ""),
+        }
+    }
+
+    pub fn common_prefix<'a>(a: &'a str, b: &str) -> &'a str {
+        let len = a.chars()
+            .zip(b.chars())
+            .take_while(|(ac, bc)| ac == bc)
+            .count();
+
+        let end = a.char_indices()
+            .nth(len)
+            .map(|(i, _)| i)
+            .unwrap_or(a.len());
+
+        &a[..end]
+    }
+
+    #[derive(Debug)]
+    pub struct Config<'a> {
+        pub host: &'a str,
+        pub port: u16,
+    }
+
+    impl<'a> Config<'a> {
+        pub fn new(host: &'a str, port: u16) -> Self {
+            Config { host, port }
+        }
+
+        pub fn address(&self) -> String {
+            format!("{}:{}", self.host, self.port)
+        }
+    }

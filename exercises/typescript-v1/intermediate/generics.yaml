@@ -1,0 +1,352 @@
+id: generics
+title: Generics
+description: |
+  Learn TypeScript generics for type-safe reusable code.
+
+  ## Learning Objectives
+  - Create generic functions
+  - Define generic interfaces and classes
+  - Use generic constraints
+  - Work with multiple type parameters
+
+  ## Instructions
+  Implement generic data structures and utilities.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - generics
+  - type-safety
+  - reusable
+
+prerequisites:
+  - intermediate/classes
+
+starter:
+  generics.ts: |
+    /**
+     * Generic types and functions in TypeScript.
+     */
+
+    /**
+     * Return the first element of an array.
+     *
+     * @param items - Array of items
+     * @returns First item or undefined if empty
+     */
+    export function first<T>(items: T[]): T | undefined {
+      // TODO: Return first element
+      return undefined;
+    }
+
+    /**
+     * Return the last element of an array.
+     *
+     * @param items - Array of items
+     * @returns Last item or undefined if empty
+     */
+    export function last<T>(items: T[]): T | undefined {
+      // TODO: Return last element
+      return undefined;
+    }
+
+    /**
+     * A generic key-value pair.
+     */
+    export interface Pair<K, V> {
+      key: K;
+      value: V;
+    }
+
+    /**
+     * Create a pair from key and value.
+     */
+    export function createPair<K, V>(key: K, value: V): Pair<K, V> {
+      // TODO: Return pair object
+      return { key: "" as K, value: "" as V };
+    }
+
+    /**
+     * A generic stack (LIFO) data structure.
+     */
+    export class Stack<T> {
+      private items: T[] = [];
+
+      /**
+       * Push an item onto the stack.
+       */
+      push(item: T): void {
+        // TODO: Add to end of items
+      }
+
+      /**
+       * Pop an item from the stack.
+       * @returns The top item or undefined if empty
+       */
+      pop(): T | undefined {
+        // TODO: Remove and return last item
+        return undefined;
+      }
+
+      /**
+       * Peek at the top item without removing it.
+       */
+      peek(): T | undefined {
+        // TODO: Return last item without removing
+        return undefined;
+      }
+
+      /**
+       * Check if stack is empty.
+       */
+      isEmpty(): boolean {
+        // TODO: Return true if no items
+        return true;
+      }
+
+      /**
+       * Get the number of items.
+       */
+      get size(): number {
+        return this.items.length;
+      }
+    }
+
+    /**
+     * Interface for objects with an id property.
+     */
+    interface HasId {
+      id: string | number;
+    }
+
+    /**
+     * Find an item by id in an array.
+     * Uses generic constraint to require id property.
+     *
+     * @param items - Array of items with id
+     * @param id - The id to find
+     * @returns The found item or undefined
+     */
+    export function findById<T extends HasId>(
+      items: T[],
+      id: string | number
+    ): T | undefined {
+      // TODO: Find item where item.id === id
+      return undefined;
+    }
+
+    /**
+     * Map values in an object using a transform function.
+     *
+     * @param obj - Source object
+     * @param transform - Function to transform values
+     * @returns New object with transformed values
+     */
+    export function mapValues<T, U>(
+      obj: Record<string, T>,
+      transform: (value: T) => U
+    ): Record<string, U> {
+      // TODO: Apply transform to each value
+      return {} as Record<string, U>;
+    }
+
+tests:
+  generics.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      first, last, createPair, Stack, findById, mapValues
+    } from "./generics";
+
+    describe("first", () => {
+      it("returns first element", () => {
+        expect(first([1, 2, 3])).toBe(1);
+      });
+
+      it("returns undefined for empty", () => {
+        expect(first([])).toBeUndefined();
+      });
+    });
+
+    describe("last", () => {
+      it("returns last element", () => {
+        expect(last([1, 2, 3])).toBe(3);
+      });
+
+      it("returns undefined for empty", () => {
+        expect(last([])).toBeUndefined();
+      });
+    });
+
+    describe("createPair", () => {
+      it("creates typed pair", () => {
+        const pair = createPair("name", 42);
+        expect(pair.key).toBe("name");
+        expect(pair.value).toBe(42);
+      });
+    });
+
+    describe("Stack", () => {
+      it("pushes and pops items", () => {
+        const stack = new Stack<number>();
+        stack.push(1);
+        stack.push(2);
+        expect(stack.pop()).toBe(2);
+        expect(stack.pop()).toBe(1);
+      });
+
+      it("peeks without removing", () => {
+        const stack = new Stack<string>();
+        stack.push("a");
+        expect(stack.peek()).toBe("a");
+        expect(stack.size).toBe(1);
+      });
+
+      it("isEmpty returns correctly", () => {
+        const stack = new Stack<number>();
+        expect(stack.isEmpty()).toBe(true);
+        stack.push(1);
+        expect(stack.isEmpty()).toBe(false);
+      });
+    });
+
+    describe("findById", () => {
+      const users = [
+        { id: 1, name: "Alice" },
+        { id: 2, name: "Bob" },
+      ];
+
+      it("finds item by id", () => {
+        expect(findById(users, 2)?.name).toBe("Bob");
+      });
+
+      it("returns undefined if not found", () => {
+        expect(findById(users, 99)).toBeUndefined();
+      });
+    });
+
+    describe("mapValues", () => {
+      it("transforms values", () => {
+        const obj = { a: 1, b: 2 };
+        const result = mapValues(obj, (n) => n * 2);
+        expect(result).toEqual({ a: 2, b: 4 });
+      });
+
+      it("changes value type", () => {
+        const obj = { x: 10, y: 20 };
+        const result = mapValues(obj, (n) => n.toString());
+        expect(result).toEqual({ x: "10", y: "20" });
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: generics
+      name: Generic Usage
+      description: Correct generic syntax and constraints
+      weight: 0.5
+      signals:
+        - uses_generics
+        - uses_extends_constraint
+
+hints:
+  L0:
+    - "How do you declare a generic type parameter?"
+    - "How do you constrain a generic to have certain properties?"
+  L1:
+    - "Generic function: function name<T>(param: T): T"
+    - "Constraint: <T extends SomeInterface>"
+  L2:
+    - "Stack pop: return this.items.pop()"
+    - "mapValues: Object.fromEntries(Object.entries(obj).map(...))"
+  L3:
+    - |
+      ```typescript
+      export function mapValues<T, U>(
+        obj: Record<string, T>,
+        transform: (value: T) => U
+      ): Record<string, U> {
+        const result: Record<string, U> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          result[key] = transform(value);
+        }
+        return result;
+      }
+      ```
+
+solution:
+  generics.ts: |
+    export function first<T>(items: T[]): T | undefined {
+      return items[0];
+    }
+
+    export function last<T>(items: T[]): T | undefined {
+      return items[items.length - 1];
+    }
+
+    export interface Pair<K, V> {
+      key: K;
+      value: V;
+    }
+
+    export function createPair<K, V>(key: K, value: V): Pair<K, V> {
+      return { key, value };
+    }
+
+    export class Stack<T> {
+      private items: T[] = [];
+
+      push(item: T): void {
+        this.items.push(item);
+      }
+
+      pop(): T | undefined {
+        return this.items.pop();
+      }
+
+      peek(): T | undefined {
+        return this.items[this.items.length - 1];
+      }
+
+      isEmpty(): boolean {
+        return this.items.length === 0;
+      }
+
+      get size(): number {
+        return this.items.length;
+      }
+    }
+
+    interface HasId {
+      id: string | number;
+    }
+
+    export function findById<T extends HasId>(
+      items: T[],
+      id: string | number
+    ): T | undefined {
+      return items.find((item) => item.id === id);
+    }
+
+    export function mapValues<T, U>(
+      obj: Record<string, T>,
+      transform: (value: T) => U
+    ): Record<string, U> {
+      const result: Record<string, U> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = transform(value);
+      }
+      return result;
+    }

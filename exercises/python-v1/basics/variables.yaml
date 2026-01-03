@@ -1,0 +1,153 @@
+id: variables
+title: Variables and Types
+description: |
+  Learn about Python's dynamic typing and basic data types.
+
+  ## Learning Objectives
+  - Understand Python's type system
+  - Work with basic data types (int, float, str, bool)
+  - Use type hints for documentation
+
+  ## Instructions
+  Implement functions that demonstrate type conversions and operations.
+
+difficulty: beginner
+tags:
+  - basics
+  - types
+  - variables
+
+prerequisites:
+  - basics/hello-world
+
+starter:
+  types.py: |
+    """Type operations module."""
+
+
+    def add_numbers(a: int, b: int) -> int:
+        """Add two integers and return the result."""
+        # TODO: Implement this function
+        pass
+
+
+    def concatenate(a: str, b: str) -> str:
+        """Concatenate two strings with a space between them."""
+        # TODO: Implement this function
+        pass
+
+
+    def is_positive(n: int) -> bool:
+        """Return True if n is positive, False otherwise."""
+        # TODO: Implement this function
+        pass
+
+
+    def safe_divide(a: float, b: float) -> float | None:
+        """Divide a by b, returning None if b is zero."""
+        # TODO: Implement this function
+        pass
+
+tests:
+  test_types.py: |
+    """Tests for type operations."""
+    import pytest
+    from types import add_numbers, concatenate, is_positive, safe_divide
+
+
+    def test_add_numbers():
+        assert add_numbers(2, 3) == 5
+        assert add_numbers(-1, 1) == 0
+        assert add_numbers(0, 0) == 0
+
+
+    def test_concatenate():
+        assert concatenate("Hello", "World") == "Hello World"
+        assert concatenate("", "Test") == " Test"
+
+
+    def test_is_positive():
+        assert is_positive(5) is True
+        assert is_positive(-3) is False
+        assert is_positive(0) is False
+
+
+    def test_safe_divide():
+        assert safe_divide(10.0, 2.0) == 5.0
+        assert safe_divide(7.0, 2.0) == 3.5
+        assert safe_divide(5.0, 0.0) is None
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+
+    - id: type_hints
+      name: Type Hints
+      description: Proper type hints are used
+      weight: 0.2
+      signals:
+        - has_type_hints
+
+    - id: edge_cases
+      name: Edge Cases
+      description: Handles edge cases properly
+      weight: 0.2
+      signals:
+        - handles_zero_division
+
+hints:
+  L0:
+    - "What happens when you divide by zero?"
+    - "How do you check if a number is greater than zero?"
+  L1:
+    - "Use the + operator for both adding numbers and concatenating strings"
+    - "Use a comparison operator to check positivity"
+  L2:
+    - "For safe_divide, check if b == 0 before dividing"
+    - "Use f'{a} {b}' or a + ' ' + b for concatenation"
+  L3:
+    - |
+      ```python
+      def safe_divide(a: float, b: float) -> float | None:
+          if b == 0:
+              return None
+          return a / b
+      ```
+
+solution:
+  types.py: |
+    """Type operations module."""
+
+
+    def add_numbers(a: int, b: int) -> int:
+        """Add two integers and return the result."""
+        return a + b
+
+
+    def concatenate(a: str, b: str) -> str:
+        """Concatenate two strings with a space between them."""
+        return f"{a} {b}"
+
+
+    def is_positive(n: int) -> bool:
+        """Return True if n is positive, False otherwise."""
+        return n > 0
+
+
+    def safe_divide(a: float, b: float) -> float | None:
+        """Divide a by b, returning None if b is zero."""
+        if b == 0:
+            return None
+        return a / b

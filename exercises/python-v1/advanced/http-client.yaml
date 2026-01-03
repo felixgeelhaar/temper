@@ -1,0 +1,440 @@
+id: http-client
+title: HTTP Client
+description: |
+  Learn to make HTTP requests and handle responses in Python.
+
+  ## Learning Objectives
+  - Make GET and POST requests
+  - Handle JSON responses
+  - Implement error handling for HTTP
+  - Use request timeouts
+
+  ## Instructions
+  Implement an HTTP client wrapper with proper error handling.
+
+difficulty: advanced
+tags:
+  - advanced
+  - http
+  - api
+  - networking
+
+prerequisites:
+  - intermediate/errors
+  - advanced/async
+
+starter:
+  http_client.py: |
+    """HTTP client with proper error handling."""
+    from dataclasses import dataclass
+    from typing import Any
+    import json
+
+
+    class HttpError(Exception):
+        """Base HTTP error."""
+        pass
+
+
+    class ConnectionError(HttpError):
+        """Failed to connect to server."""
+        pass
+
+
+    class TimeoutError(HttpError):
+        """Request timed out."""
+        pass
+
+
+    class HttpStatusError(HttpError):
+        """HTTP error status code."""
+
+        def __init__(self, status_code: int, message: str = ""):
+            self.status_code = status_code
+            super().__init__(f"HTTP {status_code}: {message}")
+
+
+    @dataclass
+    class Response:
+        """HTTP response container."""
+        status_code: int
+        headers: dict[str, str]
+        body: str
+
+        def json(self) -> Any:
+            """Parse body as JSON.
+
+            Returns:
+                Parsed JSON data
+
+            Raises:
+                ValueError: If body is not valid JSON
+            """
+            # TODO: Parse and return JSON
+            pass
+
+        @property
+        def ok(self) -> bool:
+            """Check if response is successful (2xx)."""
+            # TODO: Return True if 200-299
+            pass
+
+
+    class MockTransport:
+        """Mock HTTP transport for testing.
+
+        Simulates HTTP responses based on URL patterns.
+        """
+
+        def __init__(self):
+            self._responses: dict[str, Response] = {}
+            self._should_timeout = False
+            self._should_fail_connection = False
+
+        def register(self, url: str, response: Response) -> None:
+            """Register a mock response for a URL."""
+            self._responses[url] = response
+
+        def set_timeout(self, timeout: bool) -> None:
+            """Simulate timeout on next request."""
+            self._should_timeout = timeout
+
+        def set_connection_error(self, error: bool) -> None:
+            """Simulate connection error on next request."""
+            self._should_fail_connection = error
+
+        def request(self, method: str, url: str, **kwargs) -> Response:
+            """Make a mock request."""
+            if self._should_fail_connection:
+                self._should_fail_connection = False
+                raise ConnectionError(f"Failed to connect to {url}")
+            if self._should_timeout:
+                self._should_timeout = False
+                raise TimeoutError(f"Request to {url} timed out")
+            if url in self._responses:
+                return self._responses[url]
+            return Response(404, {}, '{"error": "Not Found"}')
+
+
+    class HttpClient:
+        """HTTP client with error handling."""
+
+        def __init__(self, base_url: str = "", transport: MockTransport | None = None):
+            """Initialize client.
+
+            Args:
+                base_url: Base URL for all requests
+                transport: Transport layer (default MockTransport)
+            """
+            self.base_url = base_url.rstrip("/")
+            self._transport = transport or MockTransport()
+
+        def get(self, path: str, params: dict[str, str] | None = None) -> Response:
+            """Make GET request.
+
+            Args:
+                path: URL path (appended to base_url)
+                params: Query parameters
+
+            Returns:
+                Response object
+
+            Raises:
+                HttpError: On connection or timeout errors
+            """
+            # TODO: Build URL, make request, return response
+            pass
+
+        def post(self, path: str, data: dict[str, Any] | None = None) -> Response:
+            """Make POST request with JSON body.
+
+            Args:
+                path: URL path
+                data: JSON data to send
+
+            Returns:
+                Response object
+            """
+            # TODO: Make POST request
+            pass
+
+        def get_json(self, path: str) -> Any:
+            """GET request that returns parsed JSON.
+
+            Args:
+                path: URL path
+
+            Returns:
+                Parsed JSON data
+
+            Raises:
+                HttpStatusError: If response is not 2xx
+            """
+            # TODO: Make request, check status, parse JSON
+            pass
+
+
+    def safe_request(client: HttpClient, path: str) -> Response | None:
+        """Make a request, returning None on any error.
+
+        Args:
+            client: HTTP client
+            path: URL path
+
+        Returns:
+            Response or None on error
+        """
+        # TODO: Try request, return None on any HttpError
+        pass
+
+tests:
+  test_http_client.py: |
+    """Tests for HTTP client."""
+    import pytest
+    from http_client import (
+        HttpClient, Response, MockTransport,
+        HttpError, HttpStatusError, ConnectionError, TimeoutError,
+        safe_request
+    )
+
+
+    @pytest.fixture
+    def transport():
+        """Create mock transport with test responses."""
+        t = MockTransport()
+        t.register(
+            "https://api.example.com/users",
+            Response(200, {"Content-Type": "application/json"},
+                    '{"users": [{"id": 1, "name": "Alice"}]}')
+        )
+        t.register(
+            "https://api.example.com/error",
+            Response(500, {}, '{"error": "Server Error"}')
+        )
+        return t
+
+
+    @pytest.fixture
+    def client(transport):
+        """Create client with mock transport."""
+        return HttpClient("https://api.example.com", transport)
+
+
+    class TestResponse:
+        def test_json_parsing(self):
+            resp = Response(200, {}, '{"key": "value"}')
+            assert resp.json() == {"key": "value"}
+
+        def test_ok_for_success(self):
+            assert Response(200, {}, "").ok
+            assert Response(201, {}, "").ok
+            assert Response(204, {}, "").ok
+
+        def test_ok_for_error(self):
+            assert not Response(400, {}, "").ok
+            assert not Response(500, {}, "").ok
+
+
+    class TestHttpClientGet:
+        def test_successful_get(self, client):
+            resp = client.get("/users")
+            assert resp.status_code == 200
+            assert "users" in resp.json()
+
+        def test_not_found(self, client):
+            resp = client.get("/unknown")
+            assert resp.status_code == 404
+
+
+    class TestHttpClientGetJson:
+        def test_returns_json(self, client):
+            data = client.get_json("/users")
+            assert "users" in data
+
+        def test_raises_on_error_status(self, client):
+            with pytest.raises(HttpStatusError) as exc_info:
+                client.get_json("/error")
+            assert exc_info.value.status_code == 500
+
+
+    class TestConnectionErrors:
+        def test_connection_error(self, client, transport):
+            transport.set_connection_error(True)
+            with pytest.raises(ConnectionError):
+                client.get("/users")
+
+        def test_timeout_error(self, client, transport):
+            transport.set_timeout(True)
+            with pytest.raises(TimeoutError):
+                client.get("/users")
+
+
+    class TestSafeRequest:
+        def test_success_returns_response(self, client):
+            resp = safe_request(client, "/users")
+            assert resp is not None
+            assert resp.status_code == 200
+
+        def test_error_returns_none(self, client, transport):
+            transport.set_connection_error(True)
+            resp = safe_request(client, "/users")
+            assert resp is None
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: error-handling
+      name: Error Handling
+      description: Proper HTTP error handling
+      weight: 0.4
+      signals:
+        - uses_custom_exceptions
+        - handles_errors
+
+    - id: api-design
+      name: API Design
+      description: Clean client interface
+      weight: 0.2
+      signals:
+        - uses_dataclass
+        - returns_response
+
+hints:
+  L0:
+    - "How do you check if a status code is successful?"
+    - "What exceptions should the client raise?"
+  L1:
+    - "Success codes are 200-299"
+    - "Raise HttpStatusError for non-2xx in get_json"
+  L2:
+    - "Build URL: f'{base_url}{path}'"
+    - "Check: if not response.ok: raise HttpStatusError(...)"
+  L3:
+    - |
+      ```python
+      def get_json(self, path: str) -> Any:
+          response = self.get(path)
+          if not response.ok:
+              raise HttpStatusError(response.status_code)
+          return response.json()
+
+      def json(self) -> Any:
+          return json.loads(self.body)
+      ```
+
+solution:
+  http_client.py: |
+    """HTTP client with proper error handling."""
+    from dataclasses import dataclass
+    from typing import Any
+    import json
+
+
+    class HttpError(Exception):
+        """Base HTTP error."""
+        pass
+
+
+    class ConnectionError(HttpError):
+        """Failed to connect to server."""
+        pass
+
+
+    class TimeoutError(HttpError):
+        """Request timed out."""
+        pass
+
+
+    class HttpStatusError(HttpError):
+        """HTTP error status code."""
+
+        def __init__(self, status_code: int, message: str = ""):
+            self.status_code = status_code
+            super().__init__(f"HTTP {status_code}: {message}")
+
+
+    @dataclass
+    class Response:
+        """HTTP response container."""
+        status_code: int
+        headers: dict[str, str]
+        body: str
+
+        def json(self) -> Any:
+            return json.loads(self.body)
+
+        @property
+        def ok(self) -> bool:
+            return 200 <= self.status_code < 300
+
+
+    class MockTransport:
+        """Mock HTTP transport for testing."""
+
+        def __init__(self):
+            self._responses: dict[str, Response] = {}
+            self._should_timeout = False
+            self._should_fail_connection = False
+
+        def register(self, url: str, response: Response) -> None:
+            self._responses[url] = response
+
+        def set_timeout(self, timeout: bool) -> None:
+            self._should_timeout = timeout
+
+        def set_connection_error(self, error: bool) -> None:
+            self._should_fail_connection = error
+
+        def request(self, method: str, url: str, **kwargs) -> Response:
+            if self._should_fail_connection:
+                self._should_fail_connection = False
+                raise ConnectionError(f"Failed to connect to {url}")
+            if self._should_timeout:
+                self._should_timeout = False
+                raise TimeoutError(f"Request to {url} timed out")
+            if url in self._responses:
+                return self._responses[url]
+            return Response(404, {}, '{"error": "Not Found"}')
+
+
+    class HttpClient:
+        """HTTP client with error handling."""
+
+        def __init__(self, base_url: str = "", transport: MockTransport | None = None):
+            self.base_url = base_url.rstrip("/")
+            self._transport = transport or MockTransport()
+
+        def get(self, path: str, params: dict[str, str] | None = None) -> Response:
+            url = f"{self.base_url}{path}"
+            return self._transport.request("GET", url, params=params)
+
+        def post(self, path: str, data: dict[str, Any] | None = None) -> Response:
+            url = f"{self.base_url}{path}"
+            return self._transport.request("POST", url, json=data)
+
+        def get_json(self, path: str) -> Any:
+            response = self.get(path)
+            if not response.ok:
+                raise HttpStatusError(response.status_code)
+            return response.json()
+
+
+    def safe_request(client: HttpClient, path: str) -> Response | None:
+        try:
+            return client.get(path)
+        except HttpError:
+            return None

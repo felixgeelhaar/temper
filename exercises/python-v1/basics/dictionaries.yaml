@@ -1,0 +1,214 @@
+id: dictionaries
+title: Dictionaries
+description: |
+  Master Python dictionary operations and patterns.
+
+  ## Learning Objectives
+  - Work with dictionary methods
+  - Handle missing keys safely
+  - Merge and transform dictionaries
+
+  ## Instructions
+  Implement functions that work with dictionaries.
+
+difficulty: beginner
+tags:
+  - basics
+  - dictionaries
+  - collections
+
+prerequisites:
+  - basics/lists
+
+starter:
+  dicts.py: |
+    """Dictionary operations module."""
+    from typing import Any
+
+
+    def get_safely(d: dict, key: str, default: Any = None) -> Any:
+        """Get a value from a dictionary with a default.
+
+        Args:
+            d: The dictionary.
+            key: The key to look up.
+            default: Value to return if key is missing.
+
+        Returns:
+            The value or default.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def merge_dicts(d1: dict, d2: dict) -> dict:
+        """Merge two dictionaries, with d2 values taking precedence.
+
+        Args:
+            d1: First dictionary.
+            d2: Second dictionary (takes precedence).
+
+        Returns:
+            A new merged dictionary.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def invert_dict(d: dict[str, str]) -> dict[str, str]:
+        """Swap keys and values in a dictionary.
+
+        Args:
+            d: A dictionary with unique values.
+
+        Returns:
+            A new dictionary with keys and values swapped.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def count_words(text: str) -> dict[str, int]:
+        """Count word occurrences in text.
+
+        Args:
+            text: Input text (words separated by spaces).
+
+        Returns:
+            Dictionary mapping words to their counts.
+        """
+        # TODO: Implement this function
+        pass
+
+tests:
+  test_dicts.py: |
+    """Tests for dictionary operations."""
+    import pytest
+    from dicts import get_safely, merge_dicts, invert_dict, count_words
+
+
+    def test_get_safely_exists():
+        assert get_safely({"a": 1}, "a") == 1
+
+
+    def test_get_safely_missing():
+        assert get_safely({"a": 1}, "b") is None
+
+
+    def test_get_safely_default():
+        assert get_safely({"a": 1}, "b", default=0) == 0
+
+
+    def test_merge_dicts():
+        d1 = {"a": 1, "b": 2}
+        d2 = {"b": 3, "c": 4}
+        result = merge_dicts(d1, d2)
+        assert result == {"a": 1, "b": 3, "c": 4}
+
+
+    def test_merge_dicts_empty():
+        assert merge_dicts({}, {"a": 1}) == {"a": 1}
+        assert merge_dicts({"a": 1}, {}) == {"a": 1}
+
+
+    def test_invert_dict():
+        assert invert_dict({"a": "x", "b": "y"}) == {"x": "a", "y": "b"}
+
+
+    def test_invert_dict_empty():
+        assert invert_dict({}) == {}
+
+
+    def test_count_words():
+        assert count_words("hello world hello") == {"hello": 2, "world": 1}
+
+
+    def test_count_words_empty():
+        assert count_words("") == {}
+
+
+    def test_count_words_single():
+        assert count_words("python") == {"python": 1}
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: idioms
+      name: Python Idioms
+      description: Uses pythonic patterns
+      weight: 0.3
+      signals:
+        - uses_dict_get
+        - uses_dict_unpacking
+
+    - id: edge_cases
+      name: Edge Cases
+      description: Handles empty inputs
+      weight: 0.2
+      signals:
+        - handles_empty_string
+
+hints:
+  L0:
+    - "What method does dict have for safe access with defaults?"
+    - "How can you combine two dictionaries in Python 3.9+?"
+  L1:
+    - "Use d.get(key, default) for safe access"
+    - "Use {**d1, **d2} or d1 | d2 to merge dictionaries"
+  L2:
+    - "For invert_dict: {v: k for k, v in d.items()}"
+    - "For count_words: split the text and use a Counter or dict"
+  L3:
+    - |
+      ```python
+      def count_words(text: str) -> dict[str, int]:
+          if not text:
+              return {}
+          counts = {}
+          for word in text.split():
+              counts[word] = counts.get(word, 0) + 1
+          return counts
+      ```
+
+solution:
+  dicts.py: |
+    """Dictionary operations module."""
+    from typing import Any
+
+
+    def get_safely(d: dict, key: str, default: Any = None) -> Any:
+        """Get a value from a dictionary with a default."""
+        return d.get(key, default)
+
+
+    def merge_dicts(d1: dict, d2: dict) -> dict:
+        """Merge two dictionaries, with d2 values taking precedence."""
+        return {**d1, **d2}
+
+
+    def invert_dict(d: dict[str, str]) -> dict[str, str]:
+        """Swap keys and values in a dictionary."""
+        return {v: k for k, v in d.items()}
+
+
+    def count_words(text: str) -> dict[str, int]:
+        """Count word occurrences in text."""
+        if not text:
+            return {}
+        counts = {}
+        for word in text.split():
+            counts[word] = counts.get(word, 0) + 1
+        return counts

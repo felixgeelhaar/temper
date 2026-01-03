@@ -1,0 +1,254 @@
+id: http-handlers
+title: HTTP Handlers
+description: |
+  Learn to write HTTP handlers with proper testing.
+
+  ## Learning Objectives
+  - Implement http.Handler interface
+  - Use http.HandlerFunc
+  - Test handlers with httptest
+
+  ## Instructions
+  Implement HTTP handlers for a simple API.
+
+difficulty: advanced
+tags:
+  - advanced
+  - http
+  - handlers
+  - api
+
+prerequisites:
+  - advanced/channels
+
+starter:
+  api.go: |
+    package api
+
+    import (
+    	"encoding/json"
+    	"net/http"
+    )
+
+    // Response is a JSON response wrapper
+    type Response struct {
+    	Message string `json:"message"`
+    	Status  int    `json:"status"`
+    }
+
+    // HealthHandler returns a health check response
+    func HealthHandler(w http.ResponseWriter, r *http.Request) {
+    	// TODO: Return {"message": "ok", "status": 200}
+    	// Set Content-Type to application/json
+    }
+
+    // GreetHandler greets the user by name from query param
+    // Example: /greet?name=Alice returns {"message": "Hello, Alice!", "status": 200}
+    func GreetHandler(w http.ResponseWriter, r *http.Request) {
+    	// TODO: Get "name" from query params
+    	// If missing, use "World"
+    	// Return JSON greeting
+    }
+
+    // MethodHandler only accepts POST requests
+    // Returns 405 Method Not Allowed for other methods
+    func MethodHandler(w http.ResponseWriter, r *http.Request) {
+    	// TODO: Check method is POST
+    	// Return {"message": "accepted", "status": 200} for POST
+    	// Return {"message": "method not allowed", "status": 405} otherwise
+    }
+
+    // writeJSON is a helper to write JSON responses
+    func writeJSON(w http.ResponseWriter, status int, resp Response) {
+    	w.Header().Set("Content-Type", "application/json")
+    	w.WriteHeader(status)
+    	json.NewEncoder(w).Encode(resp)
+    }
+
+tests:
+  api_test.go: |
+    package api
+
+    import (
+    	"encoding/json"
+    	"net/http"
+    	"net/http/httptest"
+    	"testing"
+    )
+
+    func TestHealthHandler(t *testing.T) {
+    	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+    	rec := httptest.NewRecorder()
+
+    	HealthHandler(rec, req)
+
+    	if rec.Code != http.StatusOK {
+    		t.Errorf("status = %d; want %d", rec.Code, http.StatusOK)
+    	}
+
+    	var resp Response
+    	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+    		t.Fatalf("failed to decode response: %v", err)
+    	}
+
+    	if resp.Message != "ok" {
+    		t.Errorf("message = %q; want %q", resp.Message, "ok")
+    	}
+    }
+
+    func TestGreetHandler_WithName(t *testing.T) {
+    	req := httptest.NewRequest(http.MethodGet, "/greet?name=Alice", nil)
+    	rec := httptest.NewRecorder()
+
+    	GreetHandler(rec, req)
+
+    	var resp Response
+    	json.NewDecoder(rec.Body).Decode(&resp)
+
+    	if resp.Message != "Hello, Alice!" {
+    		t.Errorf("message = %q; want %q", resp.Message, "Hello, Alice!")
+    	}
+    }
+
+    func TestGreetHandler_NoName(t *testing.T) {
+    	req := httptest.NewRequest(http.MethodGet, "/greet", nil)
+    	rec := httptest.NewRecorder()
+
+    	GreetHandler(rec, req)
+
+    	var resp Response
+    	json.NewDecoder(rec.Body).Decode(&resp)
+
+    	if resp.Message != "Hello, World!" {
+    		t.Errorf("message = %q; want %q", resp.Message, "Hello, World!")
+    	}
+    }
+
+    func TestMethodHandler_POST(t *testing.T) {
+    	req := httptest.NewRequest(http.MethodPost, "/action", nil)
+    	rec := httptest.NewRecorder()
+
+    	MethodHandler(rec, req)
+
+    	if rec.Code != http.StatusOK {
+    		t.Errorf("status = %d; want %d", rec.Code, http.StatusOK)
+    	}
+    }
+
+    func TestMethodHandler_GET(t *testing.T) {
+    	req := httptest.NewRequest(http.MethodGet, "/action", nil)
+    	rec := httptest.NewRecorder()
+
+    	MethodHandler(rec, req)
+
+    	if rec.Code != http.StatusMethodNotAllowed {
+    		t.Errorf("status = %d; want %d", rec.Code, http.StatusMethodNotAllowed)
+    	}
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: json
+      name: JSON Handling
+      description: Proper JSON encoding/decoding
+      weight: 0.25
+      signals:
+        - uses_json_encoder
+        - sets_content_type
+
+    - id: http
+      name: HTTP Patterns
+      description: Uses proper HTTP patterns
+      weight: 0.25
+      signals:
+        - checks_method
+        - uses_query_params
+
+hints:
+  L0:
+    - "How do you get query parameters from a request?"
+    - "What header should you set for JSON responses?"
+  L1:
+    - "Use r.URL.Query().Get(\"name\") for query params"
+    - "Set Content-Type: application/json header"
+  L2:
+    - "Use the writeJSON helper function"
+    - "Check r.Method == http.MethodPost"
+  L3:
+    - |
+      ```go
+      func HealthHandler(w http.ResponseWriter, r *http.Request) {
+          writeJSON(w, http.StatusOK, Response{
+              Message: "ok",
+              Status:  200,
+          })
+      }
+      ```
+
+solution:
+  api.go: |
+    package api
+
+    import (
+    	"encoding/json"
+    	"fmt"
+    	"net/http"
+    )
+
+    type Response struct {
+    	Message string `json:"message"`
+    	Status  int    `json:"status"`
+    }
+
+    func HealthHandler(w http.ResponseWriter, r *http.Request) {
+    	writeJSON(w, http.StatusOK, Response{
+    		Message: "ok",
+    		Status:  200,
+    	})
+    }
+
+    func GreetHandler(w http.ResponseWriter, r *http.Request) {
+    	name := r.URL.Query().Get("name")
+    	if name == "" {
+    		name = "World"
+    	}
+    	writeJSON(w, http.StatusOK, Response{
+    		Message: fmt.Sprintf("Hello, %s!", name),
+    		Status:  200,
+    	})
+    }
+
+    func MethodHandler(w http.ResponseWriter, r *http.Request) {
+    	if r.Method != http.MethodPost {
+    		writeJSON(w, http.StatusMethodNotAllowed, Response{
+    			Message: "method not allowed",
+    			Status:  405,
+    		})
+    		return
+    	}
+    	writeJSON(w, http.StatusOK, Response{
+    		Message: "accepted",
+    		Status:  200,
+    	})
+    }
+
+    func writeJSON(w http.ResponseWriter, status int, resp Response) {
+    	w.Header().Set("Content-Type", "application/json")
+    	w.WriteHeader(status)
+    	json.NewEncoder(w).Encode(resp)
+    }

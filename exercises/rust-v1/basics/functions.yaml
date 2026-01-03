@@ -1,0 +1,255 @@
+id: functions
+title: Functions
+description: |
+  Learn Rust function fundamentals.
+
+  ## Learning Objectives
+  - Define functions with parameters
+  - Specify return types
+  - Use expressions vs statements
+  - Understand ownership in functions
+
+  ## Instructions
+  Implement various functions following Rust conventions.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - expressions
+
+prerequisites:
+  - basics/variables
+
+starter:
+  src/lib.rs: |
+    //! Function fundamentals in Rust.
+
+    /// Calculate the square of a number.
+    ///
+    /// # Examples
+    /// ```
+    /// assert_eq!(functions::square(4), 16);
+    /// ```
+    pub fn square(n: i32) -> i32 {
+        // TODO: Return n squared
+        // Remember: no semicolon for expression return
+        todo!()
+    }
+
+    /// Check if a number is even.
+    pub fn is_even(n: i32) -> bool {
+        // TODO: Return true if n is divisible by 2
+        todo!()
+    }
+
+    /// Calculate the absolute value.
+    pub fn abs(n: i32) -> i32 {
+        // TODO: Return absolute value of n
+        // Hint: use if expression
+        todo!()
+    }
+
+    /// Calculate factorial of n.
+    /// Returns 1 for n <= 1.
+    pub fn factorial(n: u32) -> u64 {
+        // TODO: Calculate n! recursively or iteratively
+        todo!()
+    }
+
+    /// Return the larger of two numbers.
+    pub fn max(a: i32, b: i32) -> i32 {
+        // TODO: Return the larger value
+        todo!()
+    }
+
+    /// Clamp a value between min and max.
+    pub fn clamp(value: i32, min: i32, max: i32) -> i32 {
+        // TODO: Return value if in range, otherwise min or max
+        todo!()
+    }
+
+    /// Calculate nth Fibonacci number.
+    /// fib(0) = 0, fib(1) = 1, fib(n) = fib(n-1) + fib(n-2)
+    pub fn fibonacci(n: u32) -> u64 {
+        // TODO: Calculate fibonacci number
+        // Hint: iterative is more efficient
+        todo!()
+    }
+
+    /// Check if a string is a palindrome.
+    pub fn is_palindrome(s: &str) -> bool {
+        // TODO: Check if s reads same forwards and backwards
+        // Ignore case, consider only alphanumeric characters
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_square() {
+        assert_eq!(square(4), 16);
+        assert_eq!(square(-3), 9);
+        assert_eq!(square(0), 0);
+    }
+
+    #[test]
+    fn test_is_even() {
+        assert!(is_even(4));
+        assert!(!is_even(3));
+        assert!(is_even(0));
+        assert!(is_even(-2));
+    }
+
+    #[test]
+    fn test_abs() {
+        assert_eq!(abs(5), 5);
+        assert_eq!(abs(-5), 5);
+        assert_eq!(abs(0), 0);
+    }
+
+    #[test]
+    fn test_factorial() {
+        assert_eq!(factorial(0), 1);
+        assert_eq!(factorial(1), 1);
+        assert_eq!(factorial(5), 120);
+        assert_eq!(factorial(10), 3628800);
+    }
+
+    #[test]
+    fn test_max() {
+        assert_eq!(max(5, 3), 5);
+        assert_eq!(max(3, 5), 5);
+        assert_eq!(max(5, 5), 5);
+    }
+
+    #[test]
+    fn test_clamp() {
+        assert_eq!(clamp(5, 0, 10), 5);
+        assert_eq!(clamp(-5, 0, 10), 0);
+        assert_eq!(clamp(15, 0, 10), 10);
+    }
+
+    #[test]
+    fn test_fibonacci() {
+        assert_eq!(fibonacci(0), 0);
+        assert_eq!(fibonacci(1), 1);
+        assert_eq!(fibonacci(10), 55);
+        assert_eq!(fibonacci(20), 6765);
+    }
+
+    #[test]
+    fn test_is_palindrome() {
+        assert!(is_palindrome("racecar"));
+        assert!(is_palindrome("A man a plan a canal Panama"));
+        assert!(!is_palindrome("hello"));
+        assert!(is_palindrome(""));
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: functions
+      name: Function Patterns
+      description: Proper function definitions
+      weight: 0.5
+      signals:
+        - uses_expression_return
+        - proper_types
+
+hints:
+  L0:
+    - "How do you return a value without using 'return'?"
+    - "What's the difference between an expression and a statement?"
+  L1:
+    - "Expression return: omit semicolon on last line"
+    - "if is an expression in Rust: if x > 0 { x } else { -x }"
+  L2:
+    - "Factorial: use (1..=n).product() or recursive call"
+    - "Palindrome: s.chars().eq(s.chars().rev())"
+  L3:
+    - |
+      ```rust
+      pub fn factorial(n: u32) -> u64 {
+          (1..=n as u64).product()
+      }
+
+      pub fn is_palindrome(s: &str) -> bool {
+          let chars: Vec<char> = s.to_lowercase()
+              .chars()
+              .filter(|c| c.is_alphanumeric())
+              .collect();
+          chars.iter().eq(chars.iter().rev())
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    pub fn square(n: i32) -> i32 {
+        n * n
+    }
+
+    pub fn is_even(n: i32) -> bool {
+        n % 2 == 0
+    }
+
+    pub fn abs(n: i32) -> i32 {
+        if n < 0 { -n } else { n }
+    }
+
+    pub fn factorial(n: u32) -> u64 {
+        (1..=n as u64).product()
+    }
+
+    pub fn max(a: i32, b: i32) -> i32 {
+        if a > b { a } else { b }
+    }
+
+    pub fn clamp(value: i32, min: i32, max: i32) -> i32 {
+        if value < min {
+            min
+        } else if value > max {
+            max
+        } else {
+            value
+        }
+    }
+
+    pub fn fibonacci(n: u32) -> u64 {
+        match n {
+            0 => 0,
+            1 => 1,
+            _ => {
+                let mut a = 0u64;
+                let mut b = 1u64;
+                for _ in 2..=n {
+                    let temp = a + b;
+                    a = b;
+                    b = temp;
+                }
+                b
+            }
+        }
+    }
+
+    pub fn is_palindrome(s: &str) -> bool {
+        let chars: Vec<char> = s.to_lowercase()
+            .chars()
+            .filter(|c| c.is_alphanumeric())
+            .collect();
+        chars.iter().eq(chars.iter().rev())
+    }

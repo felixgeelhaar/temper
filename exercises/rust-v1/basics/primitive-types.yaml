@@ -1,0 +1,231 @@
+id: primitive-types
+title: Primitive Types
+description: |
+  Learn Rust's primitive types.
+
+  ## Learning Objectives
+  - Work with tuples
+  - Use arrays and slices
+  - Understand type inference
+  - Convert between types
+
+  ## Instructions
+  Implement functions working with primitive types.
+
+difficulty: beginner
+tags:
+  - basics
+  - primitives
+  - tuples
+  - arrays
+
+prerequisites:
+  - basics/functions
+
+starter:
+  src/lib.rs: |
+    //! Primitive types in Rust.
+
+    /// Return a tuple of (sum, product) of two numbers.
+    pub fn sum_and_product(a: i32, b: i32) -> (i32, i32) {
+        // TODO: Return tuple with sum and product
+        todo!()
+    }
+
+    /// Destructure a tuple and return the second element.
+    pub fn get_second(tuple: (i32, i32, i32)) -> i32 {
+        // TODO: Destructure or use tuple.1
+        todo!()
+    }
+
+    /// Swap the elements of a tuple.
+    pub fn swap<T: Copy, U: Copy>(tuple: (T, U)) -> (U, T) {
+        // TODO: Return tuple with elements swapped
+        todo!()
+    }
+
+    /// Return the length of an array.
+    pub fn array_length(arr: &[i32; 5]) -> usize {
+        // TODO: Return the array length
+        todo!()
+    }
+
+    /// Return a slice of the first n elements.
+    pub fn first_n(arr: &[i32], n: usize) -> &[i32] {
+        // TODO: Return slice of first n elements
+        // Handle case where n > arr.len()
+        todo!()
+    }
+
+    /// Find the sum of all elements in a slice.
+    pub fn sum_slice(slice: &[i32]) -> i32 {
+        // TODO: Sum all elements
+        todo!()
+    }
+
+    /// Find the maximum value in a slice.
+    /// Returns None if slice is empty.
+    pub fn max_in_slice(slice: &[i32]) -> Option<i32> {
+        // TODO: Find maximum or return None
+        todo!()
+    }
+
+    /// Check if a slice is sorted in ascending order.
+    pub fn is_sorted(slice: &[i32]) -> bool {
+        // TODO: Check if each element <= next element
+        todo!()
+    }
+
+    /// Reverse an array in place.
+    pub fn reverse_array(arr: &mut [i32]) {
+        // TODO: Reverse the array in place
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_sum_and_product() {
+        assert_eq!(sum_and_product(3, 4), (7, 12));
+        assert_eq!(sum_and_product(0, 5), (5, 0));
+    }
+
+    #[test]
+    fn test_get_second() {
+        assert_eq!(get_second((1, 2, 3)), 2);
+        assert_eq!(get_second((10, 20, 30)), 20);
+    }
+
+    #[test]
+    fn test_swap() {
+        assert_eq!(swap((1, 2)), (2, 1));
+        assert_eq!(swap(("hello", 42)), (42, "hello"));
+    }
+
+    #[test]
+    fn test_array_length() {
+        let arr = [1, 2, 3, 4, 5];
+        assert_eq!(array_length(&arr), 5);
+    }
+
+    #[test]
+    fn test_first_n() {
+        let arr = [1, 2, 3, 4, 5];
+        assert_eq!(first_n(&arr, 3), &[1, 2, 3]);
+        assert_eq!(first_n(&arr, 10), &[1, 2, 3, 4, 5]);
+        assert_eq!(first_n(&arr, 0), &[]);
+    }
+
+    #[test]
+    fn test_sum_slice() {
+        assert_eq!(sum_slice(&[1, 2, 3, 4, 5]), 15);
+        assert_eq!(sum_slice(&[]), 0);
+    }
+
+    #[test]
+    fn test_max_in_slice() {
+        assert_eq!(max_in_slice(&[1, 5, 3, 2, 4]), Some(5));
+        assert_eq!(max_in_slice(&[-1, -5, -3]), Some(-1));
+        assert_eq!(max_in_slice(&[]), None);
+    }
+
+    #[test]
+    fn test_is_sorted() {
+        assert!(is_sorted(&[1, 2, 3, 4, 5]));
+        assert!(is_sorted(&[1, 1, 2, 2]));
+        assert!(!is_sorted(&[1, 3, 2]));
+        assert!(is_sorted(&[]));
+    }
+
+    #[test]
+    fn test_reverse_array() {
+        let mut arr = [1, 2, 3, 4, 5];
+        reverse_array(&mut arr);
+        assert_eq!(arr, [5, 4, 3, 2, 1]);
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: primitives
+      name: Primitive Types
+      description: Proper use of primitives
+      weight: 0.5
+      signals:
+        - uses_tuples
+        - uses_slices
+
+hints:
+  L0:
+    - "How do you access tuple elements?"
+    - "How do you create a slice from an array?"
+  L1:
+    - "Tuple access: tuple.0, tuple.1, or let (a, b) = tuple"
+    - "Slice: &arr[0..n] or arr.get(0..n)"
+  L2:
+    - "Sum: slice.iter().sum()"
+    - "Max: slice.iter().max().copied()"
+  L3:
+    - |
+      ```rust
+      pub fn max_in_slice(slice: &[i32]) -> Option<i32> {
+          slice.iter().max().copied()
+      }
+
+      pub fn reverse_array(arr: &mut [i32]) {
+          arr.reverse();
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    pub fn sum_and_product(a: i32, b: i32) -> (i32, i32) {
+        (a + b, a * b)
+    }
+
+    pub fn get_second(tuple: (i32, i32, i32)) -> i32 {
+        tuple.1
+    }
+
+    pub fn swap<T: Copy, U: Copy>(tuple: (T, U)) -> (U, T) {
+        (tuple.1, tuple.0)
+    }
+
+    pub fn array_length(arr: &[i32; 5]) -> usize {
+        arr.len()
+    }
+
+    pub fn first_n(arr: &[i32], n: usize) -> &[i32] {
+        let end = n.min(arr.len());
+        &arr[0..end]
+    }
+
+    pub fn sum_slice(slice: &[i32]) -> i32 {
+        slice.iter().sum()
+    }
+
+    pub fn max_in_slice(slice: &[i32]) -> Option<i32> {
+        slice.iter().max().copied()
+    }
+
+    pub fn is_sorted(slice: &[i32]) -> bool {
+        slice.windows(2).all(|w| w[0] <= w[1])
+    }
+
+    pub fn reverse_array(arr: &mut [i32]) {
+        arr.reverse()
+    }

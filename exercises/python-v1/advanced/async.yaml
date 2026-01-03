@@ -1,0 +1,336 @@
+id: async
+title: Async/Await
+description: |
+  Learn Python's asyncio for concurrent programming.
+
+  ## Learning Objectives
+  - Write async functions with async/await
+  - Use asyncio.gather for concurrent execution
+  - Handle timeouts and cancellation
+  - Create async context managers
+
+  ## Instructions
+  Implement async functions for simulated I/O operations.
+
+difficulty: advanced
+tags:
+  - advanced
+  - async
+  - asyncio
+  - concurrency
+
+prerequisites:
+  - advanced/generators
+
+starter:
+  async_ops.py: |
+    """Async operations using asyncio."""
+    import asyncio
+    from typing import Any
+
+
+    async def delayed_value(value: Any, delay: float) -> Any:
+        """Return a value after a delay.
+
+        Args:
+            value: Value to return
+            delay: Seconds to wait
+
+        Returns:
+            The value after waiting
+        """
+        # TODO: Wait for delay, then return value
+        pass
+
+
+    async def fetch_all(urls: list[str]) -> list[str]:
+        """Simulate fetching multiple URLs concurrently.
+
+        Uses delayed_value to simulate network delay.
+
+        Args:
+            urls: List of URLs to "fetch"
+
+        Returns:
+            List of "responses" (the URLs uppercased)
+        """
+        # TODO: Use asyncio.gather to fetch all concurrently
+        # Simulate 0.1s delay per URL
+        pass
+
+
+    async def first_completed(tasks: list[Any]) -> Any:
+        """Return the result of the first completed task.
+
+        Args:
+            tasks: List of values with their simulated delays
+                   Format: [(value, delay), ...]
+
+        Returns:
+            The value of the first task to complete
+        """
+        # TODO: Create tasks and return first completed
+        pass
+
+
+    async def with_timeout(coro, timeout: float) -> Any | None:
+        """Execute coroutine with a timeout.
+
+        Args:
+            coro: Coroutine to execute
+            timeout: Maximum seconds to wait
+
+        Returns:
+            Result of coroutine, or None if timeout
+        """
+        # TODO: Use asyncio.wait_for with timeout handling
+        pass
+
+
+    class AsyncResource:
+        """Async context manager for resource management."""
+
+        def __init__(self, name: str):
+            self.name = name
+            self.is_open = False
+
+        async def __aenter__(self) -> "AsyncResource":
+            """Async enter - open the resource.
+
+            Simulates async initialization.
+
+            Returns:
+                self
+            """
+            # TODO: Simulate async open (0.01s delay)
+            pass
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:
+            """Async exit - close the resource.
+
+            Returns:
+                False (don't suppress exceptions)
+            """
+            # TODO: Close the resource
+            pass
+
+
+    async def process_with_resource(name: str) -> str:
+        """Use AsyncResource with async context manager.
+
+        Args:
+            name: Resource name
+
+        Returns:
+            Message about processing
+        """
+        # TODO: Use async with to manage resource
+        pass
+
+tests:
+  test_async_ops.py: |
+    """Tests for async operations."""
+    import pytest
+    import asyncio
+    from async_ops import (
+        delayed_value, fetch_all, first_completed,
+        with_timeout, AsyncResource, process_with_resource
+    )
+
+
+    class TestDelayedValue:
+        @pytest.mark.asyncio
+        async def test_returns_value(self):
+            result = await delayed_value(42, 0.01)
+            assert result == 42
+
+        @pytest.mark.asyncio
+        async def test_delays_correctly(self):
+            import time
+            start = time.monotonic()
+            await delayed_value("test", 0.1)
+            elapsed = time.monotonic() - start
+            assert elapsed >= 0.09  # Allow small tolerance
+
+
+    class TestFetchAll:
+        @pytest.mark.asyncio
+        async def test_fetches_all(self):
+            urls = ["http://a.com", "http://b.com", "http://c.com"]
+            results = await fetch_all(urls)
+            assert len(results) == 3
+            assert all(url.upper() in results for url in urls)
+
+        @pytest.mark.asyncio
+        async def test_concurrent_execution(self):
+            import time
+            urls = ["http://a.com", "http://b.com", "http://c.com"]
+            start = time.monotonic()
+            await fetch_all(urls)
+            elapsed = time.monotonic() - start
+            # Should be ~0.1s not 0.3s (concurrent not sequential)
+            assert elapsed < 0.25
+
+
+    class TestFirstCompleted:
+        @pytest.mark.asyncio
+        async def test_returns_fastest(self):
+            tasks = [("slow", 0.2), ("fast", 0.01), ("medium", 0.1)]
+            result = await first_completed(tasks)
+            assert result == "fast"
+
+
+    class TestWithTimeout:
+        @pytest.mark.asyncio
+        async def test_completes_in_time(self):
+            result = await with_timeout(delayed_value(42, 0.01), 1.0)
+            assert result == 42
+
+        @pytest.mark.asyncio
+        async def test_timeout_returns_none(self):
+            result = await with_timeout(delayed_value(42, 1.0), 0.01)
+            assert result is None
+
+
+    class TestAsyncResource:
+        @pytest.mark.asyncio
+        async def test_context_manager(self):
+            async with AsyncResource("test") as resource:
+                assert resource.is_open
+                assert resource.name == "test"
+
+        @pytest.mark.asyncio
+        async def test_closes_on_exit(self):
+            resource = AsyncResource("test")
+            async with resource:
+                pass
+            assert not resource.is_open
+
+
+    class TestProcessWithResource:
+        @pytest.mark.asyncio
+        async def test_processes(self):
+            result = await process_with_resource("my_resource")
+            assert "my_resource" in result
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+    - "--asyncio-mode=auto"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: async
+      name: Async/Await Usage
+      description: Proper async function structure
+      weight: 0.4
+      signals:
+        - uses_async_await
+        - uses_asyncio_gather
+
+    - id: context
+      name: Async Context Manager
+      description: Correct __aenter__/__aexit__
+      weight: 0.2
+      signals:
+        - implements_async_context_manager
+
+hints:
+  L0:
+    - "What keyword makes a function asynchronous?"
+    - "How do you run multiple coroutines concurrently?"
+  L1:
+    - "Use 'async def' for async functions"
+    - "Use 'asyncio.gather(*coros)' for concurrency"
+  L2:
+    - "await asyncio.sleep(delay) to wait"
+    - "asyncio.wait_for(coro, timeout) for timeouts"
+  L3:
+    - |
+      ```python
+      async def delayed_value(value: Any, delay: float) -> Any:
+          await asyncio.sleep(delay)
+          return value
+
+      async def fetch_all(urls: list[str]) -> list[str]:
+          async def fetch(url: str) -> str:
+              await asyncio.sleep(0.1)
+              return url.upper()
+          return await asyncio.gather(*[fetch(url) for url in urls])
+      ```
+
+solution:
+  async_ops.py: |
+    """Async operations using asyncio."""
+    import asyncio
+    from typing import Any
+
+
+    async def delayed_value(value: Any, delay: float) -> Any:
+        """Return a value after a delay."""
+        await asyncio.sleep(delay)
+        return value
+
+
+    async def fetch_all(urls: list[str]) -> list[str]:
+        """Simulate fetching multiple URLs concurrently."""
+        async def fetch(url: str) -> str:
+            await asyncio.sleep(0.1)
+            return url.upper()
+        return await asyncio.gather(*[fetch(url) for url in urls])
+
+
+    async def first_completed(tasks: list[Any]) -> Any:
+        """Return the result of the first completed task."""
+        coros = [delayed_value(value, delay) for value, delay in tasks]
+        done, pending = await asyncio.wait(
+            [asyncio.create_task(c) for c in coros],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+        # Cancel pending tasks
+        for task in pending:
+            task.cancel()
+        # Return result of first completed
+        return done.pop().result()
+
+
+    async def with_timeout(coro, timeout: float) -> Any | None:
+        """Execute coroutine with a timeout."""
+        try:
+            return await asyncio.wait_for(coro, timeout)
+        except asyncio.TimeoutError:
+            return None
+
+
+    class AsyncResource:
+        """Async context manager for resource management."""
+
+        def __init__(self, name: str):
+            self.name = name
+            self.is_open = False
+
+        async def __aenter__(self) -> "AsyncResource":
+            await asyncio.sleep(0.01)  # Simulate async open
+            self.is_open = True
+            return self
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:
+            self.is_open = False
+            return False
+
+
+    async def process_with_resource(name: str) -> str:
+        """Use AsyncResource with async context manager."""
+        async with AsyncResource(name) as resource:
+            return f"Processed with {resource.name}"

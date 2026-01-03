@@ -1,0 +1,325 @@
+id: error-handling
+title: Error Handling
+description: |
+  Learn Rust error handling with Result.
+
+  ## Learning Objectives
+  - Use Result for recoverable errors
+  - Create custom error types
+  - Propagate errors with ?
+  - Convert between error types
+
+  ## Instructions
+  Build a config parser with proper error handling.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - errors
+  - result
+  - custom-errors
+
+prerequisites:
+  - intermediate/enums
+
+starter:
+  src/lib.rs: |
+    //! Error handling patterns in Rust.
+
+    use std::fmt;
+
+    /// Custom error type for config parsing.
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum ConfigError {
+        MissingField(String),
+        InvalidValue { field: String, value: String },
+        ParseError(String),
+    }
+
+    impl fmt::Display for ConfigError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            // TODO: Format error message for each variant
+            todo!()
+        }
+    }
+
+    impl std::error::Error for ConfigError {}
+
+    /// Configuration parsed from key=value pairs.
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct Config {
+        pub host: String,
+        pub port: u16,
+        pub debug: bool,
+    }
+
+    /// Parse a single line "key=value" into tuple.
+    pub fn parse_line(line: &str) -> Result<(String, String), ConfigError> {
+        // TODO: Split on '=' and return (key, value)
+        // Return ParseError if no '=' found
+        todo!()
+    }
+
+    /// Parse port string to u16.
+    pub fn parse_port(value: &str) -> Result<u16, ConfigError> {
+        // TODO: Parse value as u16
+        // Return InvalidValue error if parsing fails
+        todo!()
+    }
+
+    /// Parse bool from string ("true"/"false").
+    pub fn parse_bool(value: &str) -> Result<bool, ConfigError> {
+        // TODO: Parse "true" or "false"
+        // Return InvalidValue for other values
+        todo!()
+    }
+
+    /// Parse full config from lines.
+    pub fn parse_config(lines: &[&str]) -> Result<Config, ConfigError> {
+        // TODO: Parse each line, build Config
+        // Use ? operator to propagate errors
+        // Return MissingField if required field not found
+        todo!()
+    }
+
+    /// Read config with defaults for missing optional fields.
+    pub fn parse_config_with_defaults(lines: &[&str]) -> Result<Config, ConfigError> {
+        // TODO: Like parse_config but use defaults:
+        // host: "localhost", port: 8080, debug: false
+        todo!()
+    }
+
+    /// Combine multiple results, returning first error.
+    pub fn validate_all<T, E>(results: Vec<Result<T, E>>) -> Result<Vec<T>, E> {
+        // TODO: Collect all Ok values or return first Err
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_config_error_display() {
+        let err = ConfigError::MissingField("port".to_string());
+        assert!(err.to_string().contains("port"));
+
+        let err = ConfigError::InvalidValue {
+            field: "port".to_string(),
+            value: "abc".to_string(),
+        };
+        assert!(err.to_string().contains("port"));
+    }
+
+    #[test]
+    fn test_parse_line() {
+        assert_eq!(
+            parse_line("host=localhost"),
+            Ok(("host".to_string(), "localhost".to_string()))
+        );
+        assert!(parse_line("invalid").is_err());
+    }
+
+    #[test]
+    fn test_parse_port() {
+        assert_eq!(parse_port("8080"), Ok(8080));
+        assert!(parse_port("invalid").is_err());
+        assert!(parse_port("-1").is_err());
+    }
+
+    #[test]
+    fn test_parse_bool() {
+        assert_eq!(parse_bool("true"), Ok(true));
+        assert_eq!(parse_bool("false"), Ok(false));
+        assert!(parse_bool("yes").is_err());
+    }
+
+    #[test]
+    fn test_parse_config() {
+        let lines = vec!["host=example.com", "port=3000", "debug=true"];
+        let config = parse_config(&lines).unwrap();
+        assert_eq!(config.host, "example.com");
+        assert_eq!(config.port, 3000);
+        assert!(config.debug);
+    }
+
+    #[test]
+    fn test_parse_config_missing_field() {
+        let lines = vec!["host=example.com"];
+        assert!(matches!(
+            parse_config(&lines),
+            Err(ConfigError::MissingField(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_config_with_defaults() {
+        let lines = vec!["host=example.com"];
+        let config = parse_config_with_defaults(&lines).unwrap();
+        assert_eq!(config.host, "example.com");
+        assert_eq!(config.port, 8080);
+        assert!(!config.debug);
+    }
+
+    #[test]
+    fn test_validate_all() {
+        let results: Vec<Result<i32, &str>> = vec![Ok(1), Ok(2), Ok(3)];
+        assert_eq!(validate_all(results), Ok(vec![1, 2, 3]));
+
+        let results: Vec<Result<i32, &str>> = vec![Ok(1), Err("error"), Ok(3)];
+        assert_eq!(validate_all(results), Err("error"));
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: errors
+      name: Error Handling
+      description: Proper error handling patterns
+      weight: 0.5
+      signals:
+        - uses_result
+        - uses_question_mark
+
+hints:
+  L0:
+    - "How do you propagate errors with the ? operator?"
+    - "How do you implement Display for custom errors?"
+  L1:
+    - "? returns early with Err, unwraps Ok"
+    - "Display: write!(f, \"message\")"
+  L2:
+    - "Collect results: results.into_iter().collect()"
+    - "Split once: line.split_once('=')"
+  L3:
+    - |
+      ```rust
+      pub fn parse_line(line: &str) -> Result<(String, String), ConfigError> {
+          line.split_once('=')
+              .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+              .ok_or_else(|| ConfigError::ParseError(
+                  format!("Expected key=value, got: {}", line)
+              ))
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    use std::fmt;
+    use std::collections::HashMap;
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum ConfigError {
+        MissingField(String),
+        InvalidValue { field: String, value: String },
+        ParseError(String),
+    }
+
+    impl fmt::Display for ConfigError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                ConfigError::MissingField(field) => {
+                    write!(f, "Missing required field: {}", field)
+                }
+                ConfigError::InvalidValue { field, value } => {
+                    write!(f, "Invalid value '{}' for field '{}'", value, field)
+                }
+                ConfigError::ParseError(msg) => {
+                    write!(f, "Parse error: {}", msg)
+                }
+            }
+        }
+    }
+
+    impl std::error::Error for ConfigError {}
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct Config {
+        pub host: String,
+        pub port: u16,
+        pub debug: bool,
+    }
+
+    pub fn parse_line(line: &str) -> Result<(String, String), ConfigError> {
+        line.split_once('=')
+            .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+            .ok_or_else(|| ConfigError::ParseError(
+                format!("Expected key=value, got: {}", line)
+            ))
+    }
+
+    pub fn parse_port(value: &str) -> Result<u16, ConfigError> {
+        value.parse::<u16>().map_err(|_| ConfigError::InvalidValue {
+            field: "port".to_string(),
+            value: value.to_string(),
+        })
+    }
+
+    pub fn parse_bool(value: &str) -> Result<bool, ConfigError> {
+        match value {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err(ConfigError::InvalidValue {
+                field: "debug".to_string(),
+                value: value.to_string(),
+            }),
+        }
+    }
+
+    pub fn parse_config(lines: &[&str]) -> Result<Config, ConfigError> {
+        let mut map = HashMap::new();
+        for line in lines {
+            let (key, value) = parse_line(line)?;
+            map.insert(key, value);
+        }
+
+        let host = map.get("host")
+            .ok_or_else(|| ConfigError::MissingField("host".to_string()))?
+            .clone();
+        let port_str = map.get("port")
+            .ok_or_else(|| ConfigError::MissingField("port".to_string()))?;
+        let port = parse_port(port_str)?;
+        let debug_str = map.get("debug")
+            .ok_or_else(|| ConfigError::MissingField("debug".to_string()))?;
+        let debug = parse_bool(debug_str)?;
+
+        Ok(Config { host, port, debug })
+    }
+
+    pub fn parse_config_with_defaults(lines: &[&str]) -> Result<Config, ConfigError> {
+        let mut map = HashMap::new();
+        for line in lines {
+            let (key, value) = parse_line(line)?;
+            map.insert(key, value);
+        }
+
+        let host = map.get("host")
+            .cloned()
+            .unwrap_or_else(|| "localhost".to_string());
+        let port = map.get("port")
+            .map(|s| parse_port(s))
+            .transpose()?
+            .unwrap_or(8080);
+        let debug = map.get("debug")
+            .map(|s| parse_bool(s))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(Config { host, port, debug })
+    }
+
+    pub fn validate_all<T, E>(results: Vec<Result<T, E>>) -> Result<Vec<T>, E> {
+        results.into_iter().collect()
+    }

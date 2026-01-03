@@ -1,0 +1,207 @@
+id: lists
+title: Lists
+description: |
+  Master Python list operations and common patterns.
+
+  ## Learning Objectives
+  - Work with list methods (append, extend, insert)
+  - Use slicing for list manipulation
+  - Apply common list patterns
+
+  ## Instructions
+  Implement functions that manipulate lists.
+
+difficulty: beginner
+tags:
+  - basics
+  - lists
+  - collections
+
+prerequisites:
+  - basics/functions
+
+starter:
+  lists.py: |
+    """List operations module."""
+
+
+    def first_and_last(items: list) -> tuple:
+        """Return the first and last items of a list.
+
+        Args:
+            items: A non-empty list.
+
+        Returns:
+            A tuple of (first_item, last_item).
+
+        Raises:
+            ValueError: If the list is empty.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def reverse_list(items: list) -> list:
+        """Return a new list with items in reverse order.
+
+        Args:
+            items: The list to reverse.
+
+        Returns:
+            A new reversed list (original unchanged).
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def remove_duplicates(items: list) -> list:
+        """Remove duplicates while preserving order.
+
+        Args:
+            items: A list that may contain duplicates.
+
+        Returns:
+            A new list with duplicates removed.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def flatten(nested: list[list]) -> list:
+        """Flatten a list of lists into a single list.
+
+        Args:
+            nested: A list of lists.
+
+        Returns:
+            A single flattened list.
+        """
+        # TODO: Implement this function
+        pass
+
+tests:
+  test_lists.py: |
+    """Tests for list operations."""
+    import pytest
+    from lists import first_and_last, reverse_list, remove_duplicates, flatten
+
+
+    def test_first_and_last():
+        assert first_and_last([1, 2, 3]) == (1, 3)
+        assert first_and_last(["a"]) == ("a", "a")
+
+
+    def test_first_and_last_empty():
+        with pytest.raises(ValueError):
+            first_and_last([])
+
+
+    def test_reverse_list():
+        original = [1, 2, 3]
+        result = reverse_list(original)
+        assert result == [3, 2, 1]
+        assert original == [1, 2, 3]  # Original unchanged
+
+
+    def test_reverse_list_empty():
+        assert reverse_list([]) == []
+
+
+    def test_remove_duplicates():
+        assert remove_duplicates([1, 2, 2, 3, 1]) == [1, 2, 3]
+        assert remove_duplicates([]) == []
+
+
+    def test_remove_duplicates_preserves_order():
+        assert remove_duplicates([3, 1, 2, 1, 3]) == [3, 1, 2]
+
+
+    def test_flatten():
+        assert flatten([[1, 2], [3, 4]]) == [1, 2, 3, 4]
+        assert flatten([[], [1], []]) == [1]
+        assert flatten([]) == []
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: immutability
+      name: Immutability
+      description: Original lists are not modified
+      weight: 0.3
+      signals:
+        - preserves_original
+
+    - id: idioms
+      name: Python Idioms
+      description: Uses pythonic patterns
+      weight: 0.2
+      signals:
+        - uses_slicing
+
+hints:
+  L0:
+    - "How do you access the first element of a list?"
+    - "How do you access the last element using negative indexing?"
+  L1:
+    - "Use items[0] for first and items[-1] for last"
+    - "Slicing with [::-1] reverses a list"
+  L2:
+    - "To preserve order in remove_duplicates, use a seen set"
+    - "For flatten, use a list comprehension or itertools.chain"
+  L3:
+    - |
+      ```python
+      def remove_duplicates(items: list) -> list:
+          seen = set()
+          result = []
+          for item in items:
+              if item not in seen:
+                  seen.add(item)
+                  result.append(item)
+          return result
+      ```
+
+solution:
+  lists.py: |
+    """List operations module."""
+
+
+    def first_and_last(items: list) -> tuple:
+        """Return the first and last items of a list."""
+        if not items:
+            raise ValueError("List is empty")
+        return (items[0], items[-1])
+
+
+    def reverse_list(items: list) -> list:
+        """Return a new list with items in reverse order."""
+        return items[::-1]
+
+
+    def remove_duplicates(items: list) -> list:
+        """Remove duplicates while preserving order."""
+        seen = set()
+        result = []
+        for item in items:
+            if item not in seen:
+                seen.add(item)
+                result.append(item)
+        return result
+
+
+    def flatten(nested: list[list]) -> list:
+        """Flatten a list of lists into a single list."""
+        return [item for sublist in nested for item in sublist]

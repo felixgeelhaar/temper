@@ -1,0 +1,232 @@
+id: arrays
+title: Arrays
+description: |
+  Learn TypeScript array types and operations.
+
+  ## Learning Objectives
+  - Declare typed arrays
+  - Use array methods (map, filter, reduce)
+  - Work with tuples
+  - Use spread operator
+
+  ## Instructions
+  Implement array manipulation functions.
+
+difficulty: beginner
+tags:
+  - basics
+  - arrays
+  - tuples
+  - methods
+
+prerequisites:
+  - basics/functions
+
+starter:
+  arrays.ts: |
+    /**
+     * Array operations in TypeScript.
+     */
+
+    /**
+     * Double each number in the array.
+     *
+     * @param numbers - Array of numbers
+     * @returns Array with each number doubled
+     */
+    export function doubleAll(numbers: number[]): number[] {
+      // TODO: Use map to double each number
+      return [];
+    }
+
+    /**
+     * Filter to keep only positive numbers.
+     *
+     * @param numbers - Array of numbers
+     * @returns Array with only positive numbers
+     */
+    export function positiveOnly(numbers: number[]): number[] {
+      // TODO: Use filter
+      return [];
+    }
+
+    /**
+     * Calculate the product of all numbers.
+     *
+     * @param numbers - Array of numbers
+     * @returns Product of all numbers (1 for empty array)
+     */
+    export function product(numbers: number[]): number {
+      // TODO: Use reduce
+      return 0;
+    }
+
+    /**
+     * Get the first and last elements as a tuple.
+     *
+     * @param items - Array of items
+     * @returns Tuple of [first, last] or undefined if empty
+     */
+    export function firstAndLast<T>(items: T[]): [T, T] | undefined {
+      // TODO: Return tuple or undefined
+      return undefined;
+    }
+
+    /**
+     * Merge two arrays, removing duplicates.
+     *
+     * @param a - First array
+     * @param b - Second array
+     * @returns Merged array with unique values
+     */
+    export function mergeUnique<T>(a: T[], b: T[]): T[] {
+      // TODO: Use spread and Set
+      return [];
+    }
+
+    /**
+     * Flatten a 2D array into 1D.
+     *
+     * @param nested - Array of arrays
+     * @returns Flattened array
+     */
+    export function flatten<T>(nested: T[][]): T[] {
+      // TODO: Flatten the array
+      return [];
+    }
+
+tests:
+  arrays.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      doubleAll, positiveOnly, product, firstAndLast, mergeUnique, flatten
+    } from "./arrays";
+
+    describe("doubleAll", () => {
+      it("doubles each number", () => {
+        expect(doubleAll([1, 2, 3])).toEqual([2, 4, 6]);
+      });
+
+      it("handles empty array", () => {
+        expect(doubleAll([])).toEqual([]);
+      });
+    });
+
+    describe("positiveOnly", () => {
+      it("filters positive numbers", () => {
+        expect(positiveOnly([-1, 2, -3, 4, 0])).toEqual([2, 4]);
+      });
+
+      it("returns empty for all negative", () => {
+        expect(positiveOnly([-1, -2, -3])).toEqual([]);
+      });
+    });
+
+    describe("product", () => {
+      it("multiplies all numbers", () => {
+        expect(product([2, 3, 4])).toBe(24);
+      });
+
+      it("returns 1 for empty array", () => {
+        expect(product([])).toBe(1);
+      });
+    });
+
+    describe("firstAndLast", () => {
+      it("returns tuple for array", () => {
+        expect(firstAndLast([1, 2, 3, 4])).toEqual([1, 4]);
+      });
+
+      it("returns undefined for empty", () => {
+        expect(firstAndLast([])).toBeUndefined();
+      });
+
+      it("handles single element", () => {
+        expect(firstAndLast(["only"])).toEqual(["only", "only"]);
+      });
+    });
+
+    describe("mergeUnique", () => {
+      it("merges and removes duplicates", () => {
+        expect(mergeUnique([1, 2, 3], [2, 3, 4])).toEqual([1, 2, 3, 4]);
+      });
+    });
+
+    describe("flatten", () => {
+      it("flattens nested arrays", () => {
+        expect(flatten([[1, 2], [3, 4], [5]])).toEqual([1, 2, 3, 4, 5]);
+      });
+
+      it("handles empty nested arrays", () => {
+        expect(flatten([[], [1], []])).toEqual([1]);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: methods
+      name: Array Methods
+      description: Uses functional array methods
+      weight: 0.5
+      signals:
+        - uses_map
+        - uses_filter
+        - uses_reduce
+
+hints:
+  L0:
+    - "What array method transforms each element?"
+    - "How do you remove duplicates from an array?"
+  L1:
+    - "Use .map() for transformation"
+    - "Use new Set() and spread to remove duplicates"
+  L2:
+    - "reduce: numbers.reduce((acc, n) => acc * n, 1)"
+    - "mergeUnique: [...new Set([...a, ...b])]"
+  L3:
+    - |
+      ```typescript
+      export function flatten<T>(nested: T[][]): T[] {
+        return nested.reduce((acc, arr) => [...acc, ...arr], []);
+      }
+      ```
+
+solution:
+  arrays.ts: |
+    export function doubleAll(numbers: number[]): number[] {
+      return numbers.map((n) => n * 2);
+    }
+
+    export function positiveOnly(numbers: number[]): number[] {
+      return numbers.filter((n) => n > 0);
+    }
+
+    export function product(numbers: number[]): number {
+      return numbers.reduce((acc, n) => acc * n, 1);
+    }
+
+    export function firstAndLast<T>(items: T[]): [T, T] | undefined {
+      if (items.length === 0) return undefined;
+      return [items[0], items[items.length - 1]];
+    }
+
+    export function mergeUnique<T>(a: T[], b: T[]): T[] {
+      return [...new Set([...a, ...b])];
+    }
+
+    export function flatten<T>(nested: T[][]): T[] {
+      return nested.reduce((acc, arr) => [...acc, ...arr], []);
+    }

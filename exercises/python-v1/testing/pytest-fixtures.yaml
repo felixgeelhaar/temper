@@ -1,0 +1,357 @@
+id: pytest-fixtures
+title: Pytest Fixtures
+description: |
+  Learn to use pytest fixtures for test setup and teardown.
+
+  ## Learning Objectives
+  - Create fixtures with @pytest.fixture
+  - Use fixture scopes (function, class, module, session)
+  - Create fixtures that yield (setup/teardown)
+  - Use fixture factories for flexible test data
+
+  ## Instructions
+  Implement fixtures for testing a database-like storage system.
+
+difficulty: intermediate
+tags:
+  - testing
+  - pytest
+  - fixtures
+  - best-practices
+
+prerequisites:
+  - testing/unit-tests
+
+starter:
+  storage.py: |
+    """Simple key-value storage for fixture practice."""
+    from typing import Any
+
+
+    class Storage:
+        """In-memory key-value storage."""
+
+        def __init__(self):
+            self._data: dict[str, Any] = {}
+            self._connected = False
+
+        def connect(self) -> None:
+            """Connect to storage."""
+            self._connected = True
+
+        def disconnect(self) -> None:
+            """Disconnect from storage."""
+            self._connected = False
+            self._data.clear()
+
+        @property
+        def is_connected(self) -> bool:
+            """Check if connected."""
+            return self._connected
+
+        def set(self, key: str, value: Any) -> None:
+            """Set a value.
+
+            Raises:
+                RuntimeError: If not connected
+            """
+            if not self._connected:
+                raise RuntimeError("Not connected")
+            self._data[key] = value
+
+        def get(self, key: str) -> Any:
+            """Get a value.
+
+            Raises:
+                RuntimeError: If not connected
+                KeyError: If key not found
+            """
+            if not self._connected:
+                raise RuntimeError("Not connected")
+            return self._data[key]
+
+        def delete(self, key: str) -> bool:
+            """Delete a key.
+
+            Returns:
+                True if deleted, False if not found
+            """
+            if not self._connected:
+                raise RuntimeError("Not connected")
+            if key in self._data:
+                del self._data[key]
+                return True
+            return False
+
+        def count(self) -> int:
+            """Get number of stored items."""
+            return len(self._data)
+
+
+    class User:
+        """User model for fixture factory practice."""
+
+        def __init__(self, name: str, email: str, age: int = 0):
+            self.name = name
+            self.email = email
+            self.age = age
+
+        def __eq__(self, other: object) -> bool:
+            if not isinstance(other, User):
+                return False
+            return self.name == other.name and self.email == other.email
+
+tests:
+  conftest.py: |
+    """Pytest fixtures for storage tests.
+
+    TODO: Implement the fixtures described below.
+    """
+    import pytest
+    from storage import Storage, User
+
+
+    @pytest.fixture
+    def storage():
+        """Create a connected storage instance.
+
+        This fixture should:
+        1. Create a Storage instance
+        2. Connect it
+        3. Yield the storage
+        4. Disconnect after the test
+
+        Yields:
+            Connected Storage instance
+        """
+        # TODO: Implement fixture with setup/teardown
+        pass
+
+
+    @pytest.fixture
+    def storage_with_data(storage):
+        """Storage pre-populated with test data.
+
+        Uses the storage fixture and adds some initial data.
+
+        Yields:
+            Storage with keys: "name", "count", "active"
+        """
+        # TODO: Use storage fixture and add data
+        pass
+
+
+    @pytest.fixture
+    def user_factory():
+        """Factory fixture for creating test users.
+
+        Returns a function that creates User objects with defaults.
+
+        Usage:
+            user = user_factory(name="Alice")
+            user = user_factory(age=25)
+
+        Returns:
+            Function to create User with optional overrides
+        """
+        # TODO: Return a factory function
+        pass
+
+
+    @pytest.fixture(scope="module")
+    def shared_storage():
+        """Module-scoped storage shared across tests.
+
+        Only created once per test module.
+
+        Yields:
+            Connected Storage instance
+        """
+        # TODO: Implement module-scoped fixture
+        pass
+
+  test_storage.py: |
+    """Tests that use the fixtures."""
+    import pytest
+    from storage import Storage
+
+
+    class TestStorageFixture:
+        """Tests using the basic storage fixture."""
+
+        def test_storage_is_connected(self, storage):
+            """Storage should be connected from fixture."""
+            assert storage.is_connected
+
+        def test_can_set_and_get(self, storage):
+            """Can use storage for operations."""
+            storage.set("key", "value")
+            assert storage.get("key") == "value"
+
+        def test_storage_is_clean(self, storage):
+            """Each test gets a fresh storage."""
+            assert storage.count() == 0
+
+
+    class TestStorageWithData:
+        """Tests using pre-populated storage."""
+
+        def test_has_initial_data(self, storage_with_data):
+            """Should have pre-populated data."""
+            assert storage_with_data.get("name") == "test"
+            assert storage_with_data.get("count") == 42
+            assert storage_with_data.get("active") is True
+
+
+    class TestUserFactory:
+        """Tests using the user factory fixture."""
+
+        def test_create_default_user(self, user_factory):
+            """Factory creates user with defaults."""
+            user = user_factory()
+            assert user.name == "Test User"
+            assert "@" in user.email
+
+        def test_create_custom_user(self, user_factory):
+            """Factory accepts overrides."""
+            user = user_factory(name="Alice", age=30)
+            assert user.name == "Alice"
+            assert user.age == 30
+
+        def test_each_user_unique_email(self, user_factory):
+            """Factory creates unique emails."""
+            user1 = user_factory()
+            user2 = user_factory()
+            assert user1.email != user2.email
+
+
+    class TestSharedStorage:
+        """Tests using module-scoped storage."""
+
+        def test_shared_storage_connected(self, shared_storage):
+            """Shared storage is connected."""
+            assert shared_storage.is_connected
+
+        def test_shared_storage_persists(self, shared_storage):
+            """Data persists across tests in same module."""
+            # This test might see data from previous tests
+            shared_storage.set("shared_key", "shared_value")
+            assert shared_storage.get("shared_key") == "shared_value"
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: fixtures
+      name: Fixture Implementation
+      description: Correct fixture patterns
+      weight: 0.4
+      signals:
+        - uses_pytest_fixture
+        - uses_yield
+
+    - id: scopes
+      name: Fixture Scopes
+      description: Appropriate scope usage
+      weight: 0.2
+      signals:
+        - uses_module_scope
+
+hints:
+  L0:
+    - "What decorator marks a function as a fixture?"
+    - "How do you run cleanup after a test?"
+  L1:
+    - "Use @pytest.fixture decorator"
+    - "Use yield instead of return for cleanup"
+  L2:
+    - "Pattern: setup, yield value, cleanup"
+    - "Factory pattern: return a function that creates objects"
+  L3:
+    - |
+      ```python
+      @pytest.fixture
+      def storage():
+          s = Storage()
+          s.connect()
+          yield s
+          s.disconnect()
+
+      @pytest.fixture
+      def user_factory():
+          counter = [0]
+          def create(**kwargs):
+              counter[0] += 1
+              defaults = {
+                  "name": "Test User",
+                  "email": f"test{counter[0]}@example.com",
+                  "age": 0,
+              }
+              defaults.update(kwargs)
+              return User(**defaults)
+          return create
+      ```
+
+solution:
+  conftest.py: |
+    """Pytest fixtures for storage tests."""
+    import pytest
+    from storage import Storage, User
+
+
+    @pytest.fixture
+    def storage():
+        """Create a connected storage instance."""
+        s = Storage()
+        s.connect()
+        yield s
+        s.disconnect()
+
+
+    @pytest.fixture
+    def storage_with_data(storage):
+        """Storage pre-populated with test data."""
+        storage.set("name", "test")
+        storage.set("count", 42)
+        storage.set("active", True)
+        yield storage
+
+
+    @pytest.fixture
+    def user_factory():
+        """Factory fixture for creating test users."""
+        counter = [0]
+
+        def create(**kwargs):
+            counter[0] += 1
+            defaults = {
+                "name": "Test User",
+                "email": f"test{counter[0]}@example.com",
+                "age": 0,
+            }
+            defaults.update(kwargs)
+            return User(**defaults)
+
+        return create
+
+
+    @pytest.fixture(scope="module")
+    def shared_storage():
+        """Module-scoped storage shared across tests."""
+        s = Storage()
+        s.connect()
+        yield s
+        s.disconnect()

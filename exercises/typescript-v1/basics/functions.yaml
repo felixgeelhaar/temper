@@ -1,0 +1,249 @@
+id: functions
+title: Functions
+description: |
+  Learn TypeScript function declarations with types.
+
+  ## Learning Objectives
+  - Define typed function parameters
+  - Specify return types
+  - Use optional and default parameters
+  - Create arrow functions
+
+  ## Instructions
+  Implement various function patterns.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - arrow-functions
+  - parameters
+
+prerequisites:
+  - basics/variables
+
+starter:
+  functions.ts: |
+    /**
+     * Function declarations and expressions in TypeScript.
+     */
+
+    /**
+     * Add two numbers together.
+     *
+     * @param a - First number
+     * @param b - Second number
+     * @returns The sum
+     */
+    export function add(a: number, b: number): number {
+      // TODO: Return sum
+      return 0;
+    }
+
+    /**
+     * Multiply numbers with a default multiplier.
+     *
+     * @param value - The value to multiply
+     * @param multiplier - The multiplier (default: 2)
+     * @returns The product
+     */
+    export function multiply(value: number, multiplier: number = 2): number {
+      // TODO: Return product
+      return 0;
+    }
+
+    /**
+     * Format a name with optional title.
+     *
+     * @param firstName - First name
+     * @param lastName - Last name
+     * @param title - Optional title (Mr., Ms., Dr., etc.)
+     * @returns Formatted full name
+     */
+    export function formatName(
+      firstName: string,
+      lastName: string,
+      title?: string
+    ): string {
+      // TODO: Format name with optional title
+      return "";
+    }
+
+    /**
+     * Arrow function to square a number.
+     */
+    export const square = (n: number): number => {
+      // TODO: Return n squared
+      return 0;
+    };
+
+    /**
+     * Higher-order function: apply a transform to each element.
+     *
+     * @param items - Array of items
+     * @param transform - Function to apply to each item
+     * @returns Transformed array
+     */
+    export function map<T, U>(
+      items: T[],
+      transform: (item: T) => U
+    ): U[] {
+      // TODO: Apply transform to each item
+      return [];
+    }
+
+    /**
+     * Create a function that adds a fixed amount.
+     *
+     * @param amount - Amount to add
+     * @returns Function that adds the amount to its input
+     */
+    export function createAdder(amount: number): (n: number) => number {
+      // TODO: Return a function that adds amount to its input
+      return (n) => n;
+    }
+
+tests:
+  functions.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      add, multiply, formatName, square, map, createAdder
+    } from "./functions";
+
+    describe("add", () => {
+      it("adds positive numbers", () => {
+        expect(add(2, 3)).toBe(5);
+      });
+
+      it("adds negative numbers", () => {
+        expect(add(-1, -2)).toBe(-3);
+      });
+    });
+
+    describe("multiply", () => {
+      it("uses default multiplier", () => {
+        expect(multiply(5)).toBe(10);
+      });
+
+      it("uses custom multiplier", () => {
+        expect(multiply(5, 3)).toBe(15);
+      });
+    });
+
+    describe("formatName", () => {
+      it("formats without title", () => {
+        expect(formatName("John", "Doe")).toBe("John Doe");
+      });
+
+      it("formats with title", () => {
+        expect(formatName("John", "Doe", "Dr.")).toBe("Dr. John Doe");
+      });
+    });
+
+    describe("square", () => {
+      it("squares positive numbers", () => {
+        expect(square(5)).toBe(25);
+      });
+
+      it("squares negative numbers", () => {
+        expect(square(-3)).toBe(9);
+      });
+    });
+
+    describe("map", () => {
+      it("transforms numbers", () => {
+        expect(map([1, 2, 3], (n) => n * 2)).toEqual([2, 4, 6]);
+      });
+
+      it("transforms strings", () => {
+        expect(map(["a", "b"], (s) => s.toUpperCase())).toEqual(["A", "B"]);
+      });
+    });
+
+    describe("createAdder", () => {
+      it("creates function that adds fixed amount", () => {
+        const add5 = createAdder(5);
+        expect(add5(10)).toBe(15);
+        expect(add5(0)).toBe(5);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: functions
+      name: Function Patterns
+      description: Uses correct function syntax
+      weight: 0.5
+      signals:
+        - uses_arrow_functions
+        - uses_default_params
+
+hints:
+  L0:
+    - "How do you define an optional parameter?"
+    - "What is the syntax for arrow functions?"
+  L1:
+    - "Optional params use ?: after name"
+    - "Arrow: (params) => expression"
+  L2:
+    - "Check if title exists: title ? `${title} ` : ''"
+    - "Closure: return (n) => n + amount"
+  L3:
+    - |
+      ```typescript
+      export function formatName(
+        firstName: string,
+        lastName: string,
+        title?: string
+      ): string {
+        return title ? `${title} ${firstName} ${lastName}` : `${firstName} ${lastName}`;
+      }
+      ```
+
+solution:
+  functions.ts: |
+    export function add(a: number, b: number): number {
+      return a + b;
+    }
+
+    export function multiply(value: number, multiplier: number = 2): number {
+      return value * multiplier;
+    }
+
+    export function formatName(
+      firstName: string,
+      lastName: string,
+      title?: string
+    ): string {
+      return title ? `${title} ${firstName} ${lastName}` : `${firstName} ${lastName}`;
+    }
+
+    export const square = (n: number): number => n * n;
+
+    export function map<T, U>(
+      items: T[],
+      transform: (item: T) => U
+    ): U[] {
+      const result: U[] = [];
+      for (const item of items) {
+        result.push(transform(item));
+      }
+      return result;
+    }
+
+    export function createAdder(amount: number): (n: number) => number {
+      return (n: number) => n + amount;
+    }

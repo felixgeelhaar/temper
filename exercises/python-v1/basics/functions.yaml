@@ -1,0 +1,223 @@
+id: functions
+title: Functions
+description: |
+  Master Python function definitions and argument handling.
+
+  ## Learning Objectives
+  - Define functions with various argument types
+  - Use default arguments and keyword arguments
+  - Understand *args and **kwargs
+
+  ## Instructions
+  Implement functions demonstrating different parameter patterns.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - arguments
+
+prerequisites:
+  - basics/variables
+
+starter:
+  functions.py: |
+    """Function examples module."""
+    from typing import Any
+
+
+    def greet(name: str, greeting: str = "Hello") -> str:
+        """Return a greeting with customizable greeting word.
+
+        Args:
+            name: The name to greet.
+            greeting: The greeting word (default: "Hello").
+
+        Returns:
+            A formatted greeting.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def sum_all(*numbers: int) -> int:
+        """Sum all provided numbers.
+
+        Args:
+            *numbers: Variable number of integers.
+
+        Returns:
+            The sum of all numbers.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def make_dict(**kwargs: Any) -> dict[str, Any]:
+        """Create a dictionary from keyword arguments.
+
+        Args:
+            **kwargs: Key-value pairs.
+
+        Returns:
+            A dictionary containing all kwargs.
+        """
+        # TODO: Implement this function
+        pass
+
+
+    def apply_operation(a: int, b: int, operation: str = "add") -> int:
+        """Apply an operation to two numbers.
+
+        Args:
+            a: First number.
+            b: Second number.
+            operation: One of "add", "subtract", "multiply".
+
+        Returns:
+            The result of the operation.
+
+        Raises:
+            ValueError: If operation is unknown.
+        """
+        # TODO: Implement this function
+        pass
+
+tests:
+  test_functions.py: |
+    """Tests for function examples."""
+    import pytest
+    from functions import greet, sum_all, make_dict, apply_operation
+
+
+    def test_greet_default():
+        assert greet("Alice") == "Hello, Alice!"
+
+
+    def test_greet_custom():
+        assert greet("Bob", greeting="Hi") == "Hi, Bob!"
+
+
+    def test_sum_all_empty():
+        assert sum_all() == 0
+
+
+    def test_sum_all_single():
+        assert sum_all(5) == 5
+
+
+    def test_sum_all_multiple():
+        assert sum_all(1, 2, 3, 4, 5) == 15
+
+
+    def test_make_dict():
+        result = make_dict(name="Alice", age=30)
+        assert result == {"name": "Alice", "age": 30}
+
+
+    def test_make_dict_empty():
+        assert make_dict() == {}
+
+
+    def test_apply_operation_add():
+        assert apply_operation(5, 3) == 8
+
+
+    def test_apply_operation_subtract():
+        assert apply_operation(5, 3, operation="subtract") == 2
+
+
+    def test_apply_operation_multiply():
+        assert apply_operation(5, 3, operation="multiply") == 15
+
+
+    def test_apply_operation_invalid():
+        with pytest.raises(ValueError):
+            apply_operation(5, 3, operation="divide")
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: error_handling
+      name: Error Handling
+      description: Raises appropriate exceptions
+      weight: 0.3
+      signals:
+        - raises_value_error
+
+    - id: idioms
+      name: Python Idioms
+      description: Uses pythonic patterns
+      weight: 0.2
+      signals:
+        - uses_builtin_sum
+        - uses_dict_constructor
+
+hints:
+  L0:
+    - "How do you access all values passed to *args?"
+    - "What built-in function sums a sequence?"
+  L1:
+    - "Use the built-in sum() function for sum_all"
+    - "kwargs is already a dictionary"
+  L2:
+    - "For sum_all: return sum(numbers)"
+    - "For make_dict: return dict(kwargs) or just kwargs.copy()"
+  L3:
+    - |
+      ```python
+      def apply_operation(a: int, b: int, operation: str = "add") -> int:
+          if operation == "add":
+              return a + b
+          elif operation == "subtract":
+              return a - b
+          elif operation == "multiply":
+              return a * b
+          else:
+              raise ValueError(f"Unknown operation: {operation}")
+      ```
+
+solution:
+  functions.py: |
+    """Function examples module."""
+    from typing import Any
+
+
+    def greet(name: str, greeting: str = "Hello") -> str:
+        """Return a greeting with customizable greeting word."""
+        return f"{greeting}, {name}!"
+
+
+    def sum_all(*numbers: int) -> int:
+        """Sum all provided numbers."""
+        return sum(numbers)
+
+
+    def make_dict(**kwargs: Any) -> dict[str, Any]:
+        """Create a dictionary from keyword arguments."""
+        return dict(kwargs)
+
+
+    def apply_operation(a: int, b: int, operation: str = "add") -> int:
+        """Apply an operation to two numbers."""
+        if operation == "add":
+            return a + b
+        elif operation == "subtract":
+            return a - b
+        elif operation == "multiply":
+            return a * b
+        else:
+            raise ValueError(f"Unknown operation: {operation}")

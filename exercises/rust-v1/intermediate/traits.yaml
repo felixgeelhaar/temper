@@ -1,0 +1,365 @@
+id: traits
+title: Traits
+description: |
+  Learn Rust traits for shared behavior.
+
+  ## Learning Objectives
+  - Define and implement traits
+  - Use trait bounds
+  - Implement common traits (Debug, Clone, PartialEq)
+  - Create trait objects
+
+  ## Instructions
+  Build a shape system using traits.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - traits
+  - polymorphism
+  - trait-objects
+
+prerequisites:
+  - intermediate/error-handling
+
+starter:
+  src/lib.rs: |
+    //! Traits for shared behavior.
+
+    use std::fmt;
+
+    /// Trait for shapes that have an area.
+    pub trait Area {
+        fn area(&self) -> f64;
+    }
+
+    /// Trait for shapes with a perimeter.
+    pub trait Perimeter {
+        fn perimeter(&self) -> f64;
+    }
+
+    /// Combined trait for full shapes.
+    pub trait Shape: Area + Perimeter + fmt::Debug {
+        fn name(&self) -> &str;
+
+        fn describe(&self) -> String {
+            format!(
+                "{}: area={:.2}, perimeter={:.2}",
+                self.name(),
+                self.area(),
+                self.perimeter()
+            )
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Circle {
+        pub radius: f64,
+    }
+
+    impl Circle {
+        pub fn new(radius: f64) -> Self {
+            Circle { radius }
+        }
+    }
+
+    impl Area for Circle {
+        fn area(&self) -> f64 {
+            // TODO: π * r²
+            todo!()
+        }
+    }
+
+    impl Perimeter for Circle {
+        fn perimeter(&self) -> f64 {
+            // TODO: 2 * π * r
+            todo!()
+        }
+    }
+
+    impl Shape for Circle {
+        fn name(&self) -> &str {
+            // TODO: Return "Circle"
+            todo!()
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Rectangle {
+        pub width: f64,
+        pub height: f64,
+    }
+
+    impl Rectangle {
+        pub fn new(width: f64, height: f64) -> Self {
+            Rectangle { width, height }
+        }
+    }
+
+    impl Area for Rectangle {
+        fn area(&self) -> f64 {
+            // TODO: width * height
+            todo!()
+        }
+    }
+
+    impl Perimeter for Rectangle {
+        fn perimeter(&self) -> f64 {
+            // TODO: 2 * (width + height)
+            todo!()
+        }
+    }
+
+    impl Shape for Rectangle {
+        fn name(&self) -> &str {
+            // TODO: Return "Rectangle"
+            todo!()
+        }
+    }
+
+    /// Calculate total area of multiple shapes.
+    pub fn total_area<T: Area>(shapes: &[T]) -> f64 {
+        // TODO: Sum all areas
+        todo!()
+    }
+
+    /// Find shape with largest area using trait objects.
+    pub fn largest_shape<'a>(shapes: &'a [&'a dyn Shape]) -> Option<&'a dyn Shape> {
+        // TODO: Find shape with max area
+        todo!()
+    }
+
+    /// Trait for printable items.
+    pub trait Printable {
+        fn print(&self) -> String;
+    }
+
+    /// Implement Printable for any type that implements Display.
+    impl<T: fmt::Display> Printable for T {
+        fn print(&self) -> String {
+            // TODO: Use Display to create string
+            todo!()
+        }
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_circle_area() {
+        let c = Circle::new(5.0);
+        let expected = std::f64::consts::PI * 25.0;
+        assert!((c.area() - expected).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_circle_perimeter() {
+        let c = Circle::new(5.0);
+        let expected = 2.0 * std::f64::consts::PI * 5.0;
+        assert!((c.perimeter() - expected).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_rectangle_area() {
+        let r = Rectangle::new(4.0, 5.0);
+        assert_eq!(r.area(), 20.0);
+    }
+
+    #[test]
+    fn test_rectangle_perimeter() {
+        let r = Rectangle::new(4.0, 5.0);
+        assert_eq!(r.perimeter(), 18.0);
+    }
+
+    #[test]
+    fn test_shape_name() {
+        let c = Circle::new(1.0);
+        let r = Rectangle::new(1.0, 1.0);
+        assert_eq!(c.name(), "Circle");
+        assert_eq!(r.name(), "Rectangle");
+    }
+
+    #[test]
+    fn test_shape_describe() {
+        let c = Circle::new(1.0);
+        let desc = c.describe();
+        assert!(desc.contains("Circle"));
+        assert!(desc.contains("area="));
+    }
+
+    #[test]
+    fn test_total_area() {
+        let circles = vec![Circle::new(1.0), Circle::new(2.0)];
+        let total = total_area(&circles);
+        let expected = std::f64::consts::PI * 1.0 + std::f64::consts::PI * 4.0;
+        assert!((total - expected).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_largest_shape() {
+        let c = Circle::new(2.0);
+        let r = Rectangle::new(10.0, 10.0);
+        let shapes: Vec<&dyn Shape> = vec![&c, &r];
+        let largest = largest_shape(&shapes).unwrap();
+        assert_eq!(largest.name(), "Rectangle");
+    }
+
+    #[test]
+    fn test_printable() {
+        let n = 42;
+        assert_eq!(n.print(), "42");
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: traits
+      name: Trait Patterns
+      description: Proper trait implementation
+      weight: 0.5
+      signals:
+        - implements_traits
+        - uses_trait_bounds
+
+hints:
+  L0:
+    - "How do you implement a trait for a type?"
+    - "What's the difference between impl Trait and dyn Trait?"
+  L1:
+    - "impl TraitName for Type { ... }"
+    - "dyn Trait for runtime polymorphism (trait objects)"
+  L2:
+    - "Blanket impl: impl<T: SomeTrait> OtherTrait for T"
+    - "Use std::f64::consts::PI for pi"
+  L3:
+    - |
+      ```rust
+      impl Area for Circle {
+          fn area(&self) -> f64 {
+              std::f64::consts::PI * self.radius * self.radius
+          }
+      }
+
+      pub fn largest_shape<'a>(shapes: &'a [&'a dyn Shape]) -> Option<&'a dyn Shape> {
+          shapes.iter()
+              .max_by(|a, b| a.area().partial_cmp(&b.area()).unwrap())
+              .copied()
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    use std::fmt;
+
+    pub trait Area {
+        fn area(&self) -> f64;
+    }
+
+    pub trait Perimeter {
+        fn perimeter(&self) -> f64;
+    }
+
+    pub trait Shape: Area + Perimeter + fmt::Debug {
+        fn name(&self) -> &str;
+
+        fn describe(&self) -> String {
+            format!(
+                "{}: area={:.2}, perimeter={:.2}",
+                self.name(),
+                self.area(),
+                self.perimeter()
+            )
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Circle {
+        pub radius: f64,
+    }
+
+    impl Circle {
+        pub fn new(radius: f64) -> Self {
+            Circle { radius }
+        }
+    }
+
+    impl Area for Circle {
+        fn area(&self) -> f64 {
+            std::f64::consts::PI * self.radius * self.radius
+        }
+    }
+
+    impl Perimeter for Circle {
+        fn perimeter(&self) -> f64 {
+            2.0 * std::f64::consts::PI * self.radius
+        }
+    }
+
+    impl Shape for Circle {
+        fn name(&self) -> &str {
+            "Circle"
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Rectangle {
+        pub width: f64,
+        pub height: f64,
+    }
+
+    impl Rectangle {
+        pub fn new(width: f64, height: f64) -> Self {
+            Rectangle { width, height }
+        }
+    }
+
+    impl Area for Rectangle {
+        fn area(&self) -> f64 {
+            self.width * self.height
+        }
+    }
+
+    impl Perimeter for Rectangle {
+        fn perimeter(&self) -> f64 {
+            2.0 * (self.width + self.height)
+        }
+    }
+
+    impl Shape for Rectangle {
+        fn name(&self) -> &str {
+            "Rectangle"
+        }
+    }
+
+    pub fn total_area<T: Area>(shapes: &[T]) -> f64 {
+        shapes.iter().map(|s| s.area()).sum()
+    }
+
+    pub fn largest_shape<'a>(shapes: &'a [&'a dyn Shape]) -> Option<&'a dyn Shape> {
+        shapes.iter()
+            .max_by(|a, b| a.area().partial_cmp(&b.area()).unwrap())
+            .copied()
+    }
+
+    pub trait Printable {
+        fn print(&self) -> String;
+    }
+
+    impl<T: fmt::Display> Printable for T {
+        fn print(&self) -> String {
+            self.to_string()
+        }
+    }

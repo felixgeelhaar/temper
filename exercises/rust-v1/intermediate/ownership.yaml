@@ -1,0 +1,210 @@
+id: ownership
+title: Ownership
+description: |
+  Master Rust's ownership system.
+
+  ## Learning Objectives
+  - Understand ownership and borrowing
+  - Use references correctly
+  - Avoid common ownership pitfalls
+
+  ## Instructions
+  Implement functions that demonstrate proper ownership patterns.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - ownership
+  - borrowing
+
+prerequisites:
+  - basics/variables
+
+starter:
+  lib.rs: |
+    /// Takes ownership of a String and returns its length.
+    /// The original String is consumed.
+    pub fn consume_and_count(s: String) -> usize {
+        // TODO: Implement
+        0
+    }
+
+    /// Borrows a String and returns its length.
+    /// The original String is NOT consumed.
+    pub fn borrow_and_count(s: &String) -> usize {
+        // TODO: Implement
+        0
+    }
+
+    /// Takes a mutable reference and appends " World" to the string.
+    pub fn append_world(s: &mut String) {
+        // TODO: Implement
+    }
+
+    /// Returns a reference to the longer of two string slices.
+    pub fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+        // TODO: Implement
+        ""
+    }
+
+    /// Demonstrates moving ownership and returning it.
+    /// Takes a vector, adds an element, and returns the modified vector.
+    pub fn take_modify_return(mut v: Vec<i32>, elem: i32) -> Vec<i32> {
+        // TODO: Implement
+        Vec::new()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_consume_and_count() {
+            let s = String::from("hello");
+            assert_eq!(consume_and_count(s), 5);
+            // s is no longer valid here
+        }
+
+        #[test]
+        fn test_borrow_and_count() {
+            let s = String::from("hello");
+            assert_eq!(borrow_and_count(&s), 5);
+            assert_eq!(s, "hello"); // s is still valid
+        }
+
+        #[test]
+        fn test_append_world() {
+            let mut s = String::from("Hello");
+            append_world(&mut s);
+            assert_eq!(s, "Hello World");
+        }
+
+        #[test]
+        fn test_longest() {
+            let s1 = "short";
+            let s2 = "much longer string";
+            assert_eq!(longest(s1, s2), "much longer string");
+        }
+
+        #[test]
+        fn test_take_modify_return() {
+            let v = vec![1, 2, 3];
+            let v = take_modify_return(v, 4);
+            assert_eq!(v, vec![1, 2, 3, 4]);
+        }
+    }
+
+tests:
+  lib.rs: |
+    // Tests are included in the starter file
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: ownership
+      name: Ownership Patterns
+      description: Correctly uses ownership patterns
+      weight: 0.3
+      signals:
+        - correct_borrowing
+        - correct_lifetimes
+
+    - id: idioms
+      name: Rust Idioms
+      description: Uses idiomatic Rust
+      weight: 0.2
+      signals:
+        - proper_references
+
+hints:
+  L0:
+    - "What's the difference between & and &mut?"
+    - "What are lifetimes in Rust?"
+  L1:
+    - "& is an immutable borrow, &mut is a mutable borrow"
+    - "Lifetimes ensure references are valid"
+  L2:
+    - "Use s.len() to get string length"
+    - "Use s.push_str(\" World\") to append"
+  L3:
+    - |
+      ```rust
+      pub fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+          if x.len() > y.len() { x } else { y }
+      }
+      ```
+
+solution:
+  lib.rs: |
+    pub fn consume_and_count(s: String) -> usize {
+        s.len()
+    }
+
+    pub fn borrow_and_count(s: &String) -> usize {
+        s.len()
+    }
+
+    pub fn append_world(s: &mut String) {
+        s.push_str(" World");
+    }
+
+    pub fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+        if x.len() > y.len() { x } else { y }
+    }
+
+    pub fn take_modify_return(mut v: Vec<i32>, elem: i32) -> Vec<i32> {
+        v.push(elem);
+        v
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_consume_and_count() {
+            let s = String::from("hello");
+            assert_eq!(consume_and_count(s), 5);
+        }
+
+        #[test]
+        fn test_borrow_and_count() {
+            let s = String::from("hello");
+            assert_eq!(borrow_and_count(&s), 5);
+            assert_eq!(s, "hello");
+        }
+
+        #[test]
+        fn test_append_world() {
+            let mut s = String::from("Hello");
+            append_world(&mut s);
+            assert_eq!(s, "Hello World");
+        }
+
+        #[test]
+        fn test_longest() {
+            let s1 = "short";
+            let s2 = "much longer string";
+            assert_eq!(longest(s1, s2), "much longer string");
+        }
+
+        #[test]
+        fn test_take_modify_return() {
+            let v = vec![1, 2, 3];
+            let v = take_modify_return(v, 4);
+            assert_eq!(v, vec![1, 2, 3, 4]);
+        }
+    }

@@ -1,0 +1,142 @@
+id: hello-world
+title: Hello World
+description: |
+  Write a function that returns a greeting message.
+
+  ## Learning Objectives
+  - Understand basic Rust syntax
+  - Learn to define functions with return types
+  - Work with String and &str
+
+  ## Instructions
+  Implement the `hello` function that takes a name and returns a greeting.
+  If the name is empty, greet "World" instead.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - strings
+
+prerequisites: []
+
+starter:
+  lib.rs: |
+    /// Returns a greeting message for the given name.
+    /// If name is empty, greets "World" instead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use exercise::hello;
+    /// assert_eq!(hello("Rust"), "Hello, Rust!");
+    /// assert_eq!(hello(""), "Hello, World!");
+    /// ```
+    pub fn hello(name: &str) -> String {
+        // TODO: Implement this function
+        String::new()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_hello_with_name() {
+            assert_eq!(hello("Rust"), "Hello, Rust!");
+        }
+
+        #[test]
+        fn test_hello_empty() {
+            assert_eq!(hello(""), "Hello, World!");
+        }
+
+        #[test]
+        fn test_hello_another_name() {
+            assert_eq!(hello("Developer"), "Hello, Developer!");
+        }
+    }
+
+tests:
+  lib.rs: |
+    // Tests are included in the starter file
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: formatting
+      name: Code Formatting
+      description: Code follows rustfmt conventions
+      weight: 0.2
+      signals:
+        - rustfmt_clean
+
+    - id: idioms
+      name: Rust Idioms
+      description: Uses idiomatic Rust patterns
+      weight: 0.3
+      signals:
+        - uses_format_macro
+        - handles_empty_string
+
+hints:
+  L0:
+    - "What macro formats strings in Rust?"
+    - "How do you check if a string slice is empty?"
+  L1:
+    - "Use the format!() macro for string formatting"
+    - "Check if name.is_empty() to handle empty input"
+  L2:
+    - "Use format!(\"Hello, {}!\", name) for formatting"
+    - "Use if name.is_empty() { ... } else { ... }"
+  L3:
+    - |
+      Structure your solution like this:
+      ```rust
+      pub fn hello(name: &str) -> String {
+          let name = if name.is_empty() { "World" } else { name };
+          format!("Hello, {}!", name)
+      }
+      ```
+
+solution:
+  lib.rs: |
+    /// Returns a greeting message for the given name.
+    /// If name is empty, greets "World" instead.
+    pub fn hello(name: &str) -> String {
+        let name = if name.is_empty() { "World" } else { name };
+        format!("Hello, {}!", name)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_hello_with_name() {
+            assert_eq!(hello("Rust"), "Hello, Rust!");
+        }
+
+        #[test]
+        fn test_hello_empty() {
+            assert_eq!(hello(""), "Hello, World!");
+        }
+
+        #[test]
+        fn test_hello_another_name() {
+            assert_eq!(hello("Developer"), "Hello, Developer!");
+        }
+    }

@@ -1,0 +1,364 @@
+id: protocols
+title: Protocols and Duck Typing
+description: |
+  Learn Python's structural subtyping with Protocol classes.
+
+  ## Learning Objectives
+  - Understand duck typing in Python
+  - Define Protocol classes for type hints
+  - Implement protocol-compatible classes
+  - Use runtime_checkable protocols
+
+  ## Instructions
+  Implement a logging system using protocols for flexibility.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - protocols
+  - typing
+  - duck-typing
+
+prerequisites:
+  - intermediate/classes
+
+starter:
+  logging_system.py: |
+    """Logging system using Protocol classes."""
+    from typing import Protocol, runtime_checkable
+    from datetime import datetime
+
+
+    @runtime_checkable
+    class Writer(Protocol):
+        """Protocol for anything that can write strings."""
+
+        def write(self, message: str) -> None:
+            """Write a message."""
+            ...
+
+
+    @runtime_checkable
+    class Closeable(Protocol):
+        """Protocol for resources that can be closed."""
+
+        def close(self) -> None:
+            """Close the resource."""
+            ...
+
+
+    class ConsoleWriter:
+        """Writes messages to console."""
+
+        def __init__(self):
+            self.messages: list[str] = []
+
+        def write(self, message: str) -> None:
+            """Write message to console (stores for testing).
+
+            Args:
+                message: Message to write
+            """
+            # TODO: Store message and print it
+            pass
+
+
+    class FileWriter:
+        """Writes messages to a file-like buffer."""
+
+        def __init__(self):
+            self._buffer: list[str] = []
+            self._closed = False
+
+        def write(self, message: str) -> None:
+            """Write message to buffer.
+
+            Args:
+                message: Message to write
+
+            Raises:
+                ValueError: If writer is closed
+            """
+            # TODO: Check if closed, then append to buffer
+            pass
+
+        def close(self) -> None:
+            """Close the writer."""
+            # TODO: Set closed flag
+            pass
+
+        @property
+        def contents(self) -> str:
+            """Get buffer contents."""
+            return "\n".join(self._buffer)
+
+
+    class Logger:
+        """Logger that writes to any Writer-compatible object."""
+
+        def __init__(self, writer: Writer, prefix: str = ""):
+            """Initialize logger with a writer.
+
+            Args:
+                writer: Any object with a write method
+                prefix: Optional prefix for all messages
+            """
+            self._writer = writer
+            self._prefix = prefix
+
+        def log(self, level: str, message: str) -> None:
+            """Log a message with level.
+
+            Args:
+                level: Log level (INFO, WARN, ERROR)
+                message: Message to log
+            """
+            # TODO: Format and write: "[timestamp] [LEVEL] prefix: message"
+            pass
+
+        def info(self, message: str) -> None:
+            """Log info message."""
+            self.log("INFO", message)
+
+        def warn(self, message: str) -> None:
+            """Log warning message."""
+            self.log("WARN", message)
+
+        def error(self, message: str) -> None:
+            """Log error message."""
+            self.log("ERROR", message)
+
+
+    def close_if_closeable(resource: object) -> bool:
+        """Close a resource if it implements Closeable protocol.
+
+        Args:
+            resource: Any object
+
+        Returns:
+            True if closed, False if not closeable
+        """
+        # TODO: Check if implements Closeable, then close
+        pass
+
+tests:
+  test_logging_system.py: |
+    """Tests for logging system protocols."""
+    import pytest
+    from logging_system import (
+        Writer, Closeable, ConsoleWriter, FileWriter, Logger, close_if_closeable
+    )
+
+
+    class TestProtocolCheck:
+        def test_console_writer_is_writer(self):
+            writer = ConsoleWriter()
+            assert isinstance(writer, Writer)
+
+        def test_file_writer_is_writer(self):
+            writer = FileWriter()
+            assert isinstance(writer, Writer)
+
+        def test_file_writer_is_closeable(self):
+            writer = FileWriter()
+            assert isinstance(writer, Closeable)
+
+        def test_console_writer_not_closeable(self):
+            writer = ConsoleWriter()
+            assert not isinstance(writer, Closeable)
+
+
+    class TestConsoleWriter:
+        def test_write_stores_message(self):
+            writer = ConsoleWriter()
+            writer.write("Hello")
+            assert "Hello" in writer.messages
+
+
+    class TestFileWriter:
+        def test_write_to_buffer(self):
+            writer = FileWriter()
+            writer.write("Line 1")
+            writer.write("Line 2")
+            assert "Line 1" in writer.contents
+            assert "Line 2" in writer.contents
+
+        def test_write_after_close_raises(self):
+            writer = FileWriter()
+            writer.close()
+            with pytest.raises(ValueError):
+                writer.write("Should fail")
+
+
+    class TestLogger:
+        def test_log_format(self):
+            writer = ConsoleWriter()
+            logger = Logger(writer)
+            logger.info("Test message")
+            assert len(writer.messages) == 1
+            assert "INFO" in writer.messages[0]
+            assert "Test message" in writer.messages[0]
+
+        def test_log_with_prefix(self):
+            writer = ConsoleWriter()
+            logger = Logger(writer, prefix="MyApp")
+            logger.error("Something failed")
+            assert "MyApp" in writer.messages[0]
+            assert "ERROR" in writer.messages[0]
+
+        def test_log_levels(self):
+            writer = ConsoleWriter()
+            logger = Logger(writer)
+            logger.info("info")
+            logger.warn("warn")
+            logger.error("error")
+            assert len(writer.messages) == 3
+
+
+    class TestCloseIfCloseable:
+        def test_closes_file_writer(self):
+            writer = FileWriter()
+            result = close_if_closeable(writer)
+            assert result is True
+            with pytest.raises(ValueError):
+                writer.write("Should fail")
+
+        def test_does_not_close_console_writer(self):
+            writer = ConsoleWriter()
+            result = close_if_closeable(writer)
+            assert result is False
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: protocols
+      name: Protocol Usage
+      description: Correctly implements protocols
+      weight: 0.3
+      signals:
+        - uses_protocol_class
+        - uses_isinstance
+
+    - id: typing
+      name: Type Safety
+      description: Proper type annotations
+      weight: 0.3
+      signals:
+        - has_type_hints
+
+hints:
+  L0:
+    - "What makes an object match a Protocol?"
+    - "How do you check if an object implements a protocol at runtime?"
+  L1:
+    - "An object matches a Protocol if it has all required methods"
+    - "Use isinstance(obj, Protocol) with @runtime_checkable"
+  L2:
+    - "Format log: f'[{datetime.now()}] [{level}] {prefix}: {message}'"
+    - "Check: if isinstance(resource, Closeable): resource.close()"
+  L3:
+    - |
+      ```python
+      def close_if_closeable(resource: object) -> bool:
+          if isinstance(resource, Closeable):
+              resource.close()
+              return True
+          return False
+      ```
+
+solution:
+  logging_system.py: |
+    """Logging system using Protocol classes."""
+    from typing import Protocol, runtime_checkable
+    from datetime import datetime
+
+
+    @runtime_checkable
+    class Writer(Protocol):
+        """Protocol for anything that can write strings."""
+
+        def write(self, message: str) -> None:
+            ...
+
+
+    @runtime_checkable
+    class Closeable(Protocol):
+        """Protocol for resources that can be closed."""
+
+        def close(self) -> None:
+            ...
+
+
+    class ConsoleWriter:
+        """Writes messages to console."""
+
+        def __init__(self):
+            self.messages: list[str] = []
+
+        def write(self, message: str) -> None:
+            self.messages.append(message)
+            print(message)
+
+
+    class FileWriter:
+        """Writes messages to a file-like buffer."""
+
+        def __init__(self):
+            self._buffer: list[str] = []
+            self._closed = False
+
+        def write(self, message: str) -> None:
+            if self._closed:
+                raise ValueError("Cannot write to closed writer")
+            self._buffer.append(message)
+
+        def close(self) -> None:
+            self._closed = True
+
+        @property
+        def contents(self) -> str:
+            return "\n".join(self._buffer)
+
+
+    class Logger:
+        """Logger that writes to any Writer-compatible object."""
+
+        def __init__(self, writer: Writer, prefix: str = ""):
+            self._writer = writer
+            self._prefix = prefix
+
+        def log(self, level: str, message: str) -> None:
+            timestamp = datetime.now().isoformat()
+            prefix_part = f"{self._prefix}: " if self._prefix else ""
+            formatted = f"[{timestamp}] [{level}] {prefix_part}{message}"
+            self._writer.write(formatted)
+
+        def info(self, message: str) -> None:
+            self.log("INFO", message)
+
+        def warn(self, message: str) -> None:
+            self.log("WARN", message)
+
+        def error(self, message: str) -> None:
+            self.log("ERROR", message)
+
+
+    def close_if_closeable(resource: object) -> bool:
+        if isinstance(resource, Closeable):
+            resource.close()
+            return True
+        return False

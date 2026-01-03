@@ -1,0 +1,243 @@
+id: interfaces
+title: Interfaces
+description: |
+  Master TypeScript interfaces for type definitions.
+
+  ## Learning Objectives
+  - Define interfaces for object shapes
+  - Use optional and readonly properties
+  - Extend interfaces
+
+  ## Instructions
+  Implement interfaces and functions that work with them.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - interfaces
+  - types
+
+prerequisites:
+  - basics/types
+
+starter:
+  user.ts: |
+    /**
+     * Represents a user in the system.
+     */
+    export interface User {
+      // TODO: Define the interface
+      // - id: number (readonly)
+      // - name: string
+      // - email: string
+      // - age?: number (optional)
+    }
+
+    /**
+     * Represents an admin user with additional permissions.
+     */
+    export interface Admin extends User {
+      // TODO: Define the interface
+      // - role: "admin"
+      // - permissions: string[]
+    }
+
+    /**
+     * Creates a new user with the given properties.
+     */
+    export function createUser(
+      id: number,
+      name: string,
+      email: string,
+      age?: number
+    ): User {
+      // TODO: Implement
+      return {} as User;
+    }
+
+    /**
+     * Returns the user's display name.
+     * Format: "Name (age)" or just "Name" if no age.
+     */
+    export function getDisplayName(user: User): string {
+      // TODO: Implement
+      return "";
+    }
+
+    /**
+     * Checks if a user is an admin.
+     */
+    export function isAdmin(user: User | Admin): user is Admin {
+      // TODO: Implement type guard
+      return false;
+    }
+
+    /**
+     * Updates a user's email, returning a new user object.
+     */
+    export function updateEmail(user: User, newEmail: string): User {
+      // TODO: Implement (remember id is readonly)
+      return {} as User;
+    }
+
+tests:
+  user.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      User,
+      Admin,
+      createUser,
+      getDisplayName,
+      isAdmin,
+      updateEmail,
+    } from "./user";
+
+    describe("createUser", () => {
+      it("creates user without age", () => {
+        const user = createUser(1, "Alice", "alice@example.com");
+        expect(user.id).toBe(1);
+        expect(user.name).toBe("Alice");
+        expect(user.email).toBe("alice@example.com");
+        expect(user.age).toBeUndefined();
+      });
+
+      it("creates user with age", () => {
+        const user = createUser(2, "Bob", "bob@example.com", 30);
+        expect(user.age).toBe(30);
+      });
+    });
+
+    describe("getDisplayName", () => {
+      it("formats with age", () => {
+        const user = createUser(1, "Alice", "alice@example.com", 25);
+        expect(getDisplayName(user)).toBe("Alice (25)");
+      });
+
+      it("formats without age", () => {
+        const user = createUser(1, "Bob", "bob@example.com");
+        expect(getDisplayName(user)).toBe("Bob");
+      });
+    });
+
+    describe("isAdmin", () => {
+      it("identifies admin", () => {
+        const admin: Admin = {
+          id: 1,
+          name: "Admin",
+          email: "admin@example.com",
+          role: "admin",
+          permissions: ["read", "write"],
+        };
+        expect(isAdmin(admin)).toBe(true);
+      });
+
+      it("identifies non-admin", () => {
+        const user = createUser(1, "User", "user@example.com");
+        expect(isAdmin(user)).toBe(false);
+      });
+    });
+
+    describe("updateEmail", () => {
+      it("returns new user with updated email", () => {
+        const user = createUser(1, "Alice", "old@example.com");
+        const updated = updateEmail(user, "new@example.com");
+        expect(updated.email).toBe("new@example.com");
+        expect(updated.id).toBe(1);
+        expect(user.email).toBe("old@example.com"); // Original unchanged
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: interfaces
+      name: Interface Design
+      description: Interfaces are well-designed
+      weight: 0.3
+      signals:
+        - uses_readonly
+        - uses_optional
+        - uses_extends
+
+    - id: type_guards
+      name: Type Guards
+      description: Proper type guard implementation
+      weight: 0.2
+      signals:
+        - correct_type_predicate
+
+hints:
+  L0:
+    - "What makes a property readonly in TypeScript?"
+    - "How do you mark a property as optional?"
+  L1:
+    - "Use readonly keyword before property name"
+    - "Use ? after property name for optional"
+  L2:
+    - "For isAdmin, check if 'role' property exists"
+    - "Use spread operator to copy user and override email"
+  L3:
+    - |
+      ```typescript
+      export interface User {
+        readonly id: number;
+        name: string;
+        email: string;
+        age?: number;
+      }
+
+      export function isAdmin(user: User | Admin): user is Admin {
+        return "role" in user && user.role === "admin";
+      }
+      ```
+
+solution:
+  user.ts: |
+    export interface User {
+      readonly id: number;
+      name: string;
+      email: string;
+      age?: number;
+    }
+
+    export interface Admin extends User {
+      role: "admin";
+      permissions: string[];
+    }
+
+    export function createUser(
+      id: number,
+      name: string,
+      email: string,
+      age?: number
+    ): User {
+      return { id, name, email, age };
+    }
+
+    export function getDisplayName(user: User): string {
+      if (user.age !== undefined) {
+        return `${user.name} (${user.age})`;
+      }
+      return user.name;
+    }
+
+    export function isAdmin(user: User | Admin): user is Admin {
+      return "role" in user && (user as Admin).role === "admin";
+    }
+
+    export function updateEmail(user: User, newEmail: string): User {
+      return { ...user, email: newEmail };
+    }

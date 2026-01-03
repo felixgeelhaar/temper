@@ -1,0 +1,202 @@
+id: classes
+title: Classes
+description: |
+  Learn Python's object-oriented programming features.
+
+  ## Learning Objectives
+  - Define classes with __init__
+  - Use properties and methods
+  - Implement special methods (__str__, __repr__)
+
+  ## Instructions
+  Implement a simple class with proper OOP patterns.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - classes
+  - oop
+
+prerequisites:
+  - basics/dictionaries
+
+starter:
+  person.py: |
+    """Person class module."""
+
+
+    class Person:
+        """Represents a person with name and age."""
+
+        def __init__(self, name: str, age: int) -> None:
+            """Initialize a Person.
+
+            Args:
+                name: The person's name.
+                age: The person's age.
+
+            Raises:
+                ValueError: If age is negative.
+            """
+            # TODO: Implement initialization
+            pass
+
+        @property
+        def is_adult(self) -> bool:
+            """Return True if person is 18 or older."""
+            # TODO: Implement this property
+            pass
+
+        def have_birthday(self) -> None:
+            """Increment the person's age by 1."""
+            # TODO: Implement this method
+            pass
+
+        def __str__(self) -> str:
+            """Return human-readable string representation."""
+            # TODO: Implement __str__
+            pass
+
+        def __repr__(self) -> str:
+            """Return developer-friendly representation."""
+            # TODO: Implement __repr__
+            pass
+
+        def __eq__(self, other: object) -> bool:
+            """Check equality based on name and age."""
+            # TODO: Implement __eq__
+            pass
+
+tests:
+  test_person.py: |
+    """Tests for Person class."""
+    import pytest
+    from person import Person
+
+
+    def test_person_creation():
+        p = Person("Alice", 30)
+        assert p.name == "Alice"
+        assert p.age == 30
+
+
+    def test_person_negative_age():
+        with pytest.raises(ValueError):
+            Person("Bob", -5)
+
+
+    def test_is_adult():
+        assert Person("Adult", 18).is_adult is True
+        assert Person("Child", 17).is_adult is False
+
+
+    def test_have_birthday():
+        p = Person("Alice", 30)
+        p.have_birthday()
+        assert p.age == 31
+
+
+    def test_str():
+        p = Person("Alice", 30)
+        assert str(p) == "Alice (30)"
+
+
+    def test_repr():
+        p = Person("Alice", 30)
+        assert repr(p) == "Person('Alice', 30)"
+
+
+    def test_equality():
+        p1 = Person("Alice", 30)
+        p2 = Person("Alice", 30)
+        p3 = Person("Bob", 30)
+        assert p1 == p2
+        assert p1 != p3
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: oop
+      name: OOP Patterns
+      description: Uses proper OOP patterns
+      weight: 0.3
+      signals:
+        - uses_property_decorator
+        - implements_dunder_methods
+
+    - id: validation
+      name: Input Validation
+      description: Validates input properly
+      weight: 0.2
+      signals:
+        - validates_age
+
+hints:
+  L0:
+    - "What decorator makes a method behave like an attribute?"
+    - "What special methods define string representations?"
+  L1:
+    - "Use @property to create is_adult"
+    - "__str__ is for humans, __repr__ is for developers"
+  L2:
+    - "Store name and age as instance attributes: self.name = name"
+    - "For __eq__, compare both name and age, and check isinstance"
+  L3:
+    - |
+      ```python
+      def __eq__(self, other: object) -> bool:
+          if not isinstance(other, Person):
+              return NotImplemented
+          return self.name == other.name and self.age == other.age
+      ```
+
+solution:
+  person.py: |
+    """Person class module."""
+
+
+    class Person:
+        """Represents a person with name and age."""
+
+        def __init__(self, name: str, age: int) -> None:
+            """Initialize a Person."""
+            if age < 0:
+                raise ValueError("Age cannot be negative")
+            self.name = name
+            self.age = age
+
+        @property
+        def is_adult(self) -> bool:
+            """Return True if person is 18 or older."""
+            return self.age >= 18
+
+        def have_birthday(self) -> None:
+            """Increment the person's age by 1."""
+            self.age += 1
+
+        def __str__(self) -> str:
+            """Return human-readable string representation."""
+            return f"{self.name} ({self.age})"
+
+        def __repr__(self) -> str:
+            """Return developer-friendly representation."""
+            return f"Person('{self.name}', {self.age})"
+
+        def __eq__(self, other: object) -> bool:
+            """Check equality based on name and age."""
+            if not isinstance(other, Person):
+                return NotImplemented
+            return self.name == other.name and self.age == other.age

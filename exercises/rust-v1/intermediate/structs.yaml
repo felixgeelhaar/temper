@@ -1,0 +1,302 @@
+id: structs
+title: Structs
+description: |
+  Learn Rust structs and methods.
+
+  ## Learning Objectives
+  - Define struct types
+  - Implement methods with impl blocks
+  - Use associated functions (constructors)
+  - Understand tuple structs and unit structs
+
+  ## Instructions
+  Build a Rectangle struct with methods.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - structs
+  - methods
+  - impl
+
+prerequisites:
+  - basics/strings
+
+starter:
+  src/lib.rs: |
+    //! Struct definitions and methods.
+
+    /// A rectangle with width and height.
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct Rectangle {
+        pub width: f64,
+        pub height: f64,
+    }
+
+    impl Rectangle {
+        /// Create a new rectangle.
+        pub fn new(width: f64, height: f64) -> Self {
+            // TODO: Return Rectangle with given dimensions
+            // Ensure width and height are positive
+            todo!()
+        }
+
+        /// Create a square (equal width and height).
+        pub fn square(size: f64) -> Self {
+            // TODO: Return Rectangle with width == height
+            todo!()
+        }
+
+        /// Calculate the area.
+        pub fn area(&self) -> f64 {
+            // TODO: Return width * height
+            todo!()
+        }
+
+        /// Calculate the perimeter.
+        pub fn perimeter(&self) -> f64 {
+            // TODO: Return 2 * (width + height)
+            todo!()
+        }
+
+        /// Check if this rectangle can contain another.
+        pub fn can_contain(&self, other: &Rectangle) -> bool {
+            // TODO: Return true if other fits inside self
+            todo!()
+        }
+
+        /// Scale the rectangle by a factor.
+        pub fn scale(&mut self, factor: f64) {
+            // TODO: Multiply width and height by factor
+            todo!()
+        }
+
+        /// Return a scaled copy without mutating.
+        pub fn scaled(&self, factor: f64) -> Rectangle {
+            // TODO: Return new rectangle with scaled dimensions
+            todo!()
+        }
+    }
+
+    /// A 2D point.
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct Point {
+        pub x: f64,
+        pub y: f64,
+    }
+
+    impl Point {
+        pub fn new(x: f64, y: f64) -> Self {
+            // TODO: Create new point
+            todo!()
+        }
+
+        pub fn origin() -> Self {
+            // TODO: Return point at (0, 0)
+            todo!()
+        }
+
+        /// Calculate distance to another point.
+        pub fn distance_to(&self, other: &Point) -> f64 {
+            // TODO: Use Pythagorean theorem
+            todo!()
+        }
+
+        /// Calculate distance from origin.
+        pub fn distance_from_origin(&self) -> f64 {
+            // TODO: Use distance_to with origin
+            todo!()
+        }
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_rectangle_new() {
+        let rect = Rectangle::new(10.0, 5.0);
+        assert_eq!(rect.width, 10.0);
+        assert_eq!(rect.height, 5.0);
+    }
+
+    #[test]
+    fn test_rectangle_square() {
+        let sq = Rectangle::square(5.0);
+        assert_eq!(sq.width, 5.0);
+        assert_eq!(sq.height, 5.0);
+    }
+
+    #[test]
+    fn test_rectangle_area() {
+        let rect = Rectangle::new(10.0, 5.0);
+        assert_eq!(rect.area(), 50.0);
+    }
+
+    #[test]
+    fn test_rectangle_perimeter() {
+        let rect = Rectangle::new(10.0, 5.0);
+        assert_eq!(rect.perimeter(), 30.0);
+    }
+
+    #[test]
+    fn test_rectangle_can_contain() {
+        let large = Rectangle::new(10.0, 10.0);
+        let small = Rectangle::new(5.0, 5.0);
+        assert!(large.can_contain(&small));
+        assert!(!small.can_contain(&large));
+    }
+
+    #[test]
+    fn test_rectangle_scale() {
+        let mut rect = Rectangle::new(10.0, 5.0);
+        rect.scale(2.0);
+        assert_eq!(rect.width, 20.0);
+        assert_eq!(rect.height, 10.0);
+    }
+
+    #[test]
+    fn test_rectangle_scaled() {
+        let rect = Rectangle::new(10.0, 5.0);
+        let scaled = rect.scaled(2.0);
+        assert_eq!(rect.width, 10.0); // Original unchanged
+        assert_eq!(scaled.width, 20.0);
+    }
+
+    #[test]
+    fn test_point_new() {
+        let p = Point::new(3.0, 4.0);
+        assert_eq!(p.x, 3.0);
+        assert_eq!(p.y, 4.0);
+    }
+
+    #[test]
+    fn test_point_origin() {
+        let p = Point::origin();
+        assert_eq!(p.x, 0.0);
+        assert_eq!(p.y, 0.0);
+    }
+
+    #[test]
+    fn test_point_distance() {
+        let p1 = Point::new(0.0, 0.0);
+        let p2 = Point::new(3.0, 4.0);
+        assert!((p1.distance_to(&p2) - 5.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_point_distance_from_origin() {
+        let p = Point::new(3.0, 4.0);
+        assert!((p.distance_from_origin() - 5.0).abs() < 0.0001);
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: structs
+      name: Struct Patterns
+      description: Proper struct usage
+      weight: 0.5
+      signals:
+        - uses_impl_blocks
+        - uses_self
+
+hints:
+  L0:
+    - "How do you reference the current instance in a method?"
+    - "What's the difference between &self and &mut self?"
+  L1:
+    - "&self for read-only, &mut self for modification"
+    - "Associated function: no self parameter, called with ::"
+  L2:
+    - "Distance: ((x2-x1)² + (y2-y1)²).sqrt()"
+    - "Use f64::sqrt() or .sqrt() method"
+  L3:
+    - |
+      ```rust
+      pub fn distance_to(&self, other: &Point) -> f64 {
+          let dx = self.x - other.x;
+          let dy = self.y - other.y;
+          (dx * dx + dy * dy).sqrt()
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct Rectangle {
+        pub width: f64,
+        pub height: f64,
+    }
+
+    impl Rectangle {
+        pub fn new(width: f64, height: f64) -> Self {
+            Rectangle {
+                width: width.abs(),
+                height: height.abs(),
+            }
+        }
+
+        pub fn square(size: f64) -> Self {
+            Rectangle::new(size, size)
+        }
+
+        pub fn area(&self) -> f64 {
+            self.width * self.height
+        }
+
+        pub fn perimeter(&self) -> f64 {
+            2.0 * (self.width + self.height)
+        }
+
+        pub fn can_contain(&self, other: &Rectangle) -> bool {
+            self.width > other.width && self.height > other.height
+        }
+
+        pub fn scale(&mut self, factor: f64) {
+            self.width *= factor;
+            self.height *= factor;
+        }
+
+        pub fn scaled(&self, factor: f64) -> Rectangle {
+            Rectangle::new(self.width * factor, self.height * factor)
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub struct Point {
+        pub x: f64,
+        pub y: f64,
+    }
+
+    impl Point {
+        pub fn new(x: f64, y: f64) -> Self {
+            Point { x, y }
+        }
+
+        pub fn origin() -> Self {
+            Point::new(0.0, 0.0)
+        }
+
+        pub fn distance_to(&self, other: &Point) -> f64 {
+            let dx = self.x - other.x;
+            let dy = self.y - other.y;
+            (dx * dx + dy * dy).sqrt()
+        }
+
+        pub fn distance_from_origin(&self) -> f64 {
+            self.distance_to(&Point::origin())
+        }
+    }

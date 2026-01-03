@@ -1,0 +1,203 @@
+id: types
+title: Basic Types
+description: |
+  Learn TypeScript's type system basics.
+
+  ## Learning Objectives
+  - Understand primitive types (string, number, boolean)
+  - Use type annotations
+  - Work with union types and literal types
+
+  ## Instructions
+  Implement functions that demonstrate TypeScript's type system.
+
+difficulty: beginner
+tags:
+  - basics
+  - types
+  - annotations
+
+prerequisites:
+  - basics/hello-world
+
+starter:
+  types.ts: |
+    /**
+     * Adds two numbers.
+     */
+    export function add(a: number, b: number): number {
+      // TODO: Implement
+      return 0;
+    }
+
+    /**
+     * Concatenates two strings with a space.
+     */
+    export function concat(a: string, b: string): string {
+      // TODO: Implement
+      return "";
+    }
+
+    /**
+     * Checks if a number is positive.
+     */
+    export function isPositive(n: number): boolean {
+      // TODO: Implement
+      return false;
+    }
+
+    /**
+     * Safely divides two numbers.
+     * Returns null if divisor is zero.
+     */
+    export function safeDivide(a: number, b: number): number | null {
+      // TODO: Implement
+      return null;
+    }
+
+    /**
+     * Returns the type of value as a string literal.
+     * Handles: "string", "number", "boolean", "undefined", "object"
+     */
+    export function getType(
+      value: unknown
+    ): "string" | "number" | "boolean" | "undefined" | "object" {
+      // TODO: Implement
+      return "undefined";
+    }
+
+tests:
+  types.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import { add, concat, isPositive, safeDivide, getType } from "./types";
+
+    describe("add", () => {
+      it("adds positive numbers", () => {
+        expect(add(2, 3)).toBe(5);
+      });
+
+      it("adds negative numbers", () => {
+        expect(add(-1, -1)).toBe(-2);
+      });
+
+      it("adds with zero", () => {
+        expect(add(5, 0)).toBe(5);
+      });
+    });
+
+    describe("concat", () => {
+      it("concatenates strings", () => {
+        expect(concat("Hello", "World")).toBe("Hello World");
+      });
+    });
+
+    describe("isPositive", () => {
+      it("returns true for positive", () => {
+        expect(isPositive(5)).toBe(true);
+      });
+
+      it("returns false for negative", () => {
+        expect(isPositive(-3)).toBe(false);
+      });
+
+      it("returns false for zero", () => {
+        expect(isPositive(0)).toBe(false);
+      });
+    });
+
+    describe("safeDivide", () => {
+      it("divides normally", () => {
+        expect(safeDivide(10, 2)).toBe(5);
+      });
+
+      it("returns null for division by zero", () => {
+        expect(safeDivide(10, 0)).toBeNull();
+      });
+    });
+
+    describe("getType", () => {
+      it("identifies string", () => {
+        expect(getType("hello")).toBe("string");
+      });
+
+      it("identifies number", () => {
+        expect(getType(42)).toBe("number");
+      });
+
+      it("identifies boolean", () => {
+        expect(getType(true)).toBe("boolean");
+      });
+
+      it("identifies object", () => {
+        expect(getType({})).toBe("object");
+        expect(getType(null)).toBe("object");
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+
+    - id: types
+      name: Type Safety
+      description: Uses proper TypeScript types
+      weight: 0.4
+      signals:
+        - proper_return_types
+        - union_types_used
+
+hints:
+  L0:
+    - "What operator checks the type of a value at runtime?"
+    - "What value should safeDivide return for division by zero?"
+  L1:
+    - "Use the typeof operator for getType"
+    - "Check if b === 0 before dividing"
+  L2:
+    - "For getType: typeof value gives the runtime type"
+    - "Return null from safeDivide when b is 0"
+  L3:
+    - |
+      ```typescript
+      export function safeDivide(a: number, b: number): number | null {
+        if (b === 0) return null;
+        return a / b;
+      }
+      ```
+
+solution:
+  types.ts: |
+    export function add(a: number, b: number): number {
+      return a + b;
+    }
+
+    export function concat(a: string, b: string): string {
+      return `${a} ${b}`;
+    }
+
+    export function isPositive(n: number): boolean {
+      return n > 0;
+    }
+
+    export function safeDivide(a: number, b: number): number | null {
+      if (b === 0) return null;
+      return a / b;
+    }
+
+    export function getType(
+      value: unknown
+    ): "string" | "number" | "boolean" | "undefined" | "object" {
+      return typeof value as "string" | "number" | "boolean" | "undefined" | "object";
+    }

@@ -1,0 +1,201 @@
+id: benchmarks
+title: Benchmarks
+description: |
+  Learn to write and interpret Go benchmarks.
+
+  ## Learning Objectives
+  - Write benchmark functions
+  - Use b.N for iteration count
+  - Interpret benchmark results
+
+  ## Instructions
+  Write benchmarks for string concatenation methods.
+
+difficulty: intermediate
+tags:
+  - testing
+  - benchmarks
+  - performance
+
+prerequisites:
+  - testing/table-tests
+
+starter:
+  concat.go: |
+    package concat
+
+    import (
+    	"strings"
+    )
+
+    // ConcatPlus uses + operator for concatenation
+    func ConcatPlus(strs []string) string {
+    	result := ""
+    	for _, s := range strs {
+    		result += s
+    	}
+    	return result
+    }
+
+    // ConcatBuilder uses strings.Builder
+    func ConcatBuilder(strs []string) string {
+    	var b strings.Builder
+    	for _, s := range strs {
+    		b.WriteString(s)
+    	}
+    	return b.String()
+    }
+
+    // ConcatJoin uses strings.Join
+    func ConcatJoin(strs []string) string {
+    	return strings.Join(strs, "")
+    }
+
+tests:
+  concat_test.go: |
+    package concat
+
+    import "testing"
+
+    func TestConcatPlus(t *testing.T) {
+    	strs := []string{"hello", " ", "world"}
+    	got := ConcatPlus(strs)
+    	if got != "hello world" {
+    		t.Errorf("ConcatPlus() = %q; want %q", got, "hello world")
+    	}
+    }
+
+    func TestConcatBuilder(t *testing.T) {
+    	strs := []string{"hello", " ", "world"}
+    	got := ConcatBuilder(strs)
+    	if got != "hello world" {
+    		t.Errorf("ConcatBuilder() = %q; want %q", got, "hello world")
+    	}
+    }
+
+    func TestConcatJoin(t *testing.T) {
+    	strs := []string{"hello", " ", "world"}
+    	got := ConcatJoin(strs)
+    	if got != "hello world" {
+    		t.Errorf("ConcatJoin() = %q; want %q", got, "hello world")
+    	}
+    }
+
+    // TODO: Write benchmarks for each function
+    // Benchmark naming: BenchmarkConcatPlus, BenchmarkConcatBuilder, BenchmarkConcatJoin
+    // Use a slice of 100 short strings for benchmarking
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags:
+    - "-bench=."
+    - "-benchmem"
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: benchmarks
+      name: Benchmark Functions
+      description: Properly written benchmarks
+      weight: 0.4
+      signals:
+        - has_benchmarks
+        - uses_b_n
+
+    - id: analysis
+      name: Performance Analysis
+      description: Understands results
+      weight: 0.2
+      signals:
+        - comments_on_performance
+
+hints:
+  L0:
+    - "How do you name a benchmark function in Go?"
+    - "What loop variable controls benchmark iterations?"
+  L1:
+    - "Benchmark functions start with Benchmark and take *testing.B"
+    - "Use b.N in your loop to get accurate timing"
+  L2:
+    - "Create test data outside the timing loop"
+    - "Use b.ResetTimer() if setup is expensive"
+  L3:
+    - |
+      ```go
+      func BenchmarkConcatBuilder(b *testing.B) {
+          strs := make([]string, 100)
+          for i := range strs {
+              strs[i] = "test"
+          }
+          b.ResetTimer()
+          for i := 0; i < b.N; i++ {
+              ConcatBuilder(strs)
+          }
+      }
+      ```
+
+solution:
+  concat_test.go: |
+    package concat
+
+    import "testing"
+
+    func TestConcatPlus(t *testing.T) {
+    	strs := []string{"hello", " ", "world"}
+    	got := ConcatPlus(strs)
+    	if got != "hello world" {
+    		t.Errorf("ConcatPlus() = %q; want %q", got, "hello world")
+    	}
+    }
+
+    func TestConcatBuilder(t *testing.T) {
+    	strs := []string{"hello", " ", "world"}
+    	got := ConcatBuilder(strs)
+    	if got != "hello world" {
+    		t.Errorf("ConcatBuilder() = %q; want %q", got, "hello world")
+    	}
+    }
+
+    func TestConcatJoin(t *testing.T) {
+    	strs := []string{"hello", " ", "world"}
+    	got := ConcatJoin(strs)
+    	if got != "hello world" {
+    		t.Errorf("ConcatJoin() = %q; want %q", got, "hello world")
+    	}
+    }
+
+    var testStrings []string
+
+    func init() {
+    	testStrings = make([]string, 100)
+    	for i := range testStrings {
+    		testStrings[i] = "test"
+    	}
+    }
+
+    func BenchmarkConcatPlus(b *testing.B) {
+    	for i := 0; i < b.N; i++ {
+    		ConcatPlus(testStrings)
+    	}
+    }
+
+    func BenchmarkConcatBuilder(b *testing.B) {
+    	for i := 0; i < b.N; i++ {
+    		ConcatBuilder(testStrings)
+    	}
+    }
+
+    func BenchmarkConcatJoin(b *testing.B) {
+    	for i := 0; i < b.N; i++ {
+    		ConcatJoin(testStrings)
+    	}
+    }

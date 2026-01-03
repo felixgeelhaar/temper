@@ -1,0 +1,129 @@
+id: hello-world
+title: Hello World
+description: |
+  Write a function that returns a greeting message.
+
+  ## Learning Objectives
+  - Understand basic Python syntax
+  - Learn to define functions
+  - Work with string formatting
+
+  ## Instructions
+  Implement the `hello` function that takes a name and returns a greeting.
+  If the name is empty, greet "World" instead.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - strings
+
+prerequisites: []
+
+starter:
+  hello.py: |
+    """Greeting module."""
+
+
+    def hello(name: str) -> str:
+        """Return a greeting message for the given name.
+
+        If name is empty, greet "World" instead.
+
+        Args:
+            name: The name to greet.
+
+        Returns:
+            A greeting message.
+        """
+        # TODO: Implement this function
+        pass
+
+tests:
+  test_hello.py: |
+    """Tests for the hello module."""
+    import pytest
+    from hello import hello
+
+
+    def test_hello_with_name():
+        assert hello("Python") == "Hello, Python!"
+
+
+    def test_hello_with_empty_string():
+        assert hello("") == "Hello, World!"
+
+
+    def test_hello_with_another_name():
+        assert hello("Developer") == "Hello, Developer!"
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: formatting
+      name: Code Formatting
+      description: Code follows PEP 8 style
+      weight: 0.2
+      signals:
+        - ruff_clean
+
+    - id: idioms
+      name: Python Idioms
+      description: Uses idiomatic Python patterns
+      weight: 0.3
+      signals:
+        - uses_fstring
+        - handles_empty_string
+
+hints:
+  L0:
+    - "What does the function need to return when the name is empty?"
+    - "How do you define a function return value in Python?"
+  L1:
+    - "Look at f-strings for string formatting in Python"
+    - "Consider using an if statement to check for empty input"
+  L2:
+    - "Use an f-string like f'Hello, {name}!' for formatting"
+    - "Check if name is falsy with 'if not name:' and set it to 'World'"
+  L3:
+    - |
+      Structure your solution like this:
+      ```python
+      def hello(name: str) -> str:
+          if not name:
+              name = "World"
+          return f"Hello, {name}!"
+      ```
+
+solution:
+  hello.py: |
+    """Greeting module."""
+
+
+    def hello(name: str) -> str:
+        """Return a greeting message for the given name.
+
+        If name is empty, greet "World" instead.
+
+        Args:
+            name: The name to greet.
+
+        Returns:
+            A greeting message.
+        """
+        if not name:
+            name = "World"
+        return f"Hello, {name}!"

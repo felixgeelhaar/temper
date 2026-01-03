@@ -1,0 +1,213 @@
+id: variables
+title: Variables and Mutability
+description: |
+  Learn about Rust's variable system and mutability.
+
+  ## Learning Objectives
+  - Understand let bindings and mutability
+  - Use shadowing effectively
+  - Work with constants
+
+  ## Instructions
+  Implement functions that demonstrate Rust's variable concepts.
+
+difficulty: beginner
+tags:
+  - basics
+  - variables
+  - mutability
+
+prerequisites:
+  - basics/hello-world
+
+starter:
+  lib.rs: |
+    /// Adds two i32 numbers.
+    pub fn add(a: i32, b: i32) -> i32 {
+        // TODO: Implement
+        0
+    }
+
+    /// Doubles a number using mutation.
+    /// Creates a mutable variable, doubles it, and returns.
+    pub fn double_mut(n: i32) -> i32 {
+        // TODO: Implement using a mutable variable
+        0
+    }
+
+    /// Demonstrates shadowing by converting a string to its length.
+    pub fn string_to_length(s: &str) -> usize {
+        // TODO: Use shadowing to convert the string reference to its length
+        0
+    }
+
+    /// Safely divides two numbers.
+    /// Returns None if divisor is zero.
+    pub fn safe_divide(a: f64, b: f64) -> Option<f64> {
+        // TODO: Implement
+        None
+    }
+
+    /// Returns the absolute value of a number.
+    pub fn absolute(n: i32) -> i32 {
+        // TODO: Implement
+        0
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_add() {
+            assert_eq!(add(2, 3), 5);
+            assert_eq!(add(-1, 1), 0);
+        }
+
+        #[test]
+        fn test_double_mut() {
+            assert_eq!(double_mut(5), 10);
+            assert_eq!(double_mut(0), 0);
+        }
+
+        #[test]
+        fn test_string_to_length() {
+            assert_eq!(string_to_length("hello"), 5);
+            assert_eq!(string_to_length(""), 0);
+        }
+
+        #[test]
+        fn test_safe_divide() {
+            assert_eq!(safe_divide(10.0, 2.0), Some(5.0));
+            assert_eq!(safe_divide(5.0, 0.0), None);
+        }
+
+        #[test]
+        fn test_absolute() {
+            assert_eq!(absolute(5), 5);
+            assert_eq!(absolute(-5), 5);
+            assert_eq!(absolute(0), 0);
+        }
+    }
+
+tests:
+  lib.rs: |
+    // Tests are included in the starter file
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: mutability
+      name: Proper Mutability
+      description: Uses mut keyword appropriately
+      weight: 0.25
+      signals:
+        - uses_mut_correctly
+
+    - id: idioms
+      name: Rust Idioms
+      description: Uses idiomatic patterns
+      weight: 0.25
+      signals:
+        - uses_option
+        - uses_shadowing
+
+hints:
+  L0:
+    - "What keyword makes a variable mutable in Rust?"
+    - "What type represents optional values in Rust?"
+  L1:
+    - "Use 'let mut' to create a mutable variable"
+    - "Use Option<T> with Some(value) and None"
+  L2:
+    - "For safe_divide, return Some(a / b) or None"
+    - "Use .abs() method for absolute value"
+  L3:
+    - |
+      ```rust
+      pub fn safe_divide(a: f64, b: f64) -> Option<f64> {
+          if b == 0.0 {
+              None
+          } else {
+              Some(a / b)
+          }
+      }
+      ```
+
+solution:
+  lib.rs: |
+    pub fn add(a: i32, b: i32) -> i32 {
+        a + b
+    }
+
+    pub fn double_mut(n: i32) -> i32 {
+        let mut result = n;
+        result *= 2;
+        result
+    }
+
+    pub fn string_to_length(s: &str) -> usize {
+        let s = s.len();
+        s
+    }
+
+    pub fn safe_divide(a: f64, b: f64) -> Option<f64> {
+        if b == 0.0 {
+            None
+        } else {
+            Some(a / b)
+        }
+    }
+
+    pub fn absolute(n: i32) -> i32 {
+        n.abs()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_add() {
+            assert_eq!(add(2, 3), 5);
+            assert_eq!(add(-1, 1), 0);
+        }
+
+        #[test]
+        fn test_double_mut() {
+            assert_eq!(double_mut(5), 10);
+            assert_eq!(double_mut(0), 0);
+        }
+
+        #[test]
+        fn test_string_to_length() {
+            assert_eq!(string_to_length("hello"), 5);
+            assert_eq!(string_to_length(""), 0);
+        }
+
+        #[test]
+        fn test_safe_divide() {
+            assert_eq!(safe_divide(10.0, 2.0), Some(5.0));
+            assert_eq!(safe_divide(5.0, 0.0), None);
+        }
+
+        #[test]
+        fn test_absolute() {
+            assert_eq!(absolute(5), 5);
+            assert_eq!(absolute(-5), 5);
+            assert_eq!(absolute(0), 0);
+        }
+    }

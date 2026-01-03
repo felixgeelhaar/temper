@@ -1,0 +1,435 @@
+id: http-fetch
+title: HTTP with Fetch
+description: |
+  Learn to make HTTP requests with the Fetch API.
+
+  ## Learning Objectives
+  - Use fetch for HTTP requests
+  - Handle JSON responses
+  - Implement error handling
+  - Create typed API clients
+
+  ## Instructions
+  Build a type-safe API client.
+
+difficulty: advanced
+tags:
+  - advanced
+  - http
+  - fetch
+  - api
+
+prerequisites:
+  - advanced/async
+
+starter:
+  api-client.ts: |
+    /**
+     * Type-safe API client using Fetch.
+     */
+
+    export interface ApiResponse<T> {
+      data: T;
+      status: number;
+    }
+
+    export interface ApiError {
+      message: string;
+      status: number;
+    }
+
+    export type Result<T> =
+      | { ok: true; data: T; status: number }
+      | { ok: false; error: ApiError };
+
+    /**
+     * Make a GET request and parse JSON response.
+     *
+     * @param url - URL to fetch
+     * @returns Parsed JSON data
+     */
+    export async function getJson<T>(url: string): Promise<T> {
+      // TODO: Fetch URL, parse JSON, return data
+      throw new Error("Not implemented");
+    }
+
+    /**
+     * Make a POST request with JSON body.
+     *
+     * @param url - URL to post to
+     * @param data - Data to send as JSON
+     * @returns Parsed JSON response
+     */
+    export async function postJson<T, R>(url: string, data: T): Promise<R> {
+      // TODO: POST with JSON body, parse response
+      throw new Error("Not implemented");
+    }
+
+    /**
+     * Safe fetch that returns Result type instead of throwing.
+     *
+     * @param url - URL to fetch
+     * @returns Result with data or error
+     */
+    export async function safeFetch<T>(url: string): Promise<Result<T>> {
+      // TODO: Fetch, handle errors, return Result
+      return { ok: false, error: { message: "Not implemented", status: 0 } };
+    }
+
+    /**
+     * API client with base URL and default headers.
+     */
+    export class ApiClient {
+      constructor(
+        private readonly baseUrl: string,
+        private readonly defaultHeaders: Record<string, string> = {}
+      ) {}
+
+      /**
+       * Make a GET request.
+       */
+      async get<T>(path: string): Promise<T> {
+        // TODO: Fetch baseUrl + path with headers
+        throw new Error("Not implemented");
+      }
+
+      /**
+       * Make a POST request.
+       */
+      async post<T, R>(path: string, data: T): Promise<R> {
+        // TODO: POST to baseUrl + path with data
+        throw new Error("Not implemented");
+      }
+
+      /**
+       * Create a new client with additional headers.
+       */
+      withHeaders(headers: Record<string, string>): ApiClient {
+        // TODO: Return new client with merged headers
+        return this;
+      }
+
+      /**
+       * Create authenticated client with Bearer token.
+       */
+      withAuth(token: string): ApiClient {
+        // TODO: Return client with Authorization header
+        return this;
+      }
+    }
+
+    /**
+     * Create typed endpoints for a resource.
+     */
+    export function createResource<T extends { id: string }>(
+      client: ApiClient,
+      path: string
+    ) {
+      return {
+        async getAll(): Promise<T[]> {
+          // TODO: GET all items
+          return [];
+        },
+
+        async getById(id: string): Promise<T | null> {
+          // TODO: GET single item
+          return null;
+        },
+
+        async create(data: Omit<T, "id">): Promise<T> {
+          // TODO: POST new item
+          throw new Error("Not implemented");
+        },
+
+        async delete(id: string): Promise<boolean> {
+          // TODO: DELETE item
+          return false;
+        },
+      };
+    }
+
+tests:
+  api-client.test.ts: |
+    import { describe, it, expect, vi, beforeEach } from "vitest";
+    import {
+      getJson, postJson, safeFetch, ApiClient, createResource
+    } from "./api-client";
+
+    // Mock fetch globally
+    const mockFetch = vi.fn();
+    global.fetch = mockFetch;
+
+    function mockJsonResponse(data: unknown, status = 200) {
+      return Promise.resolve({
+        ok: status >= 200 && status < 300,
+        status,
+        json: () => Promise.resolve(data),
+      });
+    }
+
+    beforeEach(() => {
+      mockFetch.mockReset();
+    });
+
+    describe("getJson", () => {
+      it("fetches and parses JSON", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({ name: "test" }));
+        const result = await getJson<{ name: string }>("http://api.test/data");
+        expect(result.name).toBe("test");
+      });
+
+      it("throws on error status", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({ error: "Not found" }, 404));
+        await expect(getJson("http://api.test/data")).rejects.toThrow();
+      });
+    });
+
+    describe("postJson", () => {
+      it("posts data and returns response", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({ id: "1" }));
+        const result = await postJson<{ name: string }, { id: string }>(
+          "http://api.test/items",
+          { name: "test" }
+        );
+        expect(result.id).toBe("1");
+        expect(mockFetch).toHaveBeenCalledWith(
+          "http://api.test/items",
+          expect.objectContaining({
+            method: "POST",
+            headers: expect.objectContaining({
+              "Content-Type": "application/json",
+            }),
+          })
+        );
+      });
+    });
+
+    describe("safeFetch", () => {
+      it("returns ok result on success", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({ value: 42 }));
+        const result = await safeFetch<{ value: number }>("http://api.test/data");
+        expect(result.ok).toBe(true);
+        if (result.ok) expect(result.data.value).toBe(42);
+      });
+
+      it("returns error result on failure", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({ message: "Error" }, 500));
+        const result = await safeFetch("http://api.test/data");
+        expect(result.ok).toBe(false);
+      });
+    });
+
+    describe("ApiClient", () => {
+      it("prepends base URL", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({}));
+        const client = new ApiClient("http://api.test");
+        await client.get("/users");
+        expect(mockFetch).toHaveBeenCalledWith(
+          "http://api.test/users",
+          expect.anything()
+        );
+      });
+
+      it("includes default headers", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({}));
+        const client = new ApiClient("http://api.test", { "X-Custom": "value" });
+        await client.get("/users");
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            headers: expect.objectContaining({ "X-Custom": "value" }),
+          })
+        );
+      });
+
+      it("adds auth header", async () => {
+        mockFetch.mockReturnValue(mockJsonResponse({}));
+        const client = new ApiClient("http://api.test").withAuth("token123");
+        await client.get("/protected");
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            headers: expect.objectContaining({
+              Authorization: "Bearer token123",
+            }),
+          })
+        );
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: http
+      name: HTTP Patterns
+      description: Proper fetch usage
+      weight: 0.5
+      signals:
+        - uses_fetch
+        - handles_errors
+
+hints:
+  L0:
+    - "How do you check if a fetch response is successful?"
+    - "How do you send JSON in a POST request?"
+  L1:
+    - "Check response.ok for 2xx status"
+    - "POST: body: JSON.stringify(data), Content-Type header"
+  L2:
+    - "Error: if (!response.ok) throw new Error(...)"
+    - "Headers: { ...this.defaultHeaders, ...newHeaders }"
+  L3:
+    - |
+      ```typescript
+      async get<T>(path: string): Promise<T> {
+        const response = await fetch(`${this.baseUrl}${path}`, {
+          headers: this.defaultHeaders,
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      }
+      ```
+
+solution:
+  api-client.ts: |
+    export interface ApiResponse<T> {
+      data: T;
+      status: number;
+    }
+
+    export interface ApiError {
+      message: string;
+      status: number;
+    }
+
+    export type Result<T> =
+      | { ok: true; data: T; status: number }
+      | { ok: false; error: ApiError };
+
+    export async function getJson<T>(url: string): Promise<T> {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    export async function postJson<T, R>(url: string, data: T): Promise<R> {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    export async function safeFetch<T>(url: string): Promise<Result<T>> {
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!response.ok) {
+          return {
+            ok: false,
+            error: { message: data.message || "Error", status: response.status },
+          };
+        }
+        return { ok: true, data, status: response.status };
+      } catch (e) {
+        return {
+          ok: false,
+          error: { message: (e as Error).message, status: 0 },
+        };
+      }
+    }
+
+    export class ApiClient {
+      constructor(
+        private readonly baseUrl: string,
+        private readonly defaultHeaders: Record<string, string> = {}
+      ) {}
+
+      async get<T>(path: string): Promise<T> {
+        const response = await fetch(`${this.baseUrl}${path}`, {
+          headers: this.defaultHeaders,
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async post<T, R>(path: string, data: T): Promise<R> {
+        const response = await fetch(`${this.baseUrl}${path}`, {
+          method: "POST",
+          headers: {
+            ...this.defaultHeaders,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      }
+
+      withHeaders(headers: Record<string, string>): ApiClient {
+        return new ApiClient(this.baseUrl, {
+          ...this.defaultHeaders,
+          ...headers,
+        });
+      }
+
+      withAuth(token: string): ApiClient {
+        return this.withHeaders({ Authorization: `Bearer ${token}` });
+      }
+    }
+
+    export function createResource<T extends { id: string }>(
+      client: ApiClient,
+      path: string
+    ) {
+      return {
+        async getAll(): Promise<T[]> {
+          return client.get<T[]>(path);
+        },
+
+        async getById(id: string): Promise<T | null> {
+          try {
+            return await client.get<T>(`${path}/${id}`);
+          } catch {
+            return null;
+          }
+        },
+
+        async create(data: Omit<T, "id">): Promise<T> {
+          return client.post<Omit<T, "id">, T>(path, data);
+        },
+
+        async delete(id: string): Promise<boolean> {
+          try {
+            await fetch(`${path}/${id}`, { method: "DELETE" });
+            return true;
+          } catch {
+            return false;
+          }
+        },
+      };
+    }

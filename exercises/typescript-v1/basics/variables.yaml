@@ -1,0 +1,227 @@
+id: variables
+title: Variables and Constants
+description: |
+  Learn TypeScript variable declarations with let, const, and type annotations.
+
+  ## Learning Objectives
+  - Use let for mutable variables
+  - Use const for immutable bindings
+  - Add type annotations
+  - Understand type inference
+
+  ## Instructions
+  Implement functions that demonstrate variable usage.
+
+difficulty: beginner
+tags:
+  - basics
+  - variables
+  - const
+  - let
+
+prerequisites:
+  - basics/hello-world
+
+starter:
+  variables.ts: |
+    /**
+     * Variable and constant declarations in TypeScript.
+     */
+
+    /**
+     * Create and return a greeting message.
+     * Use const for the greeting template.
+     *
+     * @param name - The name to greet
+     * @returns A greeting string
+     */
+    export function greet(name: string): string {
+      // TODO: Use const for template, return greeting
+      return "";
+    }
+
+    /**
+     * Count from start to end (inclusive).
+     * Use let for the counter variable.
+     *
+     * @param start - Starting number
+     * @param end - Ending number
+     * @returns Array of numbers from start to end
+     */
+    export function countRange(start: number, end: number): number[] {
+      // TODO: Use let for counter, build array
+      return [];
+    }
+
+    /**
+     * Calculate the area of a rectangle.
+     * Constants should be used where values don't change.
+     *
+     * @param width - Rectangle width
+     * @param height - Rectangle height
+     * @returns The area
+     */
+    export function calculateArea(width: number, height: number): number {
+      // TODO: Calculate and return area
+      return 0;
+    }
+
+    /**
+     * Swap two values and return them in an array.
+     * Demonstrates that const prevents reassignment but not mutation.
+     *
+     * @param a - First value
+     * @param b - Second value
+     * @returns Array with values swapped [b, a]
+     */
+    export function swap<T>(a: T, b: T): [T, T] {
+      // TODO: Return swapped values as tuple
+      return [a, b];
+    }
+
+    /**
+     * Accumulate sum using let for running total.
+     *
+     * @param numbers - Array of numbers to sum
+     * @returns The sum of all numbers
+     */
+    export function sum(numbers: number[]): number {
+      // TODO: Use let for accumulator
+      return 0;
+    }
+
+tests:
+  variables.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import { greet, countRange, calculateArea, swap, sum } from "./variables";
+
+    describe("greet", () => {
+      it("greets with name", () => {
+        expect(greet("World")).toBe("Hello, World!");
+      });
+
+      it("greets different names", () => {
+        expect(greet("TypeScript")).toBe("Hello, TypeScript!");
+      });
+    });
+
+    describe("countRange", () => {
+      it("counts from 1 to 5", () => {
+        expect(countRange(1, 5)).toEqual([1, 2, 3, 4, 5]);
+      });
+
+      it("handles single number", () => {
+        expect(countRange(3, 3)).toEqual([3]);
+      });
+
+      it("handles negative numbers", () => {
+        expect(countRange(-2, 2)).toEqual([-2, -1, 0, 1, 2]);
+      });
+    });
+
+    describe("calculateArea", () => {
+      it("calculates rectangle area", () => {
+        expect(calculateArea(5, 3)).toBe(15);
+      });
+
+      it("handles square", () => {
+        expect(calculateArea(4, 4)).toBe(16);
+      });
+    });
+
+    describe("swap", () => {
+      it("swaps numbers", () => {
+        expect(swap(1, 2)).toEqual([2, 1]);
+      });
+
+      it("swaps strings", () => {
+        expect(swap("a", "b")).toEqual(["b", "a"]);
+      });
+    });
+
+    describe("sum", () => {
+      it("sums array of numbers", () => {
+        expect(sum([1, 2, 3, 4, 5])).toBe(15);
+      });
+
+      it("returns 0 for empty array", () => {
+        expect(sum([])).toBe(0);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: variables
+      name: Variable Usage
+      description: Uses const and let appropriately
+      weight: 0.5
+      signals:
+        - uses_const
+        - uses_let
+
+hints:
+  L0:
+    - "When should you use const vs let?"
+    - "How do you iterate through a range of numbers?"
+  L1:
+    - "Use const when value won't change"
+    - "Use let when value will be reassigned"
+  L2:
+    - "Range loop: for (let i = start; i <= end; i++)"
+    - "Sum: let total = 0; for (const n of numbers) total += n"
+  L3:
+    - |
+      ```typescript
+      export function countRange(start: number, end: number): number[] {
+        const result: number[] = [];
+        for (let i = start; i <= end; i++) {
+          result.push(i);
+        }
+        return result;
+      }
+      ```
+
+solution:
+  variables.ts: |
+    export function greet(name: string): string {
+      const template = "Hello, ";
+      return template + name + "!";
+    }
+
+    export function countRange(start: number, end: number): number[] {
+      const result: number[] = [];
+      for (let i = start; i <= end; i++) {
+        result.push(i);
+      }
+      return result;
+    }
+
+    export function calculateArea(width: number, height: number): number {
+      const area = width * height;
+      return area;
+    }
+
+    export function swap<T>(a: T, b: T): [T, T] {
+      return [b, a];
+    }
+
+    export function sum(numbers: number[]): number {
+      let total = 0;
+      for (const n of numbers) {
+        total += n;
+      }
+      return total;
+    }

@@ -1,0 +1,368 @@
+id: errors
+title: Error Handling
+description: |
+  Learn TypeScript error handling patterns.
+
+  ## Learning Objectives
+  - Use try/catch/finally
+  - Create custom error classes
+  - Handle errors with Result types
+  - Use type guards for error checking
+
+  ## Instructions
+  Implement error handling patterns.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - errors
+  - try-catch
+  - result-type
+
+prerequisites:
+  - intermediate/classes
+
+starter:
+  errors.ts: |
+    /**
+     * Error handling patterns in TypeScript.
+     */
+
+    /**
+     * Custom error for validation failures.
+     */
+    export class ValidationError extends Error {
+      constructor(
+        public readonly field: string,
+        message: string
+      ) {
+        super(message);
+        this.name = "ValidationError";
+      }
+    }
+
+    /**
+     * Custom error for not found cases.
+     */
+    export class NotFoundError extends Error {
+      constructor(
+        public readonly resource: string,
+        public readonly id: string | number
+      ) {
+        super(`${resource} with id '${id}' not found`);
+        this.name = "NotFoundError";
+      }
+    }
+
+    /**
+     * Result type for operations that can fail.
+     */
+    export type Result<T, E = Error> =
+      | { ok: true; value: T }
+      | { ok: false; error: E };
+
+    /**
+     * Create a success result.
+     */
+    export function ok<T>(value: T): Result<T, never> {
+      // TODO: Return success result
+      return { ok: true, value: "" as T };
+    }
+
+    /**
+     * Create an error result.
+     */
+    export function err<E>(error: E): Result<never, E> {
+      // TODO: Return error result
+      return { ok: false, error: "" as E };
+    }
+
+    /**
+     * Validate an email address.
+     * @throws ValidationError if invalid
+     */
+    export function validateEmail(email: string): string {
+      // TODO: Check contains @ and throw ValidationError if not
+      return "";
+    }
+
+    /**
+     * Validate email returning Result instead of throwing.
+     */
+    export function validateEmailResult(
+      email: string
+    ): Result<string, ValidationError> {
+      // TODO: Return ok(email) or err(ValidationError)
+      return ok("");
+    }
+
+    /**
+     * Parse JSON safely, returning Result.
+     */
+    export function parseJson<T>(json: string): Result<T, Error> {
+      // TODO: Try parsing, return ok or err
+      return err(new Error(""));
+    }
+
+    /**
+     * Try to get user, returning undefined on error.
+     */
+    export function tryGetUser(
+      users: Map<string, { name: string }>,
+      id: string
+    ): { name: string } | undefined {
+      // TODO: Get from map, return undefined if not found
+      return undefined;
+    }
+
+    /**
+     * Get user or throw NotFoundError.
+     */
+    export function getUser(
+      users: Map<string, { name: string }>,
+      id: string
+    ): { name: string } {
+      // TODO: Get from map, throw NotFoundError if not found
+      throw new NotFoundError("User", id);
+    }
+
+    /**
+     * Type guard to check if error is ValidationError.
+     */
+    export function isValidationError(error: unknown): error is ValidationError {
+      // TODO: Check if error is ValidationError instance
+      return false;
+    }
+
+tests:
+  errors.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      ValidationError, NotFoundError, Result,
+      ok, err, validateEmail, validateEmailResult,
+      parseJson, tryGetUser, getUser, isValidationError
+    } from "./errors";
+
+    describe("ValidationError", () => {
+      it("stores field name", () => {
+        const error = new ValidationError("email", "Invalid email");
+        expect(error.field).toBe("email");
+        expect(error.message).toBe("Invalid email");
+      });
+    });
+
+    describe("NotFoundError", () => {
+      it("formats message", () => {
+        const error = new NotFoundError("User", 123);
+        expect(error.message).toContain("User");
+        expect(error.message).toContain("123");
+      });
+    });
+
+    describe("ok and err", () => {
+      it("creates success result", () => {
+        const result = ok(42);
+        expect(result.ok).toBe(true);
+        if (result.ok) expect(result.value).toBe(42);
+      });
+
+      it("creates error result", () => {
+        const result = err(new Error("fail"));
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error.message).toBe("fail");
+      });
+    });
+
+    describe("validateEmail", () => {
+      it("returns valid email", () => {
+        expect(validateEmail("test@example.com")).toBe("test@example.com");
+      });
+
+      it("throws on invalid email", () => {
+        expect(() => validateEmail("invalid")).toThrow(ValidationError);
+      });
+    });
+
+    describe("validateEmailResult", () => {
+      it("returns ok for valid", () => {
+        const result = validateEmailResult("test@example.com");
+        expect(result.ok).toBe(true);
+      });
+
+      it("returns err for invalid", () => {
+        const result = validateEmailResult("invalid");
+        expect(result.ok).toBe(false);
+      });
+    });
+
+    describe("parseJson", () => {
+      it("parses valid JSON", () => {
+        const result = parseJson<{ name: string }>('{"name": "test"}');
+        expect(result.ok).toBe(true);
+        if (result.ok) expect(result.value.name).toBe("test");
+      });
+
+      it("returns error for invalid JSON", () => {
+        const result = parseJson("invalid");
+        expect(result.ok).toBe(false);
+      });
+    });
+
+    describe("tryGetUser", () => {
+      const users = new Map([["1", { name: "Alice" }]]);
+
+      it("returns user if found", () => {
+        expect(tryGetUser(users, "1")?.name).toBe("Alice");
+      });
+
+      it("returns undefined if not found", () => {
+        expect(tryGetUser(users, "99")).toBeUndefined();
+      });
+    });
+
+    describe("getUser", () => {
+      const users = new Map([["1", { name: "Alice" }]]);
+
+      it("returns user if found", () => {
+        expect(getUser(users, "1").name).toBe("Alice");
+      });
+
+      it("throws NotFoundError if not found", () => {
+        expect(() => getUser(users, "99")).toThrow(NotFoundError);
+      });
+    });
+
+    describe("isValidationError", () => {
+      it("returns true for ValidationError", () => {
+        expect(isValidationError(new ValidationError("x", "y"))).toBe(true);
+      });
+
+      it("returns false for other errors", () => {
+        expect(isValidationError(new Error("x"))).toBe(false);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: errors
+      name: Error Handling
+      description: Proper error handling patterns
+      weight: 0.5
+      signals:
+        - uses_custom_errors
+        - uses_result_type
+
+hints:
+  L0:
+    - "How do you check if a string contains a character?"
+    - "How do you safely parse JSON?"
+  L1:
+    - "Use email.includes('@') to check"
+    - "Use try/catch around JSON.parse"
+  L2:
+    - "Type guard: return error instanceof ValidationError"
+    - "Result: try { return ok(JSON.parse(json)) } catch (e) { return err(e) }"
+  L3:
+    - |
+      ```typescript
+      export function parseJson<T>(json: string): Result<T, Error> {
+        try {
+          return ok(JSON.parse(json) as T);
+        } catch (e) {
+          return err(e instanceof Error ? e : new Error(String(e)));
+        }
+      }
+      ```
+
+solution:
+  errors.ts: |
+    export class ValidationError extends Error {
+      constructor(
+        public readonly field: string,
+        message: string
+      ) {
+        super(message);
+        this.name = "ValidationError";
+      }
+    }
+
+    export class NotFoundError extends Error {
+      constructor(
+        public readonly resource: string,
+        public readonly id: string | number
+      ) {
+        super(`${resource} with id '${id}' not found`);
+        this.name = "NotFoundError";
+      }
+    }
+
+    export type Result<T, E = Error> =
+      | { ok: true; value: T }
+      | { ok: false; error: E };
+
+    export function ok<T>(value: T): Result<T, never> {
+      return { ok: true, value };
+    }
+
+    export function err<E>(error: E): Result<never, E> {
+      return { ok: false, error };
+    }
+
+    export function validateEmail(email: string): string {
+      if (!email.includes("@")) {
+        throw new ValidationError("email", "Email must contain @");
+      }
+      return email;
+    }
+
+    export function validateEmailResult(
+      email: string
+    ): Result<string, ValidationError> {
+      if (!email.includes("@")) {
+        return err(new ValidationError("email", "Email must contain @"));
+      }
+      return ok(email);
+    }
+
+    export function parseJson<T>(json: string): Result<T, Error> {
+      try {
+        return ok(JSON.parse(json) as T);
+      } catch (e) {
+        return err(e instanceof Error ? e : new Error(String(e)));
+      }
+    }
+
+    export function tryGetUser(
+      users: Map<string, { name: string }>,
+      id: string
+    ): { name: string } | undefined {
+      return users.get(id);
+    }
+
+    export function getUser(
+      users: Map<string, { name: string }>,
+      id: string
+    ): { name: string } {
+      const user = users.get(id);
+      if (!user) {
+        throw new NotFoundError("User", id);
+      }
+      return user;
+    }
+
+    export function isValidationError(error: unknown): error is ValidationError {
+      return error instanceof ValidationError;
+    }

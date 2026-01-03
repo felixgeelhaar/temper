@@ -1,0 +1,372 @@
+id: classes
+title: Classes
+description: |
+  Learn TypeScript classes with access modifiers and inheritance.
+
+  ## Learning Objectives
+  - Define classes with constructors
+  - Use public, private, protected modifiers
+  - Implement inheritance with extends
+  - Use abstract classes
+
+  ## Instructions
+  Implement a shape hierarchy using classes.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - classes
+  - inheritance
+  - oop
+
+prerequisites:
+  - intermediate/interfaces
+
+starter:
+  shapes.ts: |
+    /**
+     * Shape classes demonstrating OOP in TypeScript.
+     */
+
+    /**
+     * Abstract base class for all shapes.
+     */
+    export abstract class Shape {
+      protected _name: string;
+
+      constructor(name: string) {
+        this._name = name;
+      }
+
+      /**
+       * Get the shape's name.
+       */
+      get name(): string {
+        return this._name;
+      }
+
+      /**
+       * Calculate the area of the shape.
+       */
+      abstract area(): number;
+
+      /**
+       * Calculate the perimeter of the shape.
+       */
+      abstract perimeter(): number;
+
+      /**
+       * Get a description of the shape.
+       */
+      describe(): string {
+        return `${this.name}: area=${this.area().toFixed(2)}, perimeter=${this.perimeter().toFixed(2)}`;
+      }
+    }
+
+    /**
+     * A rectangle shape.
+     */
+    export class Rectangle extends Shape {
+      // TODO: Add private width and height properties
+      // TODO: Implement constructor that calls super("Rectangle")
+      // TODO: Implement area() and perimeter()
+
+      constructor(width: number, height: number) {
+        super("Rectangle");
+        // TODO: Initialize width and height
+      }
+
+      area(): number {
+        // TODO: Return width * height
+        return 0;
+      }
+
+      perimeter(): number {
+        // TODO: Return 2 * (width + height)
+        return 0;
+      }
+
+      // Getter for width
+      get width(): number {
+        return 0;
+      }
+
+      // Getter for height
+      get height(): number {
+        return 0;
+      }
+    }
+
+    /**
+     * A square is a special rectangle.
+     */
+    export class Square extends Rectangle {
+      // TODO: Constructor takes single side length
+      // TODO: Calls super(side, side)
+
+      constructor(side: number) {
+        super(side, side);
+      }
+
+      get side(): number {
+        return this.width;
+      }
+    }
+
+    /**
+     * A circle shape.
+     */
+    export class Circle extends Shape {
+      // TODO: Add private radius property
+      // TODO: Implement constructor
+      // TODO: Implement area() = π * r²
+      // TODO: Implement perimeter() = 2 * π * r
+
+      constructor(radius: number) {
+        super("Circle");
+        // TODO: Initialize radius
+      }
+
+      area(): number {
+        // TODO: Return Math.PI * radius²
+        return 0;
+      }
+
+      perimeter(): number {
+        // TODO: Return 2 * Math.PI * radius
+        return 0;
+      }
+
+      get radius(): number {
+        return 0;
+      }
+    }
+
+    /**
+     * Calculate total area of multiple shapes.
+     */
+    export function totalArea(shapes: Shape[]): number {
+      // TODO: Sum all areas
+      return 0;
+    }
+
+tests:
+  shapes.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import { Shape, Rectangle, Square, Circle, totalArea } from "./shapes";
+
+    describe("Rectangle", () => {
+      it("calculates area", () => {
+        const rect = new Rectangle(5, 3);
+        expect(rect.area()).toBe(15);
+      });
+
+      it("calculates perimeter", () => {
+        const rect = new Rectangle(5, 3);
+        expect(rect.perimeter()).toBe(16);
+      });
+
+      it("has correct name", () => {
+        const rect = new Rectangle(5, 3);
+        expect(rect.name).toBe("Rectangle");
+      });
+
+      it("exposes dimensions via getters", () => {
+        const rect = new Rectangle(5, 3);
+        expect(rect.width).toBe(5);
+        expect(rect.height).toBe(3);
+      });
+    });
+
+    describe("Square", () => {
+      it("calculates area", () => {
+        const sq = new Square(4);
+        expect(sq.area()).toBe(16);
+      });
+
+      it("calculates perimeter", () => {
+        const sq = new Square(4);
+        expect(sq.perimeter()).toBe(16);
+      });
+
+      it("exposes side", () => {
+        const sq = new Square(4);
+        expect(sq.side).toBe(4);
+      });
+    });
+
+    describe("Circle", () => {
+      it("calculates area", () => {
+        const circle = new Circle(5);
+        expect(circle.area()).toBeCloseTo(78.54, 1);
+      });
+
+      it("calculates perimeter", () => {
+        const circle = new Circle(5);
+        expect(circle.perimeter()).toBeCloseTo(31.42, 1);
+      });
+
+      it("exposes radius", () => {
+        const circle = new Circle(5);
+        expect(circle.radius).toBe(5);
+      });
+    });
+
+    describe("describe", () => {
+      it("formats shape description", () => {
+        const rect = new Rectangle(5, 3);
+        expect(rect.describe()).toContain("Rectangle");
+        expect(rect.describe()).toContain("15.00");
+      });
+    });
+
+    describe("totalArea", () => {
+      it("sums areas of all shapes", () => {
+        const shapes: Shape[] = [
+          new Rectangle(5, 3),  // 15
+          new Square(4),        // 16
+        ];
+        expect(totalArea(shapes)).toBe(31);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: oop
+      name: OOP Patterns
+      description: Correct class hierarchy
+      weight: 0.5
+      signals:
+        - uses_extends
+        - uses_abstract
+
+hints:
+  L0:
+    - "How do you call the parent constructor?"
+    - "What's the formula for circle area?"
+  L1:
+    - "Use super() to call parent constructor"
+    - "Circle area = Math.PI * r * r"
+  L2:
+    - "Private property: private _radius: number"
+    - "Getter: get radius(): number { return this._radius; }"
+  L3:
+    - |
+      ```typescript
+      export class Circle extends Shape {
+        private _radius: number;
+
+        constructor(radius: number) {
+          super("Circle");
+          this._radius = radius;
+        }
+
+        area(): number {
+          return Math.PI * this._radius * this._radius;
+        }
+
+        perimeter(): number {
+          return 2 * Math.PI * this._radius;
+        }
+
+        get radius(): number {
+          return this._radius;
+        }
+      }
+      ```
+
+solution:
+  shapes.ts: |
+    export abstract class Shape {
+      protected _name: string;
+
+      constructor(name: string) {
+        this._name = name;
+      }
+
+      get name(): string {
+        return this._name;
+      }
+
+      abstract area(): number;
+      abstract perimeter(): number;
+
+      describe(): string {
+        return `${this.name}: area=${this.area().toFixed(2)}, perimeter=${this.perimeter().toFixed(2)}`;
+      }
+    }
+
+    export class Rectangle extends Shape {
+      private _width: number;
+      private _height: number;
+
+      constructor(width: number, height: number) {
+        super("Rectangle");
+        this._width = width;
+        this._height = height;
+      }
+
+      area(): number {
+        return this._width * this._height;
+      }
+
+      perimeter(): number {
+        return 2 * (this._width + this._height);
+      }
+
+      get width(): number {
+        return this._width;
+      }
+
+      get height(): number {
+        return this._height;
+      }
+    }
+
+    export class Square extends Rectangle {
+      constructor(side: number) {
+        super(side, side);
+      }
+
+      get side(): number {
+        return this.width;
+      }
+    }
+
+    export class Circle extends Shape {
+      private _radius: number;
+
+      constructor(radius: number) {
+        super("Circle");
+        this._radius = radius;
+      }
+
+      area(): number {
+        return Math.PI * this._radius * this._radius;
+      }
+
+      perimeter(): number {
+        return 2 * Math.PI * this._radius;
+      }
+
+      get radius(): number {
+        return this._radius;
+      }
+    }
+
+    export function totalArea(shapes: Shape[]): number {
+      return shapes.reduce((sum, shape) => sum + shape.area(), 0);
+    }

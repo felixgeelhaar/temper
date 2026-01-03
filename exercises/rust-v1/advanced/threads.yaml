@@ -1,0 +1,349 @@
+id: threads
+title: Concurrency
+description: |
+  Learn Rust concurrency with threads.
+
+  ## Learning Objectives
+  - Spawn and join threads
+  - Share data with Arc and Mutex
+  - Use channels for message passing
+  - Understand Send and Sync traits
+
+  ## Instructions
+  Implement concurrent operations safely.
+
+difficulty: advanced
+tags:
+  - advanced
+  - threads
+  - concurrency
+  - arc-mutex
+
+prerequisites:
+  - intermediate/generics
+
+starter:
+  src/lib.rs: |
+    //! Concurrency in Rust.
+
+    use std::sync::{Arc, Mutex};
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    /// Spawn a thread that returns a value.
+    pub fn spawn_and_join() -> i32 {
+        // TODO: Spawn thread that returns 42, join and return value
+        todo!()
+    }
+
+    /// Spawn multiple threads, each incrementing a shared counter.
+    pub fn concurrent_counter(num_threads: usize, increments_per_thread: usize) -> usize {
+        // TODO: Use Arc<Mutex<usize>> to safely increment counter
+        // Each thread should increment `increments_per_thread` times
+        todo!()
+    }
+
+    /// Sum numbers using multiple threads.
+    pub fn parallel_sum(numbers: Vec<i32>, num_threads: usize) -> i32 {
+        // TODO: Split numbers across threads, sum in parallel
+        todo!()
+    }
+
+    /// Use channels to send messages between threads.
+    pub fn channel_example() -> Vec<i32> {
+        // TODO: Spawn thread that sends 1..=5 through channel
+        // Collect and return all received values
+        todo!()
+    }
+
+    /// Producer-consumer pattern with multiple producers.
+    pub fn multi_producer(num_producers: usize, messages_each: usize) -> Vec<String> {
+        // TODO: Each producer sends `messages_each` messages
+        // Collect all messages in order received
+        todo!()
+    }
+
+    /// A thread-safe counter.
+    #[derive(Clone)]
+    pub struct Counter {
+        value: Arc<Mutex<i32>>,
+    }
+
+    impl Counter {
+        pub fn new() -> Self {
+            // TODO: Initialize counter with 0
+            todo!()
+        }
+
+        pub fn increment(&self) {
+            // TODO: Safely increment value
+            todo!()
+        }
+
+        pub fn decrement(&self) {
+            // TODO: Safely decrement value
+            todo!()
+        }
+
+        pub fn get(&self) -> i32 {
+            // TODO: Return current value
+            todo!()
+        }
+    }
+
+    impl Default for Counter {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_spawn_and_join() {
+        assert_eq!(spawn_and_join(), 42);
+    }
+
+    #[test]
+    fn test_concurrent_counter() {
+        let result = concurrent_counter(4, 1000);
+        assert_eq!(result, 4000);
+    }
+
+    #[test]
+    fn test_parallel_sum() {
+        let numbers: Vec<i32> = (1..=100).collect();
+        let sum = parallel_sum(numbers, 4);
+        assert_eq!(sum, 5050);
+    }
+
+    #[test]
+    fn test_channel_example() {
+        let received = channel_example();
+        assert_eq!(received, vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_multi_producer() {
+        let messages = multi_producer(3, 2);
+        assert_eq!(messages.len(), 6);
+    }
+
+    #[test]
+    fn test_counter_new() {
+        let counter = Counter::new();
+        assert_eq!(counter.get(), 0);
+    }
+
+    #[test]
+    fn test_counter_increment() {
+        let counter = Counter::new();
+        counter.increment();
+        counter.increment();
+        assert_eq!(counter.get(), 2);
+    }
+
+    #[test]
+    fn test_counter_thread_safe() {
+        let counter = Counter::new();
+        let mut handles = vec![];
+
+        for _ in 0..10 {
+            let c = counter.clone();
+            handles.push(thread::spawn(move || {
+                for _ in 0..100 {
+                    c.increment();
+                }
+            }));
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        assert_eq!(counter.get(), 1000);
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: concurrency
+      name: Concurrency Patterns
+      description: Safe concurrent code
+      weight: 0.5
+      signals:
+        - uses_arc_mutex
+        - uses_channels
+
+hints:
+  L0:
+    - "What's the difference between Arc and Rc?"
+    - "Why do we need Mutex with Arc?"
+  L1:
+    - "Arc = Atomic Reference Counting (thread-safe Rc)"
+    - "Mutex provides exclusive access to shared data"
+  L2:
+    - "Clone Arc before moving into thread"
+    - "Use lock().unwrap() to access Mutex contents"
+  L3:
+    - |
+      ```rust
+      pub fn concurrent_counter(num_threads: usize, increments_per_thread: usize) -> usize {
+          let counter = Arc::new(Mutex::new(0));
+          let mut handles = vec![];
+
+          for _ in 0..num_threads {
+              let counter = Arc::clone(&counter);
+              handles.push(thread::spawn(move || {
+                  for _ in 0..increments_per_thread {
+                      let mut num = counter.lock().unwrap();
+                      *num += 1;
+                  }
+              }));
+          }
+
+          for handle in handles {
+              handle.join().unwrap();
+          }
+
+          *counter.lock().unwrap()
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    use std::sync::{Arc, Mutex};
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+
+    pub fn spawn_and_join() -> i32 {
+        let handle = thread::spawn(|| 42);
+        handle.join().unwrap()
+    }
+
+    pub fn concurrent_counter(num_threads: usize, increments_per_thread: usize) -> usize {
+        let counter = Arc::new(Mutex::new(0));
+        let mut handles = vec![];
+
+        for _ in 0..num_threads {
+            let counter = Arc::clone(&counter);
+            handles.push(thread::spawn(move || {
+                for _ in 0..increments_per_thread {
+                    let mut num = counter.lock().unwrap();
+                    *num += 1;
+                }
+            }));
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        *counter.lock().unwrap()
+    }
+
+    pub fn parallel_sum(numbers: Vec<i32>, num_threads: usize) -> i32 {
+        let chunk_size = (numbers.len() + num_threads - 1) / num_threads;
+        let numbers = Arc::new(numbers);
+        let mut handles = vec![];
+
+        for i in 0..num_threads {
+            let numbers = Arc::clone(&numbers);
+            handles.push(thread::spawn(move || {
+                let start = i * chunk_size;
+                let end = (start + chunk_size).min(numbers.len());
+                if start < numbers.len() {
+                    numbers[start..end].iter().sum::<i32>()
+                } else {
+                    0
+                }
+            }));
+        }
+
+        handles.into_iter()
+            .map(|h| h.join().unwrap())
+            .sum()
+    }
+
+    pub fn channel_example() -> Vec<i32> {
+        let (tx, rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            for i in 1..=5 {
+                tx.send(i).unwrap();
+            }
+        });
+
+        rx.into_iter().collect()
+    }
+
+    pub fn multi_producer(num_producers: usize, messages_each: usize) -> Vec<String> {
+        let (tx, rx) = mpsc::channel();
+        let mut handles = vec![];
+
+        for producer_id in 0..num_producers {
+            let tx = tx.clone();
+            handles.push(thread::spawn(move || {
+                for msg_id in 0..messages_each {
+                    tx.send(format!("Producer {} Message {}", producer_id, msg_id)).unwrap();
+                }
+            }));
+        }
+
+        drop(tx); // Close original sender
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        rx.into_iter().collect()
+    }
+
+    #[derive(Clone)]
+    pub struct Counter {
+        value: Arc<Mutex<i32>>,
+    }
+
+    impl Counter {
+        pub fn new() -> Self {
+            Counter {
+                value: Arc::new(Mutex::new(0)),
+            }
+        }
+
+        pub fn increment(&self) {
+            let mut val = self.value.lock().unwrap();
+            *val += 1;
+        }
+
+        pub fn decrement(&self) {
+            let mut val = self.value.lock().unwrap();
+            *val -= 1;
+        }
+
+        pub fn get(&self) -> i32 {
+            *self.value.lock().unwrap()
+        }
+    }
+
+    impl Default for Counter {
+        fn default() -> Self {
+            Self::new()
+        }
+    }

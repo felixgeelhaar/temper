@@ -1,0 +1,184 @@
+id: unit-tests
+title: Unit Tests
+description: |
+  Learn to write effective unit tests with pytest.
+
+  ## Learning Objectives
+  - Write test functions with pytest
+  - Use assertions effectively
+  - Test edge cases and error conditions
+
+  ## Instructions
+  Write tests for a provided calculator module.
+
+difficulty: intermediate
+tags:
+  - testing
+  - pytest
+  - assertions
+
+prerequisites:
+  - intermediate/classes
+
+starter:
+  calculator.py: |
+    """A simple calculator module to test."""
+
+
+    def add(a: float, b: float) -> float:
+        """Add two numbers."""
+        return a + b
+
+
+    def subtract(a: float, b: float) -> float:
+        """Subtract b from a."""
+        return a - b
+
+
+    def multiply(a: float, b: float) -> float:
+        """Multiply two numbers."""
+        return a * b
+
+
+    def divide(a: float, b: float) -> float:
+        """Divide a by b.
+
+        Raises:
+            ZeroDivisionError: If b is zero.
+        """
+        if b == 0:
+            raise ZeroDivisionError("Cannot divide by zero")
+        return a / b
+  test_calculator.py: |
+    """Tests for the calculator module.
+
+    TODO: Implement the following tests:
+    1. test_add - Test addition with positive, negative, and zero values
+    2. test_subtract - Test subtraction
+    3. test_multiply - Test multiplication including by zero
+    4. test_divide - Test division with normal values
+    5. test_divide_by_zero - Test that dividing by zero raises ZeroDivisionError
+    """
+    import pytest
+    from calculator import add, subtract, multiply, divide
+
+
+    # TODO: Write your tests here
+    pass
+
+tests:
+  verify_tests.py: |
+    """Verify that the student's tests are correct and complete."""
+    import pytest
+    import subprocess
+    import sys
+
+
+    def test_student_tests_exist():
+        """Check that test file has actual tests."""
+        with open("test_calculator.py") as f:
+            content = f.read()
+        assert "def test_" in content, "No test functions found"
+        assert content.count("def test_") >= 5, "Need at least 5 test functions"
+
+
+    def test_student_tests_pass():
+        """Run the student's tests and ensure they pass."""
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "test_calculator.py", "-v"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"Tests failed:\n{result.stdout}\n{result.stderr}"
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: coverage
+      name: Test Coverage
+      description: Tests cover all functions
+      weight: 0.4
+      signals:
+        - tests_all_functions
+
+    - id: edge_cases
+      name: Edge Cases
+      description: Tests include edge cases
+      weight: 0.3
+      signals:
+        - tests_zero_values
+        - tests_exceptions
+
+    - id: clarity
+      name: Test Clarity
+      description: Tests are clear and well-named
+      weight: 0.3
+      signals:
+        - descriptive_names
+        - single_assertion_per_test
+
+hints:
+  L0:
+    - "What edge cases should you test for each operation?"
+    - "How do you test that an exception is raised?"
+  L1:
+    - "Use pytest.raises(ZeroDivisionError) to test exceptions"
+    - "Test positive numbers, negative numbers, and zero"
+  L2:
+    - "Name tests descriptively: test_add_positive_numbers"
+    - "Use assert statements: assert add(2, 3) == 5"
+  L3:
+    - |
+      ```python
+      def test_divide_by_zero():
+          with pytest.raises(ZeroDivisionError):
+              divide(10, 0)
+      ```
+
+solution:
+  test_calculator.py: |
+    """Tests for the calculator module."""
+    import pytest
+    from calculator import add, subtract, multiply, divide
+
+
+    def test_add_positive_numbers():
+        assert add(2, 3) == 5
+
+
+    def test_add_negative_numbers():
+        assert add(-1, -1) == -2
+
+
+    def test_add_with_zero():
+        assert add(5, 0) == 5
+
+
+    def test_subtract():
+        assert subtract(5, 3) == 2
+        assert subtract(3, 5) == -2
+
+
+    def test_multiply():
+        assert multiply(3, 4) == 12
+        assert multiply(5, 0) == 0
+
+
+    def test_multiply_negative():
+        assert multiply(-2, 3) == -6
+
+
+    def test_divide():
+        assert divide(10, 2) == 5
+        assert divide(7, 2) == 3.5
+
+
+    def test_divide_by_zero():
+        with pytest.raises(ZeroDivisionError):
+            divide(10, 0)

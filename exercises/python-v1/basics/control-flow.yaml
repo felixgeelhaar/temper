@@ -1,0 +1,236 @@
+id: control-flow
+title: Control Flow
+description: |
+  Learn Python's control flow statements and iteration patterns.
+
+  ## Learning Objectives
+  - Use if/elif/else statements
+  - Write for and while loops
+  - Understand list comprehensions
+  - Use break and continue
+
+  ## Instructions
+  Implement functions that demonstrate control flow patterns.
+
+difficulty: beginner
+tags:
+  - basics
+  - conditionals
+  - loops
+  - comprehensions
+
+prerequisites:
+  - basics/functions
+
+starter:
+  control.py: |
+    """Control flow exercises following Python best practices."""
+
+
+    def fizzbuzz(n: int) -> str:
+        """Return FizzBuzz result for a number.
+
+        Rules:
+        - Return "Fizz" if divisible by 3
+        - Return "Buzz" if divisible by 5
+        - Return "FizzBuzz" if divisible by both
+        - Return the number as string otherwise
+
+        Args:
+            n: The number to check
+
+        Returns:
+            The FizzBuzz result string
+        """
+        # TODO: Implement FizzBuzz logic
+        pass
+
+
+    def sum_of_evens(numbers: list[int]) -> int:
+        """Sum all even numbers in a list using a loop.
+
+        Args:
+            numbers: List of integers
+
+        Returns:
+            Sum of all even numbers
+        """
+        # TODO: Use a for loop with conditional
+        pass
+
+
+    def filter_positives(numbers: list[int]) -> list[int]:
+        """Return only positive numbers using list comprehension.
+
+        Args:
+            numbers: List of integers
+
+        Returns:
+            List containing only positive numbers
+        """
+        # TODO: Use list comprehension
+        pass
+
+
+    def find_first_negative(numbers: list[int]) -> int | None:
+        """Find the first negative number in a list.
+
+        Use break to exit early when found.
+
+        Args:
+            numbers: List of integers
+
+        Returns:
+            First negative number or None if not found
+        """
+        # TODO: Use a loop with break
+        pass
+
+tests:
+  test_control.py: |
+    """Tests for control flow exercises."""
+    import pytest
+    from control import fizzbuzz, sum_of_evens, filter_positives, find_first_negative
+
+
+    class TestFizzBuzz:
+        def test_regular_number(self):
+            assert fizzbuzz(1) == "1"
+            assert fizzbuzz(2) == "2"
+
+        def test_fizz(self):
+            assert fizzbuzz(3) == "Fizz"
+            assert fizzbuzz(6) == "Fizz"
+
+        def test_buzz(self):
+            assert fizzbuzz(5) == "Buzz"
+            assert fizzbuzz(10) == "Buzz"
+
+        def test_fizzbuzz(self):
+            assert fizzbuzz(15) == "FizzBuzz"
+            assert fizzbuzz(30) == "FizzBuzz"
+
+
+    class TestSumOfEvens:
+        def test_mixed_numbers(self):
+            assert sum_of_evens([1, 2, 3, 4, 5, 6]) == 12
+
+        def test_all_odd(self):
+            assert sum_of_evens([1, 3, 5, 7]) == 0
+
+        def test_empty_list(self):
+            assert sum_of_evens([]) == 0
+
+
+    class TestFilterPositives:
+        def test_mixed_numbers(self):
+            assert filter_positives([-1, 2, -3, 4, 0]) == [2, 4]
+
+        def test_all_negative(self):
+            assert filter_positives([-1, -2, -3]) == []
+
+        def test_all_positive(self):
+            assert filter_positives([1, 2, 3]) == [1, 2, 3]
+
+
+    class TestFindFirstNegative:
+        def test_finds_negative(self):
+            assert find_first_negative([1, 2, -3, 4, -5]) == -3
+
+        def test_no_negative(self):
+            assert find_first_negative([1, 2, 3]) is None
+
+        def test_first_is_negative(self):
+            assert find_first_negative([-1, 2, 3]) == -1
+
+check_recipe:
+  format: true
+  build: false
+  test: true
+  test_flags:
+    - "-v"
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.4
+      signals:
+        - all_tests_pass
+
+    - id: control-flow
+      name: Control Flow
+      description: Uses appropriate control structures
+      weight: 0.3
+      signals:
+        - uses_if_elif_else
+        - uses_for_loop
+
+    - id: pythonic
+      name: Pythonic Style
+      description: Uses list comprehensions where appropriate
+      weight: 0.3
+      signals:
+        - uses_comprehension
+
+hints:
+  L0:
+    - "What operator checks for divisibility?"
+    - "How do you check if a number is even?"
+  L1:
+    - "Use % (modulo) to check divisibility"
+    - "Even numbers have n % 2 == 0"
+  L2:
+    - "List comprehension syntax: [x for x in items if condition]"
+    - "Use break to exit a loop early"
+  L3:
+    - |
+      ```python
+      def fizzbuzz(n: int) -> str:
+          if n % 15 == 0:
+              return "FizzBuzz"
+          elif n % 3 == 0:
+              return "Fizz"
+          elif n % 5 == 0:
+              return "Buzz"
+          return str(n)
+      ```
+
+solution:
+  control.py: |
+    """Control flow exercises following Python best practices."""
+
+
+    def fizzbuzz(n: int) -> str:
+        """Return FizzBuzz result for a number."""
+        if n % 15 == 0:
+            return "FizzBuzz"
+        elif n % 3 == 0:
+            return "Fizz"
+        elif n % 5 == 0:
+            return "Buzz"
+        return str(n)
+
+
+    def sum_of_evens(numbers: list[int]) -> int:
+        """Sum all even numbers in a list using a loop."""
+        total = 0
+        for n in numbers:
+            if n % 2 == 0:
+                total += n
+        return total
+
+
+    def filter_positives(numbers: list[int]) -> list[int]:
+        """Return only positive numbers using list comprehension."""
+        return [n for n in numbers if n > 0]
+
+
+    def find_first_negative(numbers: list[int]) -> int | None:
+        """Find the first negative number in a list."""
+        for n in numbers:
+            if n < 0:
+                return n
+        return None

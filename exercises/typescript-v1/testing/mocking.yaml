@@ -1,0 +1,365 @@
+id: mocking
+title: Mocking and Spies
+description: |
+  Learn advanced testing with mocks and spies.
+
+  ## Learning Objectives
+  - Create mock functions with vi.fn()
+  - Spy on object methods
+  - Mock modules and dependencies
+  - Verify mock calls
+
+  ## Instructions
+  Test a user service with dependency injection.
+
+difficulty: intermediate
+tags:
+  - testing
+  - mocking
+  - spies
+  - vitest
+
+prerequisites:
+  - testing/unit-tests
+
+starter:
+  user-service.ts: |
+    /**
+     * User service with dependencies.
+     */
+
+    export interface User {
+      id: string;
+      name: string;
+      email: string;
+    }
+
+    export interface UserRepository {
+      findById(id: string): Promise<User | null>;
+      save(user: User): Promise<void>;
+      delete(id: string): Promise<boolean>;
+    }
+
+    export interface EmailService {
+      send(to: string, subject: string, body: string): Promise<void>;
+    }
+
+    export interface Logger {
+      info(message: string): void;
+      error(message: string): void;
+    }
+
+    export class UserService {
+      constructor(
+        private readonly repository: UserRepository,
+        private readonly emailService: EmailService,
+        private readonly logger: Logger
+      ) {}
+
+      async getUser(id: string): Promise<User | null> {
+        this.logger.info(`Getting user ${id}`);
+        return this.repository.findById(id);
+      }
+
+      async createUser(user: User): Promise<void> {
+        this.logger.info(`Creating user ${user.id}`);
+        await this.repository.save(user);
+        await this.emailService.send(
+          user.email,
+          "Welcome!",
+          `Hello ${user.name}, welcome to our platform!`
+        );
+      }
+
+      async deleteUser(id: string): Promise<boolean> {
+        const user = await this.repository.findById(id);
+        if (!user) {
+          this.logger.error(`User ${id} not found`);
+          return false;
+        }
+
+        const deleted = await this.repository.delete(id);
+        if (deleted) {
+          this.logger.info(`Deleted user ${id}`);
+        }
+        return deleted;
+      }
+    }
+
+tests:
+  user-service.test.ts: |
+    /**
+     * Tests for UserService with mocks.
+     *
+     * TODO: Complete the mock setup and test cases.
+     */
+    import { describe, it, expect, vi, beforeEach } from "vitest";
+    import {
+      UserService, UserRepository, EmailService, Logger, User
+    } from "./user-service";
+
+    describe("UserService", () => {
+      // TODO: Create mock implementations
+      let mockRepository: UserRepository;
+      let mockEmailService: EmailService;
+      let mockLogger: Logger;
+      let userService: UserService;
+
+      const testUser: User = {
+        id: "1",
+        name: "Alice",
+        email: "alice@example.com",
+      };
+
+      beforeEach(() => {
+        // TODO: Reset mocks before each test
+        // Create mock objects with vi.fn() for each method
+
+        mockRepository = {
+          findById: vi.fn(),
+          save: vi.fn(),
+          delete: vi.fn(),
+        };
+
+        mockEmailService = {
+          send: vi.fn(),
+        };
+
+        mockLogger = {
+          info: vi.fn(),
+          error: vi.fn(),
+        };
+
+        userService = new UserService(
+          mockRepository,
+          mockEmailService,
+          mockLogger
+        );
+      });
+
+      describe("getUser", () => {
+        it("returns user when found", async () => {
+          // TODO: Setup mock to return testUser
+          // Call getUser and verify result
+          // Verify logger.info was called
+        });
+
+        it("returns null when not found", async () => {
+          // TODO: Setup mock to return null
+          // Verify getUser returns null
+        });
+
+        it("logs the request", async () => {
+          // TODO: Verify logger.info is called with correct message
+        });
+      });
+
+      describe("createUser", () => {
+        it("saves user to repository", async () => {
+          // TODO: Call createUser
+          // Verify repository.save was called with user
+        });
+
+        it("sends welcome email", async () => {
+          // TODO: Verify emailService.send was called
+          // Check correct arguments (to, subject, body)
+        });
+
+        it("logs user creation", async () => {
+          // TODO: Verify logger.info was called
+        });
+      });
+
+      describe("deleteUser", () => {
+        it("returns true when user deleted", async () => {
+          // TODO: Setup mocks for found user and successful delete
+          // Verify returns true
+        });
+
+        it("returns false when user not found", async () => {
+          // TODO: Setup findById to return null
+          // Verify returns false
+          // Verify logger.error was called
+        });
+
+        it("does not call delete if user not found", async () => {
+          // TODO: Verify repository.delete was NOT called
+        });
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: mocking
+      name: Mock Usage
+      description: Correct mock setup and verification
+      weight: 0.5
+      signals:
+        - uses_vi_fn
+        - verifies_calls
+
+hints:
+  L0:
+    - "How do you make a mock return a specific value?"
+    - "How do you verify a mock was called?"
+  L1:
+    - "mock.mockResolvedValue(value) for async returns"
+    - "expect(mock).toHaveBeenCalledWith(args)"
+  L2:
+    - "Spy on calls: expect(mock).toHaveBeenCalledTimes(1)"
+    - "Check not called: expect(mock).not.toHaveBeenCalled()"
+  L3:
+    - |
+      ```typescript
+      it("sends welcome email", async () => {
+        vi.mocked(mockRepository.save).mockResolvedValue();
+        vi.mocked(mockEmailService.send).mockResolvedValue();
+
+        await userService.createUser(testUser);
+
+        expect(mockEmailService.send).toHaveBeenCalledWith(
+          "alice@example.com",
+          "Welcome!",
+          expect.stringContaining("Alice")
+        );
+      });
+      ```
+
+solution:
+  user-service.test.ts: |
+    import { describe, it, expect, vi, beforeEach } from "vitest";
+    import {
+      UserService, UserRepository, EmailService, Logger, User
+    } from "./user-service";
+
+    describe("UserService", () => {
+      let mockRepository: UserRepository;
+      let mockEmailService: EmailService;
+      let mockLogger: Logger;
+      let userService: UserService;
+
+      const testUser: User = {
+        id: "1",
+        name: "Alice",
+        email: "alice@example.com",
+      };
+
+      beforeEach(() => {
+        mockRepository = {
+          findById: vi.fn(),
+          save: vi.fn(),
+          delete: vi.fn(),
+        };
+
+        mockEmailService = {
+          send: vi.fn(),
+        };
+
+        mockLogger = {
+          info: vi.fn(),
+          error: vi.fn(),
+        };
+
+        userService = new UserService(
+          mockRepository,
+          mockEmailService,
+          mockLogger
+        );
+      });
+
+      describe("getUser", () => {
+        it("returns user when found", async () => {
+          vi.mocked(mockRepository.findById).mockResolvedValue(testUser);
+          const result = await userService.getUser("1");
+          expect(result).toEqual(testUser);
+          expect(mockLogger.info).toHaveBeenCalled();
+        });
+
+        it("returns null when not found", async () => {
+          vi.mocked(mockRepository.findById).mockResolvedValue(null);
+          const result = await userService.getUser("999");
+          expect(result).toBeNull();
+        });
+
+        it("logs the request", async () => {
+          vi.mocked(mockRepository.findById).mockResolvedValue(null);
+          await userService.getUser("123");
+          expect(mockLogger.info).toHaveBeenCalledWith("Getting user 123");
+        });
+      });
+
+      describe("createUser", () => {
+        it("saves user to repository", async () => {
+          vi.mocked(mockRepository.save).mockResolvedValue();
+          vi.mocked(mockEmailService.send).mockResolvedValue();
+
+          await userService.createUser(testUser);
+
+          expect(mockRepository.save).toHaveBeenCalledWith(testUser);
+        });
+
+        it("sends welcome email", async () => {
+          vi.mocked(mockRepository.save).mockResolvedValue();
+          vi.mocked(mockEmailService.send).mockResolvedValue();
+
+          await userService.createUser(testUser);
+
+          expect(mockEmailService.send).toHaveBeenCalledWith(
+            "alice@example.com",
+            "Welcome!",
+            expect.stringContaining("Alice")
+          );
+        });
+
+        it("logs user creation", async () => {
+          vi.mocked(mockRepository.save).mockResolvedValue();
+          vi.mocked(mockEmailService.send).mockResolvedValue();
+
+          await userService.createUser(testUser);
+
+          expect(mockLogger.info).toHaveBeenCalledWith("Creating user 1");
+        });
+      });
+
+      describe("deleteUser", () => {
+        it("returns true when user deleted", async () => {
+          vi.mocked(mockRepository.findById).mockResolvedValue(testUser);
+          vi.mocked(mockRepository.delete).mockResolvedValue(true);
+
+          const result = await userService.deleteUser("1");
+
+          expect(result).toBe(true);
+          expect(mockLogger.info).toHaveBeenCalledWith("Deleted user 1");
+        });
+
+        it("returns false when user not found", async () => {
+          vi.mocked(mockRepository.findById).mockResolvedValue(null);
+
+          const result = await userService.deleteUser("999");
+
+          expect(result).toBe(false);
+          expect(mockLogger.error).toHaveBeenCalledWith("User 999 not found");
+        });
+
+        it("does not call delete if user not found", async () => {
+          vi.mocked(mockRepository.findById).mockResolvedValue(null);
+
+          await userService.deleteUser("999");
+
+          expect(mockRepository.delete).not.toHaveBeenCalled();
+        });
+      });
+    });

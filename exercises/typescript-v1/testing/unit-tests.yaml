@@ -1,0 +1,327 @@
+id: unit-tests
+title: Unit Testing
+description: |
+  Learn to write unit tests with Vitest.
+
+  ## Learning Objectives
+  - Write test cases with describe/it
+  - Use assertions (expect)
+  - Test async code
+  - Organize tests effectively
+
+  ## Instructions
+  Write tests for a calculator module.
+
+difficulty: intermediate
+tags:
+  - testing
+  - vitest
+  - unit-tests
+  - assertions
+
+prerequisites:
+  - intermediate/errors
+
+starter:
+  calculator.ts: |
+    /**
+     * Calculator module to test.
+     */
+
+    export function add(a: number, b: number): number {
+      return a + b;
+    }
+
+    export function subtract(a: number, b: number): number {
+      return a - b;
+    }
+
+    export function multiply(a: number, b: number): number {
+      return a * b;
+    }
+
+    export function divide(a: number, b: number): number {
+      if (b === 0) {
+        throw new Error("Cannot divide by zero");
+      }
+      return a / b;
+    }
+
+    export async function fetchAndAdd(
+      fetchFn: () => Promise<number>,
+      addend: number
+    ): Promise<number> {
+      const value = await fetchFn();
+      return value + addend;
+    }
+
+    export interface Calculator {
+      memory: number;
+      add(n: number): void;
+      subtract(n: number): void;
+      clear(): void;
+      getResult(): number;
+    }
+
+    export function createCalculator(): Calculator {
+      let memory = 0;
+      return {
+        get memory() {
+          return memory;
+        },
+        add(n: number) {
+          memory += n;
+        },
+        subtract(n: number) {
+          memory -= n;
+        },
+        clear() {
+          memory = 0;
+        },
+        getResult() {
+          return memory;
+        },
+      };
+    }
+
+tests:
+  calculator.test.ts: |
+    /**
+     * Unit tests for calculator module.
+     *
+     * TODO: Complete the test cases below.
+     */
+    import { describe, it, expect, vi } from "vitest";
+    import {
+      add, subtract, multiply, divide,
+      fetchAndAdd, createCalculator
+    } from "./calculator";
+
+    describe("add", () => {
+      it("adds two positive numbers", () => {
+        // TODO: Test add(2, 3) === 5
+        expect(add(2, 3)).toBe(5);
+      });
+
+      it("adds negative numbers", () => {
+        // TODO: Test add(-1, -2) === -3
+      });
+
+      it("handles zero", () => {
+        // TODO: Test add(5, 0) === 5
+      });
+    });
+
+    describe("subtract", () => {
+      it("subtracts numbers", () => {
+        // TODO: Test subtract(5, 3) === 2
+      });
+
+      it("handles negative result", () => {
+        // TODO: Test subtract(3, 5) === -2
+      });
+    });
+
+    describe("multiply", () => {
+      it("multiplies numbers", () => {
+        // TODO: Test multiply(4, 3) === 12
+      });
+
+      it("handles zero", () => {
+        // TODO: Test multiply(5, 0) === 0
+      });
+    });
+
+    describe("divide", () => {
+      it("divides numbers", () => {
+        // TODO: Test divide(10, 2) === 5
+      });
+
+      it("throws on divide by zero", () => {
+        // TODO: Test that divide(5, 0) throws Error
+        // Hint: expect(() => divide(5, 0)).toThrow("Cannot divide by zero")
+      });
+
+      it("handles decimal results", () => {
+        // TODO: Test divide(5, 2) === 2.5
+      });
+    });
+
+    describe("fetchAndAdd", () => {
+      it("fetches and adds value", async () => {
+        // TODO: Create mock function that returns 10
+        // Test fetchAndAdd with mock and addend of 5
+        // Hint: const mockFetch = vi.fn().mockResolvedValue(10)
+      });
+
+      it("handles fetch error", async () => {
+        // TODO: Create mock that rejects with error
+        // Test that fetchAndAdd propagates error
+      });
+    });
+
+    describe("Calculator", () => {
+      it("starts with zero", () => {
+        // TODO: Test createCalculator().getResult() === 0
+      });
+
+      it("accumulates additions", () => {
+        // TODO: Create calculator, add 5, add 3, check result is 8
+      });
+
+      it("handles subtraction", () => {
+        // TODO: Add 10, subtract 3, check result is 7
+      });
+
+      it("clears memory", () => {
+        // TODO: Add values, clear, check result is 0
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: coverage
+      name: Test Coverage
+      description: Tests cover all cases
+      weight: 0.3
+      signals:
+        - tests_edge_cases
+
+    - id: async
+      name: Async Testing
+      description: Correctly tests async code
+      weight: 0.2
+      signals:
+        - tests_async
+
+hints:
+  L0:
+    - "How do you test that a function throws?"
+    - "How do you create a mock function?"
+  L1:
+    - "expect(() => fn()).toThrow()"
+    - "vi.fn().mockResolvedValue(value)"
+  L2:
+    - "Async test: add async keyword and await result"
+    - "Error mock: vi.fn().mockRejectedValue(new Error())"
+  L3:
+    - |
+      ```typescript
+      it("fetches and adds value", async () => {
+        const mockFetch = vi.fn().mockResolvedValue(10);
+        const result = await fetchAndAdd(mockFetch, 5);
+        expect(result).toBe(15);
+        expect(mockFetch).toHaveBeenCalled();
+      });
+      ```
+
+solution:
+  calculator.test.ts: |
+    import { describe, it, expect, vi } from "vitest";
+    import {
+      add, subtract, multiply, divide,
+      fetchAndAdd, createCalculator
+    } from "./calculator";
+
+    describe("add", () => {
+      it("adds two positive numbers", () => {
+        expect(add(2, 3)).toBe(5);
+      });
+
+      it("adds negative numbers", () => {
+        expect(add(-1, -2)).toBe(-3);
+      });
+
+      it("handles zero", () => {
+        expect(add(5, 0)).toBe(5);
+      });
+    });
+
+    describe("subtract", () => {
+      it("subtracts numbers", () => {
+        expect(subtract(5, 3)).toBe(2);
+      });
+
+      it("handles negative result", () => {
+        expect(subtract(3, 5)).toBe(-2);
+      });
+    });
+
+    describe("multiply", () => {
+      it("multiplies numbers", () => {
+        expect(multiply(4, 3)).toBe(12);
+      });
+
+      it("handles zero", () => {
+        expect(multiply(5, 0)).toBe(0);
+      });
+    });
+
+    describe("divide", () => {
+      it("divides numbers", () => {
+        expect(divide(10, 2)).toBe(5);
+      });
+
+      it("throws on divide by zero", () => {
+        expect(() => divide(5, 0)).toThrow("Cannot divide by zero");
+      });
+
+      it("handles decimal results", () => {
+        expect(divide(5, 2)).toBe(2.5);
+      });
+    });
+
+    describe("fetchAndAdd", () => {
+      it("fetches and adds value", async () => {
+        const mockFetch = vi.fn().mockResolvedValue(10);
+        const result = await fetchAndAdd(mockFetch, 5);
+        expect(result).toBe(15);
+        expect(mockFetch).toHaveBeenCalled();
+      });
+
+      it("handles fetch error", async () => {
+        const mockFetch = vi.fn().mockRejectedValue(new Error("Network error"));
+        await expect(fetchAndAdd(mockFetch, 5)).rejects.toThrow("Network error");
+      });
+    });
+
+    describe("Calculator", () => {
+      it("starts with zero", () => {
+        const calc = createCalculator();
+        expect(calc.getResult()).toBe(0);
+      });
+
+      it("accumulates additions", () => {
+        const calc = createCalculator();
+        calc.add(5);
+        calc.add(3);
+        expect(calc.getResult()).toBe(8);
+      });
+
+      it("handles subtraction", () => {
+        const calc = createCalculator();
+        calc.add(10);
+        calc.subtract(3);
+        expect(calc.getResult()).toBe(7);
+      });
+
+      it("clears memory", () => {
+        const calc = createCalculator();
+        calc.add(100);
+        calc.clear();
+        expect(calc.getResult()).toBe(0);
+      });
+    });

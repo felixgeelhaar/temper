@@ -1,0 +1,345 @@
+id: async
+title: Async/Await
+description: |
+  Learn TypeScript async programming patterns.
+
+  ## Learning Objectives
+  - Write async functions
+  - Handle Promise.all and Promise.race
+  - Implement retry logic
+  - Use async iterators
+
+  ## Instructions
+  Implement async utilities.
+
+difficulty: advanced
+tags:
+  - advanced
+  - async
+  - await
+  - promises
+
+prerequisites:
+  - intermediate/errors
+
+starter:
+  async.ts: |
+    /**
+     * Async programming utilities.
+     */
+
+    /**
+     * Wait for a specified time.
+     *
+     * @param ms - Milliseconds to wait
+     */
+    export function delay(ms: number): Promise<void> {
+      // TODO: Return promise that resolves after ms
+      return Promise.resolve();
+    }
+
+    /**
+     * Retry an async operation with exponential backoff.
+     *
+     * @param fn - Async function to retry
+     * @param maxRetries - Maximum retry attempts
+     * @param baseDelay - Base delay in ms (doubles each retry)
+     */
+    export async function retry<T>(
+      fn: () => Promise<T>,
+      maxRetries: number = 3,
+      baseDelay: number = 100
+    ): Promise<T> {
+      // TODO: Try fn, on error retry with increasing delay
+      return fn();
+    }
+
+    /**
+     * Execute promises with a timeout.
+     *
+     * @param promise - Promise to execute
+     * @param ms - Timeout in milliseconds
+     */
+    export async function withTimeout<T>(
+      promise: Promise<T>,
+      ms: number
+    ): Promise<T> {
+      // TODO: Race between promise and timeout
+      return promise;
+    }
+
+    /**
+     * Execute all promises in parallel, returning when all complete.
+     *
+     * @param promises - Array of promises
+     */
+    export async function parallel<T>(promises: Promise<T>[]): Promise<T[]> {
+      // TODO: Use Promise.all
+      return [];
+    }
+
+    /**
+     * Execute promises in sequence, one at a time.
+     *
+     * @param fns - Array of functions that return promises
+     */
+    export async function sequential<T>(
+      fns: (() => Promise<T>)[]
+    ): Promise<T[]> {
+      // TODO: Execute each function one at a time
+      return [];
+    }
+
+    /**
+     * Map over items with async transform, limiting concurrency.
+     *
+     * @param items - Items to process
+     * @param fn - Async transform function
+     * @param concurrency - Max concurrent operations
+     */
+    export async function mapWithLimit<T, U>(
+      items: T[],
+      fn: (item: T) => Promise<U>,
+      concurrency: number
+    ): Promise<U[]> {
+      // TODO: Process items with limited concurrency
+      return [];
+    }
+
+tests:
+  async.test.ts: |
+    import { describe, it, expect, vi } from "vitest";
+    import {
+      delay, retry, withTimeout, parallel, sequential, mapWithLimit
+    } from "./async";
+
+    describe("delay", () => {
+      it("waits specified time", async () => {
+        const start = Date.now();
+        await delay(50);
+        const elapsed = Date.now() - start;
+        expect(elapsed).toBeGreaterThanOrEqual(45);
+      });
+    });
+
+    describe("retry", () => {
+      it("succeeds on first try", async () => {
+        const fn = vi.fn().mockResolvedValue("success");
+        const result = await retry(fn);
+        expect(result).toBe("success");
+        expect(fn).toHaveBeenCalledTimes(1);
+      });
+
+      it("retries on failure", async () => {
+        const fn = vi.fn()
+          .mockRejectedValueOnce(new Error("fail"))
+          .mockResolvedValue("success");
+        const result = await retry(fn, 3, 10);
+        expect(result).toBe("success");
+        expect(fn).toHaveBeenCalledTimes(2);
+      });
+
+      it("throws after max retries", async () => {
+        const fn = vi.fn().mockRejectedValue(new Error("always fails"));
+        await expect(retry(fn, 2, 10)).rejects.toThrow("always fails");
+        expect(fn).toHaveBeenCalledTimes(3); // Initial + 2 retries
+      });
+    });
+
+    describe("withTimeout", () => {
+      it("returns result if fast enough", async () => {
+        const promise = Promise.resolve("fast");
+        const result = await withTimeout(promise, 100);
+        expect(result).toBe("fast");
+      });
+
+      it("throws on timeout", async () => {
+        const promise = delay(200).then(() => "slow");
+        await expect(withTimeout(promise, 50)).rejects.toThrow();
+      });
+    });
+
+    describe("parallel", () => {
+      it("executes all promises in parallel", async () => {
+        const start = Date.now();
+        const results = await parallel([
+          delay(50).then(() => "a"),
+          delay(50).then(() => "b"),
+        ]);
+        const elapsed = Date.now() - start;
+        expect(elapsed).toBeLessThan(100); // Should be ~50ms, not 100ms
+        expect(results).toEqual(["a", "b"]);
+      });
+    });
+
+    describe("sequential", () => {
+      it("executes in order", async () => {
+        const order: number[] = [];
+        const fns = [1, 2, 3].map((n) => async () => {
+          order.push(n);
+          return n;
+        });
+        const results = await sequential(fns);
+        expect(results).toEqual([1, 2, 3]);
+        expect(order).toEqual([1, 2, 3]);
+      });
+    });
+
+    describe("mapWithLimit", () => {
+      it("limits concurrency", async () => {
+        let concurrent = 0;
+        let maxConcurrent = 0;
+
+        const items = [1, 2, 3, 4, 5];
+        await mapWithLimit(
+          items,
+          async (n) => {
+            concurrent++;
+            maxConcurrent = Math.max(maxConcurrent, concurrent);
+            await delay(20);
+            concurrent--;
+            return n * 2;
+          },
+          2
+        );
+
+        expect(maxConcurrent).toBeLessThanOrEqual(2);
+      });
+
+      it("processes all items", async () => {
+        const results = await mapWithLimit(
+          [1, 2, 3],
+          async (n) => n * 2,
+          2
+        );
+        expect(results).toEqual([2, 4, 6]);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: async
+      name: Async Patterns
+      description: Correct async/await usage
+      weight: 0.5
+      signals:
+        - uses_async_await
+        - uses_promise_all
+
+hints:
+  L0:
+    - "How do you create a promise that resolves after a delay?"
+    - "How do you race two promises?"
+  L1:
+    - "delay: new Promise(r => setTimeout(r, ms))"
+    - "timeout: Promise.race([promise, timeoutPromise])"
+  L2:
+    - "Retry: use for loop with try/catch, await delay between"
+    - "Sequential: use for...of with await"
+  L3:
+    - |
+      ```typescript
+      export async function retry<T>(
+        fn: () => Promise<T>,
+        maxRetries: number = 3,
+        baseDelay: number = 100
+      ): Promise<T> {
+        let lastError: Error;
+        for (let i = 0; i <= maxRetries; i++) {
+          try {
+            return await fn();
+          } catch (e) {
+            lastError = e as Error;
+            if (i < maxRetries) {
+              await delay(baseDelay * Math.pow(2, i));
+            }
+          }
+        }
+        throw lastError!;
+      }
+      ```
+
+solution:
+  async.ts: |
+    export function delay(ms: number): Promise<void> {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    export async function retry<T>(
+      fn: () => Promise<T>,
+      maxRetries: number = 3,
+      baseDelay: number = 100
+    ): Promise<T> {
+      let lastError: Error;
+      for (let i = 0; i <= maxRetries; i++) {
+        try {
+          return await fn();
+        } catch (e) {
+          lastError = e as Error;
+          if (i < maxRetries) {
+            await delay(baseDelay * Math.pow(2, i));
+          }
+        }
+      }
+      throw lastError!;
+    }
+
+    export async function withTimeout<T>(
+      promise: Promise<T>,
+      ms: number
+    ): Promise<T> {
+      const timeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout")), ms);
+      });
+      return Promise.race([promise, timeout]);
+    }
+
+    export async function parallel<T>(promises: Promise<T>[]): Promise<T[]> {
+      return Promise.all(promises);
+    }
+
+    export async function sequential<T>(
+      fns: (() => Promise<T>)[]
+    ): Promise<T[]> {
+      const results: T[] = [];
+      for (const fn of fns) {
+        results.push(await fn());
+      }
+      return results;
+    }
+
+    export async function mapWithLimit<T, U>(
+      items: T[],
+      fn: (item: T) => Promise<U>,
+      concurrency: number
+    ): Promise<U[]> {
+      const results: U[] = new Array(items.length);
+      let index = 0;
+
+      async function worker() {
+        while (index < items.length) {
+          const i = index++;
+          results[i] = await fn(items[i]);
+        }
+      }
+
+      const workers = Array(Math.min(concurrency, items.length))
+        .fill(null)
+        .map(() => worker());
+
+      await Promise.all(workers);
+      return results;
+    }

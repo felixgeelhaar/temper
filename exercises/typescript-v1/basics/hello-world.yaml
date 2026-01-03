@@ -1,0 +1,123 @@
+id: hello-world
+title: Hello World
+description: |
+  Write a function that returns a greeting message.
+
+  ## Learning Objectives
+  - Understand basic TypeScript syntax
+  - Learn to define typed functions
+  - Work with string template literals
+
+  ## Instructions
+  Implement the `hello` function that takes a name and returns a greeting.
+  If the name is empty, greet "World" instead.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - strings
+
+prerequisites: []
+
+starter:
+  hello.ts: |
+    /**
+     * Returns a greeting message for the given name.
+     * If name is empty, greets "World" instead.
+     *
+     * @param name - The name to greet
+     * @returns A greeting message
+     */
+    export function hello(name: string): string {
+      // TODO: Implement this function
+      return "";
+    }
+
+tests:
+  hello.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import { hello } from "./hello";
+
+    describe("hello", () => {
+      it("greets by name", () => {
+        expect(hello("TypeScript")).toBe("Hello, TypeScript!");
+      });
+
+      it("greets World when name is empty", () => {
+        expect(hello("")).toBe("Hello, World!");
+      });
+
+      it("greets another name", () => {
+        expect(hello("Developer")).toBe("Hello, Developer!");
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  test_flags: []
+  timeout: 60
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: formatting
+      name: Code Formatting
+      description: Code follows Prettier conventions
+      weight: 0.2
+      signals:
+        - prettier_clean
+
+    - id: idioms
+      name: TypeScript Idioms
+      description: Uses idiomatic TypeScript patterns
+      weight: 0.3
+      signals:
+        - uses_template_literals
+        - handles_empty_string
+
+hints:
+  L0:
+    - "What does the function need to return when the name is empty?"
+    - "How do you check if a string is empty in TypeScript?"
+  L1:
+    - "Use template literals with backticks for string formatting"
+    - "An empty string is falsy in JavaScript/TypeScript"
+  L2:
+    - "Use template literals like `Hello, ${name}!`"
+    - "Check if (!name) or name === '' and set name = 'World'"
+  L3:
+    - |
+      Structure your solution like this:
+      ```typescript
+      export function hello(name: string): string {
+        if (!name) {
+          name = "World";
+        }
+        return `Hello, ${name}!`;
+      }
+      ```
+
+solution:
+  hello.ts: |
+    /**
+     * Returns a greeting message for the given name.
+     * If name is empty, greets "World" instead.
+     *
+     * @param name - The name to greet
+     * @returns A greeting message
+     */
+    export function hello(name: string): string {
+      if (!name) {
+        name = "World";
+      }
+      return `Hello, ${name}!`;
+    }

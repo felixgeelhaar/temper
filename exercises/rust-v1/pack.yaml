@@ -1,0 +1,38 @@
+id: rust-v1
+name: Rust Fundamentals
+version: 1.0.0
+description: |
+  Learn Rust through deliberate practice. This pack covers the fundamentals
+  of Rust programming, from basic syntax to ownership and testing.
+language: rust
+difficulty_range:
+  - beginner
+  - intermediate
+  - advanced
+
+default_policy:
+  max_level: 3
+  patching_enabled: false
+  cooldown_seconds: 60
+  track: practice
+
+exercises:
+  # Basics (5 exercises)
+  - basics/hello-world
+  - basics/variables
+  - basics/functions
+  - basics/primitive-types
+  - basics/strings
+  # Intermediate (6 exercises)
+  - intermediate/ownership
+  - intermediate/structs
+  - intermediate/enums
+  - intermediate/error-handling
+  - intermediate/traits
+  - intermediate/generics
+  # Testing (1 exercise)
+  - testing/unit-tests
+  # Advanced (3 exercises)
+  - advanced/lifetimes
+  - advanced/iterators
+  - advanced/threads

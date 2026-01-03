@@ -1,0 +1,289 @@
+id: iterators
+title: Iterators
+description: |
+  Learn Rust iterator patterns.
+
+  ## Learning Objectives
+  - Use iterator adapters (map, filter, fold)
+  - Create custom iterators
+  - Understand lazy evaluation
+  - Chain iterator operations
+
+  ## Instructions
+  Implement iterator-based solutions.
+
+difficulty: advanced
+tags:
+  - advanced
+  - iterators
+  - functional
+  - lazy-evaluation
+
+prerequisites:
+  - intermediate/traits
+
+starter:
+  src/lib.rs: |
+    //! Iterator patterns in Rust.
+
+    /// Sum of squares of even numbers in range.
+    pub fn sum_even_squares(max: u32) -> u64 {
+        // TODO: Use iterators to sum squares of even numbers 0..max
+        todo!()
+    }
+
+    /// Find the first number divisible by both 3 and 5.
+    pub fn first_divisible_by_3_and_5(start: u32) -> Option<u32> {
+        // TODO: Find first number >= start divisible by 15
+        todo!()
+    }
+
+    /// Count words in a string (split by whitespace).
+    pub fn word_count(s: &str) -> usize {
+        // TODO: Use iterators
+        todo!()
+    }
+
+    /// Calculate average of numbers, returning None for empty slice.
+    pub fn average(numbers: &[f64]) -> Option<f64> {
+        // TODO: Use iterators to calculate average
+        todo!()
+    }
+
+    /// Flatten nested vectors.
+    pub fn flatten<T: Clone>(nested: Vec<Vec<T>>) -> Vec<T> {
+        // TODO: Use flat_map or flatten
+        todo!()
+    }
+
+    /// Zip two slices and sum products (dot product).
+    pub fn dot_product(a: &[i32], b: &[i32]) -> i32 {
+        // TODO: zip, map to product, sum
+        todo!()
+    }
+
+    /// Group consecutive equal elements.
+    pub fn group_consecutive<T: Eq + Clone>(items: Vec<T>) -> Vec<Vec<T>> {
+        // TODO: Group consecutive equal items
+        todo!()
+    }
+
+    /// Custom iterator that generates Fibonacci numbers.
+    pub struct Fibonacci {
+        curr: u64,
+        next: u64,
+    }
+
+    impl Fibonacci {
+        pub fn new() -> Self {
+            // TODO: Initialize fibonacci sequence
+            todo!()
+        }
+    }
+
+    impl Iterator for Fibonacci {
+        type Item = u64;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            // TODO: Generate next fibonacci number
+            todo!()
+        }
+    }
+
+    /// Take first n fibonacci numbers.
+    pub fn first_n_fibonacci(n: usize) -> Vec<u64> {
+        // TODO: Use Fibonacci iterator
+        todo!()
+    }
+
+tests:
+  src/tests.rs: |
+    use super::*;
+
+    #[test]
+    fn test_sum_even_squares() {
+        // 0² + 2² + 4² + 6² + 8² = 0 + 4 + 16 + 36 + 64 = 120
+        assert_eq!(sum_even_squares(10), 120);
+    }
+
+    #[test]
+    fn test_first_divisible() {
+        assert_eq!(first_divisible_by_3_and_5(1), Some(15));
+        assert_eq!(first_divisible_by_3_and_5(16), Some(30));
+    }
+
+    #[test]
+    fn test_word_count() {
+        assert_eq!(word_count("hello world"), 2);
+        assert_eq!(word_count("  spaces  everywhere  "), 2);
+        assert_eq!(word_count(""), 0);
+    }
+
+    #[test]
+    fn test_average() {
+        assert_eq!(average(&[1.0, 2.0, 3.0, 4.0, 5.0]), Some(3.0));
+        assert_eq!(average(&[]), None);
+    }
+
+    #[test]
+    fn test_flatten() {
+        let nested = vec![vec![1, 2], vec![3, 4], vec![5]];
+        assert_eq!(flatten(nested), vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_dot_product() {
+        assert_eq!(dot_product(&[1, 2, 3], &[4, 5, 6]), 32);
+        assert_eq!(dot_product(&[], &[]), 0);
+    }
+
+    #[test]
+    fn test_group_consecutive() {
+        let items = vec![1, 1, 2, 2, 2, 3, 1, 1];
+        let groups = group_consecutive(items);
+        assert_eq!(groups, vec![
+            vec![1, 1],
+            vec![2, 2, 2],
+            vec![3],
+            vec![1, 1],
+        ]);
+    }
+
+    #[test]
+    fn test_fibonacci() {
+        let fibs = first_n_fibonacci(10);
+        assert_eq!(fibs, vec![0, 1, 1, 2, 3, 5, 8, 13, 21, 34]);
+    }
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: iterators
+      name: Iterator Usage
+      description: Idiomatic iterator usage
+      weight: 0.5
+      signals:
+        - uses_iterator_adapters
+        - implements_iterator
+
+hints:
+  L0:
+    - "What's the difference between iter() and into_iter()?"
+    - "How do you implement the Iterator trait?"
+  L1:
+    - "iter() borrows, into_iter() consumes"
+    - "Iterator needs: type Item and fn next(&mut self) -> Option<Item>"
+  L2:
+    - "fold for accumulating: .fold(0, |acc, x| acc + x)"
+    - "flat_map for flattening while mapping"
+  L3:
+    - |
+      ```rust
+      impl Iterator for Fibonacci {
+          type Item = u64;
+
+          fn next(&mut self) -> Option<Self::Item> {
+              let result = self.curr;
+              self.curr = self.next;
+              self.next = result + self.next;
+              Some(result)
+          }
+      }
+      ```
+
+solution:
+  src/lib.rs: |
+    pub fn sum_even_squares(max: u32) -> u64 {
+        (0..max)
+            .filter(|n| n % 2 == 0)
+            .map(|n| (n as u64) * (n as u64))
+            .sum()
+    }
+
+    pub fn first_divisible_by_3_and_5(start: u32) -> Option<u32> {
+        (start..).find(|n| n % 15 == 0)
+    }
+
+    pub fn word_count(s: &str) -> usize {
+        s.split_whitespace().count()
+    }
+
+    pub fn average(numbers: &[f64]) -> Option<f64> {
+        if numbers.is_empty() {
+            None
+        } else {
+            Some(numbers.iter().sum::<f64>() / numbers.len() as f64)
+        }
+    }
+
+    pub fn flatten<T: Clone>(nested: Vec<Vec<T>>) -> Vec<T> {
+        nested.into_iter().flatten().collect()
+    }
+
+    pub fn dot_product(a: &[i32], b: &[i32]) -> i32 {
+        a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
+    }
+
+    pub fn group_consecutive<T: Eq + Clone>(items: Vec<T>) -> Vec<Vec<T>> {
+        if items.is_empty() {
+            return vec![];
+        }
+
+        let mut result = vec![];
+        let mut current_group = vec![items[0].clone()];
+
+        for item in items.into_iter().skip(1) {
+            if item == current_group[0] {
+                current_group.push(item);
+            } else {
+                result.push(current_group);
+                current_group = vec![item];
+            }
+        }
+        result.push(current_group);
+        result
+    }
+
+    pub struct Fibonacci {
+        curr: u64,
+        next: u64,
+    }
+
+    impl Fibonacci {
+        pub fn new() -> Self {
+            Fibonacci { curr: 0, next: 1 }
+        }
+    }
+
+    impl Default for Fibonacci {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    impl Iterator for Fibonacci {
+        type Item = u64;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let result = self.curr;
+            self.curr = self.next;
+            self.next = result + self.next;
+            Some(result)
+        }
+    }
+
+    pub fn first_n_fibonacci(n: usize) -> Vec<u64> {
+        Fibonacci::new().take(n).collect()
+    }

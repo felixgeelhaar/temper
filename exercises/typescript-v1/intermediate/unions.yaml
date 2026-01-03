@@ -1,0 +1,409 @@
+id: unions
+title: Union Types and Type Guards
+description: |
+  Learn TypeScript union types and type guards.
+
+  ## Learning Objectives
+  - Define union types
+  - Create discriminated unions
+  - Write type guard functions
+  - Use exhaustive checking
+
+  ## Instructions
+  Implement type-safe handling of different shapes.
+
+difficulty: intermediate
+tags:
+  - intermediate
+  - unions
+  - type-guards
+  - discriminated-unions
+
+prerequisites:
+  - basics/types
+
+starter:
+  shapes.ts: |
+    /**
+     * Union types and type guards for shapes.
+     */
+
+    /**
+     * Circle shape with radius.
+     */
+    export interface Circle {
+      kind: "circle";
+      radius: number;
+    }
+
+    /**
+     * Rectangle shape with width and height.
+     */
+    export interface Rectangle {
+      kind: "rectangle";
+      width: number;
+      height: number;
+    }
+
+    /**
+     * Triangle shape with base and height.
+     */
+    export interface Triangle {
+      kind: "triangle";
+      base: number;
+      height: number;
+    }
+
+    /**
+     * Union of all shapes.
+     */
+    export type Shape = Circle | Rectangle | Triangle;
+
+    /**
+     * Type guard to check if shape is a Circle.
+     */
+    export function isCircle(shape: Shape): shape is Circle {
+      // TODO: Check if shape.kind === "circle"
+      return false;
+    }
+
+    /**
+     * Type guard to check if shape is a Rectangle.
+     */
+    export function isRectangle(shape: Shape): shape is Rectangle {
+      // TODO: Check if shape.kind === "rectangle"
+      return false;
+    }
+
+    /**
+     * Calculate the area of any shape.
+     * Use exhaustive checking with never type.
+     */
+    export function calculateArea(shape: Shape): number {
+      // TODO: Use switch on shape.kind
+      // Circle: π * r²
+      // Rectangle: width * height
+      // Triangle: 0.5 * base * height
+      return 0;
+    }
+
+    /**
+     * Calculate perimeter of any shape.
+     */
+    export function calculatePerimeter(shape: Shape): number {
+      // TODO: Calculate perimeter for each shape
+      // Circle: 2 * π * r
+      // Rectangle: 2 * (width + height)
+      // Triangle: base + 2 * sqrt(height² + (base/2)²) (isoceles)
+      return 0;
+    }
+
+    /**
+     * Result type for operations that can fail.
+     */
+    export type Result<T, E> =
+      | { success: true; value: T }
+      | { success: false; error: E };
+
+    /**
+     * Parse shape from unknown input.
+     */
+    export function parseShape(input: unknown): Result<Shape, string> {
+      // TODO: Validate input is object with valid kind
+      // Return success with shape or error with message
+      return { success: false, error: "Not implemented" };
+    }
+
+    /**
+     * Get shape description.
+     */
+    export function describeShape(shape: Shape): string {
+      // TODO: Return description like "Circle with radius 5"
+      return "";
+    }
+
+    /**
+     * Filter shapes by type.
+     */
+    export function filterCircles(shapes: Shape[]): Circle[] {
+      // TODO: Use type guard to filter only circles
+      return [];
+    }
+
+tests:
+  shapes.test.ts: |
+    import { describe, it, expect } from "vitest";
+    import {
+      Shape, Circle, Rectangle, Triangle,
+      isCircle, isRectangle,
+      calculateArea, calculatePerimeter,
+      parseShape, describeShape, filterCircles
+    } from "./shapes";
+
+    describe("type guards", () => {
+      it("isCircle returns true for circles", () => {
+        const circle: Shape = { kind: "circle", radius: 5 };
+        expect(isCircle(circle)).toBe(true);
+      });
+
+      it("isCircle returns false for rectangles", () => {
+        const rect: Shape = { kind: "rectangle", width: 4, height: 3 };
+        expect(isCircle(rect)).toBe(false);
+      });
+
+      it("isRectangle returns true for rectangles", () => {
+        const rect: Shape = { kind: "rectangle", width: 4, height: 3 };
+        expect(isRectangle(rect)).toBe(true);
+      });
+    });
+
+    describe("calculateArea", () => {
+      it("calculates circle area", () => {
+        const circle: Circle = { kind: "circle", radius: 5 };
+        expect(calculateArea(circle)).toBeCloseTo(Math.PI * 25);
+      });
+
+      it("calculates rectangle area", () => {
+        const rect: Rectangle = { kind: "rectangle", width: 4, height: 3 };
+        expect(calculateArea(rect)).toBe(12);
+      });
+
+      it("calculates triangle area", () => {
+        const tri: Triangle = { kind: "triangle", base: 6, height: 4 };
+        expect(calculateArea(tri)).toBe(12);
+      });
+    });
+
+    describe("calculatePerimeter", () => {
+      it("calculates circle perimeter", () => {
+        const circle: Circle = { kind: "circle", radius: 5 };
+        expect(calculatePerimeter(circle)).toBeCloseTo(2 * Math.PI * 5);
+      });
+
+      it("calculates rectangle perimeter", () => {
+        const rect: Rectangle = { kind: "rectangle", width: 4, height: 3 };
+        expect(calculatePerimeter(rect)).toBe(14);
+      });
+    });
+
+    describe("parseShape", () => {
+      it("parses valid circle", () => {
+        const result = parseShape({ kind: "circle", radius: 5 });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.value.kind).toBe("circle");
+        }
+      });
+
+      it("returns error for invalid input", () => {
+        const result = parseShape({ kind: "invalid" });
+        expect(result.success).toBe(false);
+      });
+
+      it("returns error for non-object", () => {
+        const result = parseShape("not an object");
+        expect(result.success).toBe(false);
+      });
+    });
+
+    describe("describeShape", () => {
+      it("describes circle", () => {
+        const circle: Circle = { kind: "circle", radius: 5 };
+        expect(describeShape(circle)).toContain("circle");
+        expect(describeShape(circle)).toContain("5");
+      });
+
+      it("describes rectangle", () => {
+        const rect: Rectangle = { kind: "rectangle", width: 4, height: 3 };
+        expect(describeShape(rect)).toContain("rectangle");
+      });
+    });
+
+    describe("filterCircles", () => {
+      it("filters only circles", () => {
+        const shapes: Shape[] = [
+          { kind: "circle", radius: 5 },
+          { kind: "rectangle", width: 4, height: 3 },
+          { kind: "circle", radius: 3 },
+        ];
+        const circles = filterCircles(shapes);
+        expect(circles).toHaveLength(2);
+        expect(circles.every((c) => c.kind === "circle")).toBe(true);
+      });
+    });
+
+check_recipe:
+  format: true
+  build: true
+  test: true
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: unions
+      name: Union Types
+      description: Proper union and type guard usage
+      weight: 0.5
+      signals:
+        - uses_type_guards
+        - uses_discriminated_unions
+
+hints:
+  L0:
+    - "How do you narrow a union type in TypeScript?"
+    - "What makes a discriminated union different from a regular union?"
+  L1:
+    - "Type guard: return shape.kind === 'circle'"
+    - "Switch on the discriminant (kind) for exhaustive checking"
+  L2:
+    - "Exhaustive check: add default case with 'const _: never = shape'"
+    - "Parse: check typeof input === 'object' && input !== null"
+  L3:
+    - |
+      ```typescript
+      export function calculateArea(shape: Shape): number {
+        switch (shape.kind) {
+          case "circle":
+            return Math.PI * shape.radius ** 2;
+          case "rectangle":
+            return shape.width * shape.height;
+          case "triangle":
+            return 0.5 * shape.base * shape.height;
+          default:
+            const _exhaustive: never = shape;
+            throw new Error(`Unknown shape: ${_exhaustive}`);
+        }
+      }
+      ```
+
+solution:
+  shapes.ts: |
+    export interface Circle {
+      kind: "circle";
+      radius: number;
+    }
+
+    export interface Rectangle {
+      kind: "rectangle";
+      width: number;
+      height: number;
+    }
+
+    export interface Triangle {
+      kind: "triangle";
+      base: number;
+      height: number;
+    }
+
+    export type Shape = Circle | Rectangle | Triangle;
+
+    export function isCircle(shape: Shape): shape is Circle {
+      return shape.kind === "circle";
+    }
+
+    export function isRectangle(shape: Shape): shape is Rectangle {
+      return shape.kind === "rectangle";
+    }
+
+    export function calculateArea(shape: Shape): number {
+      switch (shape.kind) {
+        case "circle":
+          return Math.PI * shape.radius ** 2;
+        case "rectangle":
+          return shape.width * shape.height;
+        case "triangle":
+          return 0.5 * shape.base * shape.height;
+        default:
+          const _exhaustive: never = shape;
+          throw new Error(`Unknown shape: ${_exhaustive}`);
+      }
+    }
+
+    export function calculatePerimeter(shape: Shape): number {
+      switch (shape.kind) {
+        case "circle":
+          return 2 * Math.PI * shape.radius;
+        case "rectangle":
+          return 2 * (shape.width + shape.height);
+        case "triangle":
+          // Isoceles triangle perimeter
+          const halfBase = shape.base / 2;
+          const side = Math.sqrt(shape.height ** 2 + halfBase ** 2);
+          return shape.base + 2 * side;
+        default:
+          const _exhaustive: never = shape;
+          throw new Error(`Unknown shape: ${_exhaustive}`);
+      }
+    }
+
+    export type Result<T, E> =
+      | { success: true; value: T }
+      | { success: false; error: E };
+
+    export function parseShape(input: unknown): Result<Shape, string> {
+      if (typeof input !== "object" || input === null) {
+        return { success: false, error: "Input must be an object" };
+      }
+
+      const obj = input as Record<string, unknown>;
+
+      if (!("kind" in obj)) {
+        return { success: false, error: "Missing kind property" };
+      }
+
+      switch (obj.kind) {
+        case "circle":
+          if (typeof obj.radius !== "number" || obj.radius <= 0) {
+            return { success: false, error: "Invalid radius" };
+          }
+          return { success: true, value: { kind: "circle", radius: obj.radius } };
+
+        case "rectangle":
+          if (typeof obj.width !== "number" || obj.width <= 0 ||
+              typeof obj.height !== "number" || obj.height <= 0) {
+            return { success: false, error: "Invalid dimensions" };
+          }
+          return {
+            success: true,
+            value: { kind: "rectangle", width: obj.width, height: obj.height },
+          };
+
+        case "triangle":
+          if (typeof obj.base !== "number" || obj.base <= 0 ||
+              typeof obj.height !== "number" || obj.height <= 0) {
+            return { success: false, error: "Invalid dimensions" };
+          }
+          return {
+            success: true,
+            value: { kind: "triangle", base: obj.base, height: obj.height },
+          };
+
+        default:
+          return { success: false, error: `Unknown shape kind: ${obj.kind}` };
+      }
+    }
+
+    export function describeShape(shape: Shape): string {
+      switch (shape.kind) {
+        case "circle":
+          return `Circle with radius ${shape.radius}`;
+        case "rectangle":
+          return `Rectangle with width ${shape.width} and height ${shape.height}`;
+        case "triangle":
+          return `Triangle with base ${shape.base} and height ${shape.height}`;
+        default:
+          const _exhaustive: never = shape;
+          throw new Error(`Unknown shape: ${_exhaustive}`);
+      }
+    }
+
+    export function filterCircles(shapes: Shape[]): Circle[] {
+      return shapes.filter(isCircle);
+    }
