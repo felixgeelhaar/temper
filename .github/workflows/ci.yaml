@@ -15,7 +15,6 @@ on:
       - 'docs/**'
       - 'LICENSE'
 
-# Cancel redundant runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -27,12 +26,12 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Download dependencies
@@ -44,11 +43,11 @@ jobs:
       - name: Run tests
         run: go test -short -race -coverprofile=coverage.out ./...
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage.out
-          fail_ci_if_error: false
+      - name: Install coverctl
+        run: go install github.com/felixgeelhaar/coverctl@latest
+
+      - name: Check coverage with coverctl
+        run: coverctl report --profile=coverage.out
         continue-on-error: true
 
   lint:
@@ -57,21 +56,20 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.7.2
           args: --timeout=3m
 
-  # Single build verification (not multi-platform - that's for releases)
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -79,15 +77,42 @@ jobs:
     needs: [test, lint]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
 
       - name: Build binaries
         run: |
           go build -ldflags="-s -w" -o temper ./cmd/temper
           go build -ldflags="-s -w" -o temperd ./cmd/temperd
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install VerdictSec
+        run: go install github.com/felixgeelhaar/verdictsec/cmd/verdict@latest
+
+      - name: Run VerdictSec Security Scan
+        run: verdict scan --json -o verdict-results.json || true
+
+      - name: Upload VerdictSec results
+        uses: actions/upload-artifact@v6
+        with:
+          name: security-scan-results
+          path: verdict-results.json
+        if: always()
