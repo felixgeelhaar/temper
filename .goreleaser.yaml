@@ -134,7 +134,7 @@ brews:
       owner: felixgeelhaar
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    folder: Formula
+    directory: Formula
     homepage: https://github.com/felixgeelhaar/temper
     description: Adaptive AI pairing for learning
     license: MIT
