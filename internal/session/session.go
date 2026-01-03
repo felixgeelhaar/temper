@@ -14,6 +14,7 @@ const (
 	IntentTraining        SessionIntent = "training"
 	IntentGreenfield      SessionIntent = "greenfield"
 	IntentFeatureGuidance SessionIntent = "feature_guidance"
+	IntentSpecAuthoring   SessionIntent = "spec_authoring"
 )
 
 // Session represents an active pairing session
@@ -27,6 +28,10 @@ type Session struct {
 	// Session intent and spec (for feature guidance)
 	Intent   SessionIntent `json:"intent"`
 	SpecPath string        `json:"spec_path,omitempty"`
+
+	// Authoring-specific fields (for spec_authoring intent)
+	AuthoringDocs    []string `json:"authoring_docs,omitempty"`    // paths to discovered docs
+	AuthoringSection string   `json:"authoring_section,omitempty"` // current section being authored
 
 	// Statistics
 	RunCount         int       `json:"run_count"`
@@ -123,6 +128,33 @@ func NewGreenfieldSession(code map[string]string, policy domain.LearningPolicy) 
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+}
+
+// NewAuthoringSession creates a new session for spec authoring
+func NewAuthoringSession(specPath string, docPaths []string, policy domain.LearningPolicy) *Session {
+	now := time.Now()
+	return &Session{
+		ID:            uuid.New().String(),
+		Code:          map[string]string{},
+		Policy:        policy,
+		Status:        StatusActive,
+		Intent:        IntentSpecAuthoring,
+		SpecPath:      specPath,
+		AuthoringDocs: docPaths,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+}
+
+// SetAuthoringSection updates the current section being authored
+func (s *Session) SetAuthoringSection(section string) {
+	s.AuthoringSection = section
+	s.UpdatedAt = time.Now()
+}
+
+// IsAuthoring returns true if this is a spec authoring session
+func (s *Session) IsAuthoring() bool {
+	return s.Intent == IntentSpecAuthoring
 }
 
 // UpdateCode updates the session's code

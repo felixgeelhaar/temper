@@ -193,4 +193,78 @@ export class TemperClient {
             return false;
         }
     }
+
+    // Spec Authoring
+
+    async createAuthoringSession(specPath: string, docsPaths?: string[]): Promise<Session> {
+        return this.request('POST', '/v1/sessions', {
+            spec_path: specPath,
+            intent: 'spec_authoring',
+            docs_paths: docsPaths || [],
+        });
+    }
+
+    async discoverDocs(specPath: string, docsPaths?: string[]): Promise<{ documents: Document[] }> {
+        const encodedPath = encodeURIComponent(specPath);
+        return this.request('POST', `/v1/specs/${encodedPath}/authoring/discover`, {
+            docs_paths: docsPaths || ['docs/', 'README.md'],
+        });
+    }
+
+    async authoringSuggest(sessionId: string, section: string): Promise<{ suggestions: AuthoringSuggestion[] }> {
+        return this.request('POST', `/v1/sessions/${sessionId}/authoring/suggest`, { section });
+    }
+
+    async authoringApply(sessionId: string, suggestionId: string): Promise<{ applied: boolean; section?: string }> {
+        return this.request('POST', `/v1/sessions/${sessionId}/authoring/apply`, { suggestion_id: suggestionId });
+    }
+
+    async authoringHint(sessionId: string, section: string, question: string): Promise<Intervention> {
+        return this.request('POST', `/v1/sessions/${sessionId}/authoring/hint`, { section, question });
+    }
+
+    async listSpecs(): Promise<{ specs: Spec[] }> {
+        return this.request('GET', '/v1/specs');
+    }
+}
+
+export interface Document {
+    path: string;
+    title: string;
+    type: string;
+    sections?: { heading: string; level: number; content: string }[];
+}
+
+export interface AuthoringSuggestion {
+    id: string;
+    section: string;
+    value: unknown;
+    source: string;
+    confidence: number;
+    reasoning?: string;
+}
+
+export interface Spec {
+    name: string;
+    file_path: string;
+    version?: string;
+    goals?: string[];
+    acceptance_criteria?: { id: string; description: string; satisfied: boolean }[];
+}
+
+export interface PatchPreview {
+    has_patch: boolean;
+    preview?: {
+        patch: {
+            id: string;
+            file: string;
+            description: string;
+            diff: string;
+            status: string;
+        };
+        additions: number;
+        deletions: number;
+        warnings?: string[];
+    };
+    message?: string;
 }

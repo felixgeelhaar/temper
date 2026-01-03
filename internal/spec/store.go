@@ -35,6 +35,11 @@ func NewFileStore(basePath string) *FileStore {
 	return &FileStore{basePath: basePath}
 }
 
+// BasePath returns the workspace root path
+func (s *FileStore) BasePath() string {
+	return s.basePath
+}
+
 // SpecPath returns the full path to a spec file
 func (s *FileStore) SpecPath(relativePath string) string {
 	// If path already starts with .specs/, use it directly

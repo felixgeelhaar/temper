@@ -84,10 +84,20 @@ function M.get_exercise(pack, slug, callback)
 end
 
 -- Create session
-function M.create_session(exercise_id, track, callback)
-	local body = { exercise_id = exercise_id }
-	if track then
-		body.track = track
+-- opts can have: exercise_id, spec_path, intent, track
+function M.create_session(opts, callback)
+	local body = {}
+	if opts.exercise_id then
+		body.exercise_id = opts.exercise_id
+	end
+	if opts.spec_path then
+		body.spec_path = opts.spec_path
+	end
+	if opts.intent then
+		body.intent = opts.intent
+	end
+	if opts.track then
+		body.track = opts.track
 	end
 	request("POST", "/v1/sessions", body, callback)
 end
@@ -290,6 +300,53 @@ end
 -- Get patch statistics
 function M.get_patch_stats(callback)
 	request("GET", "/v1/patches/stats", nil, callback)
+end
+
+-- Spec Authoring
+
+-- Create an authoring session
+function M.create_authoring_session(spec_path, docs_paths, callback)
+	local body = {
+		spec_path = spec_path,
+		intent = "spec_authoring",
+		docs_paths = docs_paths or {},
+	}
+	request("POST", "/v1/sessions", body, callback)
+end
+
+-- Discover project documentation
+function M.discover_docs(spec_path, docs_paths, callback)
+	-- URL encode the spec path
+	local encoded_path = spec_path:gsub("/", "%%2F")
+	local body = {
+		docs_paths = docs_paths or { "docs/", "README.md" },
+	}
+	request("POST", "/v1/specs/" .. encoded_path .. "/authoring/discover", body, callback)
+end
+
+-- Get section suggestions
+function M.authoring_suggest(session_id, section, callback)
+	local body = {
+		section = section,
+	}
+	request("POST", "/v1/sessions/" .. session_id .. "/authoring/suggest", body, callback)
+end
+
+-- Apply a suggestion
+function M.authoring_apply(session_id, suggestion_id, callback)
+	local body = {
+		suggestion_id = suggestion_id,
+	}
+	request("POST", "/v1/sessions/" .. session_id .. "/authoring/apply", body, callback)
+end
+
+-- Get authoring hint
+function M.authoring_hint(session_id, section, question, callback)
+	local body = {
+		section = section,
+		question = question,
+	}
+	request("POST", "/v1/sessions/" .. session_id .. "/authoring/hint", body, callback)
 end
 
 return M

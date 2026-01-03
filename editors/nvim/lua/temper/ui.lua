@@ -212,7 +212,17 @@ function M.show_session(session)
 	table.insert(lines, "## Session")
 	table.insert(lines, "")
 	table.insert(lines, string.format("**ID:** `%s`", session.id or "unknown"))
-	table.insert(lines, string.format("**Exercise:** %s", session.exercise_id or "unknown"))
+
+	-- Show exercise or spec depending on session type
+	local intent = session.intent or "training"
+	table.insert(lines, string.format("**Intent:** %s", intent))
+
+	if session.spec_path and session.spec_path ~= "" then
+		table.insert(lines, string.format("**Spec:** %s", session.spec_path))
+	elseif session.exercise_id and session.exercise_id ~= "" then
+		table.insert(lines, string.format("**Exercise:** %s", session.exercise_id))
+	end
+
 	table.insert(lines, string.format("**Status:** %s", session.status or "unknown"))
 	table.insert(lines, "")
 	table.insert(lines, "### Stats")
@@ -221,9 +231,9 @@ function M.show_session(session)
 	table.insert(lines, "")
 	table.insert(lines, "### Policy")
 	if session.policy then
-		table.insert(lines, string.format("- Track: %s", session.policy.track or "default"))
-		table.insert(lines, string.format("- Max Level: L%d", session.policy.max_level or 3))
-		table.insert(lines, string.format("- Cooldown: %ds", session.policy.cooldown_seconds or 60))
+		table.insert(lines, string.format("- Track: %s", session.policy.Track or session.policy.track or "default"))
+		table.insert(lines, string.format("- Max Level: L%d", session.policy.MaxLevel or session.policy.max_level or 3))
+		table.insert(lines, string.format("- Cooldown: %ds", session.policy.CooldownSeconds or session.policy.cooldown_seconds or 60))
 	end
 
 	M.set_panel_content(lines, "Temper - Session")

@@ -28,6 +28,11 @@ func NewService(basePath string) *Service {
 	}
 }
 
+// GetWorkspaceRoot returns the workspace root path
+func (s *Service) GetWorkspaceRoot() string {
+	return s.store.BasePath()
+}
+
 // Create creates a new spec scaffold with the given name
 func (s *Service) Create(ctx context.Context, name string) (*domain.ProductSpec, error) {
 	spec := NewSpecTemplate(name)

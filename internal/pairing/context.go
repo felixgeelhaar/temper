@@ -5,6 +5,64 @@ import (
 	"github.com/felixgeelhaar/temper/internal/session"
 )
 
+// AuthoringContext holds context for spec authoring sessions
+type AuthoringContext struct {
+	Spec      *domain.ProductSpec  // The spec being authored
+	Section   string               // Current section: goals, features, acceptance_criteria, non_functional
+	Documents []domain.Document    // Discovered project documents
+	Question  string               // Optional user question for hints
+}
+
+// HasDocuments returns true if there are documents available
+func (c *AuthoringContext) HasDocuments() bool {
+	return len(c.Documents) > 0
+}
+
+// GetDocumentContent returns all document content formatted for LLM
+func (c *AuthoringContext) GetDocumentContent(maxTokens int) string {
+	if len(c.Documents) == 0 {
+		return ""
+	}
+
+	// Rough estimate: 1 token ~= 4 chars
+	maxChars := maxTokens * 4
+	var content string
+
+	for _, doc := range c.Documents {
+		if len(content) >= maxChars {
+			break
+		}
+
+		content += "---\n"
+		content += "# " + doc.Title + " (" + doc.Path + ")\n\n"
+
+		for _, section := range doc.Sections {
+			if len(content) >= maxChars {
+				break
+			}
+
+			for i := 0; i < section.Level; i++ {
+				content += "#"
+			}
+			if section.Level > 0 {
+				content += " "
+			}
+			content += section.Heading + "\n\n"
+
+			remaining := maxChars - len(content)
+			if remaining > 0 {
+				sectionContent := section.Content
+				if len(sectionContent) > remaining {
+					sectionContent = sectionContent[:remaining-3] + "..."
+				}
+				content += sectionContent + "\n\n"
+			}
+		}
+	}
+
+	return content
+}
+
 // InterventionContext holds all context for intervention selection and generation.
 // This consolidates the various signals used to determine appropriate intervention level.
 type InterventionContext struct {

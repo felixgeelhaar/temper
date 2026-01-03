@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
-import { TemperClient, Session, Intervention, RunResult } from './client';
+import { TemperClient, Session, Intervention, RunResult, AuthoringSuggestion } from './client';
 
 // Global state
 let client: TemperClient;
 let currentSession: Session | null = null;
 let outputChannel: vscode.OutputChannel;
 let statusBarItem: vscode.StatusBarItem;
+let currentSuggestions: AuthoringSuggestion[] = [];
+let currentSpecPath: string | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Temper extension activated');
@@ -36,6 +38,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('temper.exercises', listExercises),
         vscode.commands.registerCommand('temper.setMode', setLearningMode),
         vscode.commands.registerCommand('temper.health', checkHealth),
+        // Spec authoring commands
+        vscode.commands.registerCommand('temper.specAuthor', specAuthor),
+        vscode.commands.registerCommand('temper.authorDiscover', authorDiscover),
+        vscode.commands.registerCommand('temper.authorSuggest', authorSuggest),
+        vscode.commands.registerCommand('temper.authorApply', authorApply),
+        vscode.commands.registerCommand('temper.authorAsk', authorAsk),
     );
 
     // Watch for configuration changes
@@ -430,6 +438,297 @@ async function checkHealth() {
         }
     } catch (error) {
         vscode.window.showErrorMessage(`Health check failed: ${error}`);
+    }
+}
+
+// Spec Authoring Commands
+
+async function specAuthor() {
+    try {
+        const running = await client.isRunning();
+        if (!running) {
+            vscode.window.showErrorMessage('Temper daemon is not running. Start with: temper start');
+            return;
+        }
+
+        // Get list of specs
+        const specsResult = await client.listSpecs();
+        if (!specsResult.specs || specsResult.specs.length === 0) {
+            vscode.window.showWarningMessage('No specs found. Create one first with temper spec create <name>');
+            return;
+        }
+
+        // Let user select a spec
+        const specItems = specsResult.specs.map(spec => ({
+            label: spec.name || spec.file_path,
+            description: spec.file_path,
+            detail: spec.version ? `v${spec.version}` : undefined,
+            spec: spec,
+        }));
+
+        const selectedSpec = await vscode.window.showQuickPick(specItems, {
+            placeHolder: 'Select a spec to author',
+        });
+
+        if (!selectedSpec) {
+            return;
+        }
+
+        currentSpecPath = selectedSpec.spec.file_path;
+
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Starting authoring session...',
+            cancellable: false,
+        }, async () => {
+            // Discover docs first
+            const docsResult = await client.discoverDocs(currentSpecPath!, ['docs/', 'README.md']);
+            const docsPaths = docsResult.documents?.map(d => d.path) || [];
+
+            if (docsResult.documents && docsResult.documents.length > 0) {
+                vscode.window.showInformationMessage(`Found ${docsResult.documents.length} documents`);
+            }
+
+            // Create authoring session
+            currentSession = await client.createAuthoringSession(currentSpecPath!, docsPaths);
+            updateStatusBar();
+        });
+
+        outputChannel.clear();
+        outputChannel.appendLine('=== Spec Authoring Session ===');
+        outputChannel.appendLine('');
+        outputChannel.appendLine(`Spec: ${selectedSpec.label}`);
+        outputChannel.appendLine(`Path: ${currentSpecPath}`);
+        outputChannel.appendLine(`Session: ${currentSession?.id.substring(0, 8)}`);
+        outputChannel.appendLine('');
+        outputChannel.appendLine('Next steps:');
+        outputChannel.appendLine('  1. Use "Temper: Suggest Section" to get AI suggestions');
+        outputChannel.appendLine('  2. Use "Temper: Apply Suggestion" to apply a suggestion');
+        outputChannel.appendLine('  3. Use "Temper: Ask Authoring Question" for help');
+        outputChannel.show();
+
+        vscode.window.showInformationMessage(`Authoring session started: ${currentSession?.id.substring(0, 8)}`);
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to start authoring: ${error}`);
+    }
+}
+
+async function authorDiscover() {
+    if (!currentSpecPath) {
+        vscode.window.showWarningMessage('No active spec. Use "Temper: Start Spec Authoring" first.');
+        return;
+    }
+
+    try {
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Discovering documentation...',
+            cancellable: false,
+        }, async () => {
+            const result = await client.discoverDocs(currentSpecPath!, ['docs/', 'README.md', 'doc/', 'documentation/']);
+
+            outputChannel.clear();
+            outputChannel.appendLine('=== Discovered Documents ===');
+            outputChannel.appendLine('');
+
+            if (result.documents && result.documents.length > 0) {
+                for (const doc of result.documents) {
+                    outputChannel.appendLine(`## ${doc.title || doc.path}`);
+                    outputChannel.appendLine(`   Type: ${doc.type}`);
+                    outputChannel.appendLine(`   Path: ${doc.path}`);
+                    if (doc.sections) {
+                        outputChannel.appendLine(`   Sections: ${doc.sections.length}`);
+                    }
+                    outputChannel.appendLine('');
+                }
+                outputChannel.appendLine(`Total: ${result.documents.length} documents`);
+            } else {
+                outputChannel.appendLine('No documentation found.');
+                outputChannel.appendLine('');
+                outputChannel.appendLine('Try adding docs to:');
+                outputChannel.appendLine('  - docs/ directory');
+                outputChannel.appendLine('  - README.md');
+            }
+
+            outputChannel.show();
+        });
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to discover docs: ${error}`);
+    }
+}
+
+async function authorSuggest() {
+    if (!currentSession) {
+        vscode.window.showWarningMessage('No active session. Use "Temper: Start Spec Authoring" first.');
+        return;
+    }
+
+    const sections = [
+        { label: 'Goals', value: 'goals', description: 'High-level project goals' },
+        { label: 'Features', value: 'features', description: 'Feature definitions' },
+        { label: 'Acceptance Criteria', value: 'acceptance_criteria', description: 'Verifiable success criteria' },
+        { label: 'Non-Functional', value: 'non_functional', description: 'Performance, security, etc.' },
+    ];
+
+    const selectedSection = await vscode.window.showQuickPick(sections, {
+        placeHolder: 'Select a section to get suggestions for',
+    });
+
+    if (!selectedSection) {
+        return;
+    }
+
+    try {
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `Getting ${selectedSection.label} suggestions...`,
+            cancellable: false,
+        }, async () => {
+            const result = await client.authoringSuggest(currentSession!.id, selectedSection.value);
+            currentSuggestions = result.suggestions || [];
+
+            outputChannel.clear();
+            outputChannel.appendLine(`=== Suggestions: ${selectedSection.label} ===`);
+            outputChannel.appendLine('');
+
+            if (currentSuggestions.length > 0) {
+                for (let i = 0; i < currentSuggestions.length; i++) {
+                    const sug = currentSuggestions[i];
+                    outputChannel.appendLine(`[${i + 1}] ${sug.id}`);
+                    outputChannel.appendLine('');
+
+                    if (typeof sug.value === 'string') {
+                        outputChannel.appendLine(sug.value);
+                    } else if (typeof sug.value === 'object' && sug.value !== null) {
+                        const v = sug.value as Record<string, unknown>;
+                        if (v.title) outputChannel.appendLine(`Title: ${v.title}`);
+                        if (v.description) outputChannel.appendLine(`Description: ${v.description}`);
+                        if (v.priority) outputChannel.appendLine(`Priority: ${v.priority}`);
+                    }
+
+                    outputChannel.appendLine('');
+                    if (sug.source) {
+                        outputChannel.appendLine(`Source: ${sug.source}`);
+                    }
+                    if (sug.confidence) {
+                        outputChannel.appendLine(`Confidence: ${Math.round(sug.confidence * 100)}%`);
+                    }
+                    outputChannel.appendLine('---');
+                    outputChannel.appendLine('');
+                }
+
+                outputChannel.appendLine('Use "Temper: Apply Suggestion" to apply a suggestion');
+            } else {
+                outputChannel.appendLine('No suggestions available.');
+                outputChannel.appendLine('');
+                outputChannel.appendLine('Try:');
+                outputChannel.appendLine('  - Adding more documentation to your project');
+                outputChannel.appendLine('  - Using "Temper: Ask Authoring Question"');
+            }
+
+            outputChannel.show();
+        });
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get suggestions: ${error}`);
+    }
+}
+
+async function authorApply() {
+    if (!currentSession) {
+        vscode.window.showWarningMessage('No active session. Use "Temper: Start Spec Authoring" first.');
+        return;
+    }
+
+    if (currentSuggestions.length === 0) {
+        vscode.window.showWarningMessage('No suggestions available. Use "Temper: Suggest Section" first.');
+        return;
+    }
+
+    const items = currentSuggestions.map((sug, i) => ({
+        label: `[${i + 1}] ${sug.id}`,
+        description: sug.source,
+        detail: typeof sug.value === 'string' ? sug.value.substring(0, 100) : JSON.stringify(sug.value).substring(0, 100),
+        suggestion: sug,
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select a suggestion to apply',
+    });
+
+    if (!selected) {
+        return;
+    }
+
+    try {
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Applying suggestion...',
+            cancellable: false,
+        }, async () => {
+            const result = await client.authoringApply(currentSession!.id, selected.suggestion.id);
+
+            if (result.applied) {
+                vscode.window.showInformationMessage(`Suggestion applied: ${selected.suggestion.id}`);
+
+                outputChannel.clear();
+                outputChannel.appendLine('=== Suggestion Applied ===');
+                outputChannel.appendLine('');
+                outputChannel.appendLine(`ID: ${selected.suggestion.id}`);
+                outputChannel.appendLine(`Section: ${result.section || 'unknown'}`);
+                outputChannel.appendLine('');
+                outputChannel.appendLine('The spec has been updated.');
+                outputChannel.appendLine('');
+                outputChannel.appendLine('Next: Use "Temper: Suggest Section" for more suggestions');
+                outputChannel.show();
+            } else {
+                vscode.window.showErrorMessage('Failed to apply suggestion');
+            }
+        });
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to apply suggestion: ${error}`);
+    }
+}
+
+async function authorAsk() {
+    if (!currentSession) {
+        vscode.window.showWarningMessage('No active session. Use "Temper: Start Spec Authoring" first.');
+        return;
+    }
+
+    const question = await vscode.window.showInputBox({
+        prompt: 'Ask a question about your spec',
+        placeHolder: 'e.g., What APIs should I define for the user service?',
+    });
+
+    if (!question) {
+        return;
+    }
+
+    try {
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Thinking...',
+            cancellable: false,
+        }, async () => {
+            const result = await client.authoringHint(currentSession!.id, 'general', question);
+
+            outputChannel.clear();
+            outputChannel.appendLine('=== Authoring Help ===');
+            outputChannel.appendLine('');
+            outputChannel.appendLine(`Question: ${question}`);
+            outputChannel.appendLine('');
+            outputChannel.appendLine('---');
+            outputChannel.appendLine('');
+            outputChannel.appendLine(result.content || 'No response received.');
+            outputChannel.show();
+        });
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get help: ${error}`);
     }
 }
 

@@ -222,6 +222,33 @@ function M.create_commands()
 	vim.api.nvim_create_user_command("TemperPatchLogStats", function()
 		M.patch_log_stats()
 	end, { desc = "Show patch statistics" })
+
+	-- Spec authoring commands
+	vim.api.nvim_create_user_command("TemperSpecAuthor", function(opts)
+		M.spec_author(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Start spec authoring session with doc discovery" })
+
+	vim.api.nvim_create_user_command("TemperAuthorDiscover", function()
+		M.author_discover()
+	end, { desc = "Discover project documentation" })
+
+	vim.api.nvim_create_user_command("TemperAuthorSuggest", function(opts)
+		M.author_suggest(opts.args ~= "" and opts.args or nil)
+	end, {
+		nargs = "?",
+		complete = function()
+			return { "goals", "features", "acceptance_criteria", "non_functional" }
+		end,
+		desc = "Get AI suggestions for spec section",
+	})
+
+	vim.api.nvim_create_user_command("TemperAuthorApply", function(opts)
+		M.author_apply(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Apply a suggestion by ID" })
+
+	vim.api.nvim_create_user_command("TemperAuthorAsk", function(opts)
+		M.author_ask(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "*", desc = "Ask a question about spec authoring" })
 end
 
 -- Setup keymaps
@@ -260,25 +287,106 @@ local function get_buffer_code()
 end
 
 -- Start a session
-function M.start(exercise_id)
-	if not exercise_id then
-		ui.notify("Usage: :TemperStart <pack>/<exercise>", vim.log.levels.WARN)
+-- Usage: :TemperStart <pack>/<exercise> OR :TemperStart --spec <spec_name>
+function M.start(args)
+	if not args or args == "" then
+		ui.notify("Usage: :TemperStart <pack>/<exercise> or :TemperStart --spec <name>", vim.log.levels.WARN)
 		return
 	end
 
-	ui.show_loading("Starting session...")
+	-- Parse arguments
+	local spec_match = args:match("^%-%-spec%s+(.+)$")
 
-	client.create_session(exercise_id, M.state.track, function(err, result)
+	if spec_match then
+		-- Spec-based session (feature guidance)
+		-- If it looks like a path, use directly; otherwise resolve name to path
+		if spec_match:match("%.yaml$") or spec_match:match("/") then
+			M._start_spec_session(spec_match)
+		else
+			-- Look up spec by name
+			ui.show_loading("Finding spec...")
+			client.list_specs(function(err, result)
+				if err then
+					ui.show_error(err)
+					return
+				end
+
+				local spec_path = nil
+				for _, spec in ipairs(result.specs or {}) do
+					if spec.name and spec.name:lower() == spec_match:lower() then
+						spec_path = spec.file_path
+						break
+					end
+				end
+
+				if not spec_path then
+					ui.show_error("Spec not found: " .. spec_match)
+					return
+				end
+
+				M._start_spec_session(spec_path)
+			end)
+		end
+	else
+		-- Exercise-based session (training)
+		M._start_exercise_session(args)
+	end
+end
+
+-- Internal: start session with spec path
+function M._start_spec_session(spec_path)
+	ui.show_loading("Starting spec session...")
+
+	local opts = {
+		spec_path = spec_path,
+		intent = "feature_guidance",
+		track = M.state.track,
+	}
+
+	client.create_session(opts, function(err, result)
 		if err then
 			ui.show_error(err)
 			return
 		end
 
-		M.state.session_id = result.id
-		M.state.exercise_id = exercise_id
+		local session_id = result.id or result.session_id
+		if not session_id then
+			ui.show_error("No session ID in response")
+			return
+		end
 
+		M.state.session_id = session_id
+		M.state.spec_path = spec_path
 		ui.show_session(result)
-		ui.notify("Session started: " .. result.id:sub(1, 8))
+		ui.notify("Spec session started: " .. session_id:sub(1, 8))
+	end)
+end
+
+-- Internal: start session with exercise
+function M._start_exercise_session(exercise_id)
+	ui.show_loading("Starting session...")
+
+	local opts = {
+		exercise_id = exercise_id,
+		track = M.state.track,
+	}
+
+	client.create_session(opts, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local session_id = result.id or result.session_id
+		if not session_id then
+			ui.show_error("No session ID in response")
+			return
+		end
+
+		M.state.session_id = session_id
+		M.state.exercise_id = exercise_id
+		ui.show_session(result)
+		ui.notify("Session started: " .. session_id:sub(1, 8))
 	end)
 end
 
@@ -1056,6 +1164,299 @@ function M.patch_log_stats()
 		end
 
 		ui.set_panel_content(lines, "Temper - Patch Stats")
+	end)
+end
+
+-- Spec Authoring commands
+
+-- Start authoring session (discovers docs and creates session)
+function M.spec_author(name)
+	if not name then
+		ui.notify("Usage: :TemperSpecAuthor <name>", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Starting authoring session...")
+
+	-- First, look up the spec path
+	client.list_specs(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local spec_path = nil
+		for _, spec in ipairs(result.specs or {}) do
+			if spec.name and spec.name:lower() == name:lower() then
+				spec_path = spec.file_path
+				break
+			end
+		end
+
+		if not spec_path then
+			ui.show_error("Spec not found: " .. name)
+			return
+		end
+
+		-- Discover docs first
+		ui.show_loading("Discovering project documentation...")
+		client.discover_docs(spec_path, { "docs/", "README.md" }, function(doc_err, doc_result)
+			local docs_paths = {}
+			if not doc_err and doc_result and doc_result.documents then
+				for _, doc in ipairs(doc_result.documents) do
+					table.insert(docs_paths, doc.path)
+				end
+				ui.notify(string.format("Found %d documents", #doc_result.documents), vim.log.levels.INFO)
+			end
+
+			-- Create authoring session
+			client.create_authoring_session(spec_path, docs_paths, function(sess_err, sess_result)
+				if sess_err then
+					ui.show_error(sess_err)
+					return
+				end
+
+				local session_id = sess_result.id or sess_result.session_id
+				if not session_id then
+					ui.show_error("No session ID in response")
+					return
+				end
+
+				M.state.session_id = session_id
+				M.state.spec_path = spec_path
+				M.state.authoring_docs = docs_paths
+
+				local lines = { "## Spec Authoring Session", "" }
+				table.insert(lines, string.format("**Spec:** %s", name))
+				table.insert(lines, string.format("**Path:** `%s`", spec_path))
+				table.insert(lines, "")
+				table.insert(lines, "### Discovered Documents")
+				if #docs_paths > 0 then
+					for _, path in ipairs(docs_paths) do
+						table.insert(lines, string.format("- `%s`", path))
+					end
+				else
+					table.insert(lines, "- No documents found")
+				end
+				table.insert(lines, "")
+				table.insert(lines, "### Next Steps")
+				table.insert(lines, "1. `:TemperAuthorSuggest goals` - Get goal suggestions")
+				table.insert(lines, "2. `:TemperAuthorSuggest features` - Get feature suggestions")
+				table.insert(lines, "3. `:TemperAuthorSuggest acceptance_criteria` - Get criteria")
+				table.insert(lines, "4. `:TemperAuthorAsk <question>` - Ask for help")
+
+				ui.set_panel_content(lines, "Temper - Authoring")
+				ui.notify("Authoring session started: " .. session_id:sub(1, 8))
+			end)
+		end)
+	end)
+end
+
+-- Discover project documentation
+function M.author_discover()
+	if not M.state.spec_path then
+		ui.notify("No active spec session. Use :TemperSpecAuthor first", vim.log.levels.WARN)
+		return
+	end
+
+	ui.show_loading("Discovering project documentation...")
+
+	client.discover_docs(M.state.spec_path, { "docs/", "README.md", "doc/", "documentation/" }, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Discovered Documents", "" }
+
+		if result.documents and #result.documents > 0 then
+			M.state.authoring_docs = {}
+			for _, doc in ipairs(result.documents) do
+				table.insert(M.state.authoring_docs, doc.path)
+				table.insert(lines, string.format("### %s", doc.title or doc.path))
+				table.insert(lines, string.format("- **Type:** %s", doc.type or "unknown"))
+				table.insert(lines, string.format("- **Path:** `%s`", doc.path))
+				if doc.sections then
+					table.insert(lines, string.format("- **Sections:** %d", #doc.sections))
+				end
+				table.insert(lines, "")
+			end
+			table.insert(lines, string.format("**Total:** %d documents", #result.documents))
+		else
+			table.insert(lines, "No documentation found.")
+			table.insert(lines, "")
+			table.insert(lines, "Try adding docs to:")
+			table.insert(lines, "- `docs/` directory")
+			table.insert(lines, "- `README.md`")
+		end
+
+		ui.set_panel_content(lines, "Temper - Docs")
+	end)
+end
+
+-- Get suggestions for a spec section
+function M.author_suggest(section)
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperSpecAuthor first", vim.log.levels.WARN)
+		return
+	end
+
+	if not section then
+		ui.notify("Usage: :TemperAuthorSuggest <section>", vim.log.levels.WARN)
+		ui.notify("Sections: goals, features, acceptance_criteria, non_functional", vim.log.levels.INFO)
+		return
+	end
+
+	local valid_sections = { goals = true, features = true, acceptance_criteria = true, non_functional = true }
+	if not valid_sections[section] then
+		ui.notify("Invalid section. Use: goals, features, acceptance_criteria, non_functional", vim.log.levels.ERROR)
+		return
+	end
+
+	ui.show_loading("Getting " .. section .. " suggestions...")
+
+	client.authoring_suggest(M.state.session_id, section, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Suggestions: " .. section, "" }
+
+		if result.suggestions and #result.suggestions > 0 then
+			M.state.suggestions = result.suggestions -- Store for apply
+
+			for i, sug in ipairs(result.suggestions) do
+				table.insert(lines, string.format("### [%d] %s", i, sug.id or ("sug-" .. i)))
+
+				-- Format value based on type
+				if type(sug.value) == "string" then
+					table.insert(lines, sug.value)
+				elseif type(sug.value) == "table" then
+					-- For features/criteria, show structured data
+					if sug.value.title then
+						table.insert(lines, string.format("**Title:** %s", sug.value.title))
+					end
+					if sug.value.description then
+						table.insert(lines, string.format("**Description:** %s", sug.value.description))
+					end
+					if sug.value.priority then
+						table.insert(lines, string.format("**Priority:** %s", sug.value.priority))
+					end
+				end
+
+				table.insert(lines, "")
+				if sug.source then
+					table.insert(lines, string.format("*Source: %s*", sug.source))
+				end
+				if sug.confidence then
+					table.insert(lines, string.format("*Confidence: %.0f%%*", sug.confidence * 100))
+				end
+				table.insert(lines, "")
+				table.insert(lines, "---")
+				table.insert(lines, "")
+			end
+
+			table.insert(lines, "")
+			table.insert(lines, "Use `:TemperAuthorApply <id>` to apply a suggestion")
+		else
+			table.insert(lines, "No suggestions available.")
+			table.insert(lines, "")
+			table.insert(lines, "Try:")
+			table.insert(lines, "- Adding more documentation to your project")
+			table.insert(lines, "- Using `:TemperAuthorAsk` to ask specific questions")
+		end
+
+		ui.set_panel_content(lines, "Temper - Suggest")
+	end)
+end
+
+-- Apply a suggestion
+function M.author_apply(suggestion_id)
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperSpecAuthor first", vim.log.levels.WARN)
+		return
+	end
+
+	if not suggestion_id then
+		ui.notify("Usage: :TemperAuthorApply <id>", vim.log.levels.WARN)
+		return
+	end
+
+	-- Check if it's a number (index) or string (id)
+	local id = suggestion_id
+	local num = tonumber(suggestion_id)
+	if num and M.state.suggestions and M.state.suggestions[num] then
+		id = M.state.suggestions[num].id or ("sug-" .. num)
+	end
+
+	ui.show_loading("Applying suggestion...")
+
+	client.authoring_apply(M.state.session_id, id, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		if result.applied then
+			ui.notify("Suggestion applied: " .. id, vim.log.levels.INFO)
+
+			-- Show updated spec info
+			local lines = { "## Suggestion Applied", "" }
+			table.insert(lines, string.format("**ID:** %s", id))
+			table.insert(lines, string.format("**Section:** %s", result.section or "unknown"))
+			table.insert(lines, "")
+			table.insert(lines, "The spec has been updated.")
+			table.insert(lines, "")
+			table.insert(lines, "Next: `:TemperAuthorSuggest` for more, or `:TemperSpecValidate`")
+
+			ui.set_panel_content(lines, "Temper - Applied")
+		else
+			ui.notify("Failed to apply suggestion", vim.log.levels.ERROR)
+		end
+	end)
+end
+
+-- Ask a question for authoring help
+function M.author_ask(question)
+	if not M.state.session_id then
+		ui.notify("No active session. Use :TemperSpecAuthor first", vim.log.levels.WARN)
+		return
+	end
+
+	if not question or question == "" then
+		ui.notify("Usage: :TemperAuthorAsk <question>", vim.log.levels.WARN)
+		ui.notify("Example: :TemperAuthorAsk What APIs should I define for the user service?", vim.log.levels.INFO)
+		return
+	end
+
+	ui.show_loading("Thinking...")
+
+	-- Use current section if set, otherwise default to "general"
+	local section = M.state.authoring_section or "general"
+
+	client.authoring_hint(M.state.session_id, section, question, function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local lines = { "## Authoring Help", "" }
+		table.insert(lines, "**Question:** " .. question)
+		table.insert(lines, "")
+
+		if result.content then
+			table.insert(lines, "### Answer")
+			table.insert(lines, "")
+			-- Split content by lines and add
+			for line in result.content:gmatch("[^\n]+") do
+				table.insert(lines, line)
+			end
+		else
+			table.insert(lines, "No response received.")
+		end
+
+		ui.set_panel_content(lines, "Temper - Help")
 	end)
 end
 

@@ -23,6 +23,7 @@ var (
 	ErrSessionNotActive  = errors.New("session is not active")
 	ErrSpecRequired      = errors.New("spec path required for feature guidance intent")
 	ErrSpecInvalid       = errors.New("spec validation failed")
+	ErrDocsRequired      = errors.New("docs paths required for spec authoring intent")
 )
 
 // Service manages pairing sessions
@@ -58,7 +59,8 @@ func (s *Service) SetSpecService(ss *spec.Service) {
 // CreateRequest contains data for creating a session
 type CreateRequest struct {
 	ExerciseID string                // For training intent
-	SpecPath   string                // For feature guidance intent
+	SpecPath   string                // For feature guidance or spec authoring intent
+	DocsPaths  []string              // For spec authoring intent (paths to search for docs)
 	Intent     SessionIntent         // Explicit intent (optional, inferred if empty)
 	Code       map[string]string     // Initial code (for greenfield/feature)
 	Policy     *domain.LearningPolicy
@@ -103,6 +105,17 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (*Session, erro
 	case IntentGreenfield:
 		// Greenfield creates a fresh session
 		session = NewGreenfieldSession(req.Code, policy)
+
+	case IntentSpecAuthoring:
+		// Spec authoring requires a spec and docs paths
+		if req.SpecPath == "" {
+			return nil, ErrSpecRequired
+		}
+		sess, err := s.createAuthoringSession(ctx, req.SpecPath, req.DocsPaths, policy)
+		if err != nil {
+			return nil, err
+		}
+		session = sess
 
 	default:
 		return nil, fmt.Errorf("unknown intent: %s", intent)
@@ -192,6 +205,31 @@ func (s *Service) createFeatureSession(ctx context.Context, specPath string, cod
 	}
 
 	return NewFeatureSession(specPath, code, policy), nil
+}
+
+// createAuthoringSession creates a session for spec authoring with docs
+func (s *Service) createAuthoringSession(ctx context.Context, specPath string, docsPaths []string, policy domain.LearningPolicy) (*Session, error) {
+	// Load spec to verify it exists (we don't validate since it's being authored)
+	if s.specService != nil {
+		_, err := s.specService.Load(ctx, specPath)
+		if err != nil {
+			return nil, fmt.Errorf("load spec: %w", err)
+		}
+	}
+
+	// Use default doc paths if none provided
+	if len(docsPaths) == 0 {
+		docsPaths = []string{"docs/", "README.md"}
+	}
+
+	// Apply authoring-specific policy (allow higher intervention levels)
+	authoringPolicy := policy
+	if authoringPolicy.MaxLevel < domain.L4PartialSolution {
+		authoringPolicy.MaxLevel = domain.L4PartialSolution
+	}
+	authoringPolicy.CooldownSeconds = 30 // Faster iteration for authoring
+
+	return NewAuthoringSession(specPath, docsPaths, authoringPolicy), nil
 }
 
 // Get retrieves a session by ID

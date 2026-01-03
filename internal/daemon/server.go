@@ -13,6 +13,7 @@ import (
 
 	"github.com/felixgeelhaar/temper/internal/appreciation"
 	"github.com/felixgeelhaar/temper/internal/config"
+	"github.com/felixgeelhaar/temper/internal/docindex"
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/llm"
@@ -262,6 +263,12 @@ func (s *Server) setupRoutes() {
 	// Patch logs
 	s.router.HandleFunc("GET /v1/patches/log", s.handlePatchLog)
 	s.router.HandleFunc("GET /v1/patches/stats", s.handlePatchStats)
+
+	// Spec Authoring
+	s.router.HandleFunc("POST /v1/specs/{path...}/authoring/discover", s.handleAuthoringDiscover)
+	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/suggest", s.handleAuthoringSuggest)
+	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/apply", s.handleAuthoringApply)
+	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/hint", s.handleAuthoringHint)
 }
 
 // Start starts the HTTP server
@@ -396,7 +403,8 @@ func (s *Server) handleGetExercise(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ExerciseID string            `json:"exercise_id,omitempty"` // For training intent
-		SpecPath   string            `json:"spec_path,omitempty"`   // For feature guidance intent
+		SpecPath   string            `json:"spec_path,omitempty"`   // For feature guidance or spec authoring intent
+		DocsPaths  []string          `json:"docs_paths,omitempty"`  // For spec authoring intent
 		Intent     string            `json:"intent,omitempty"`      // Explicit intent (optional)
 		Code       map[string]string `json:"code,omitempty"`        // Initial code (for greenfield/feature)
 		Track      string            `json:"track,omitempty"`
@@ -434,6 +442,8 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		intent = session.IntentFeatureGuidance
 	case "greenfield":
 		intent = session.IntentGreenfield
+	case "spec_authoring":
+		intent = session.IntentSpecAuthoring
 	default:
 		intent = "" // Let the service infer it
 	}
@@ -441,6 +451,7 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 	sess, err := s.sessionService.Create(r.Context(), session.CreateRequest{
 		ExerciseID: req.ExerciseID,
 		SpecPath:   req.SpecPath,
+		DocsPaths:  req.DocsPaths,
 		Intent:     intent,
 		Code:       req.Code,
 		Policy:     policy,
@@ -1548,4 +1559,272 @@ func (s *Server) handlePatchStats(w http.ResponseWriter, r *http.Request) {
 
 	stats := logger.GetStats()
 	s.jsonResponse(w, http.StatusOK, stats)
+}
+
+// Spec Authoring handlers
+
+func (s *Server) handleAuthoringDiscover(w http.ResponseWriter, r *http.Request) {
+	specPath := r.PathValue("path")
+	if specPath == "" {
+		s.jsonError(w, http.StatusBadRequest, "spec path required", nil)
+		return
+	}
+
+	var req struct {
+		DocsPaths []string `json:"docs_paths"`
+		Recursive bool     `json:"recursive"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	// Use default paths if none provided
+	if len(req.DocsPaths) == 0 {
+		req.DocsPaths = docindex.DefaultDocPaths
+	}
+
+	// Get workspace root from spec service
+	workspaceRoot := s.specService.GetWorkspaceRoot()
+
+	// Discover documents
+	discoverer := docindex.NewDiscoverer(workspaceRoot)
+	docs, err := discoverer.Discover(docindex.DiscoverOptions{
+		Paths:     req.DocsPaths,
+		Recursive: req.Recursive,
+		MaxDepth:  3,
+	})
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to discover documents", err)
+		return
+	}
+
+	// Build response with document summaries
+	docSummaries := make([]map[string]interface{}, 0, len(docs))
+	totalSections := 0
+	for _, doc := range docs {
+		totalSections += len(doc.Sections)
+		docSummaries = append(docSummaries, map[string]interface{}{
+			"path":     doc.Path,
+			"title":    doc.Title,
+			"type":     doc.Type,
+			"sections": len(doc.Sections),
+		})
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"documents":      docSummaries,
+		"total_sections": totalSections,
+	})
+}
+
+func (s *Server) handleAuthoringSuggest(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	var req struct {
+		Section string `json:"section"` // goals, features, acceptance_criteria, non_functional
+		Context string `json:"context,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.Section == "" {
+		s.jsonError(w, http.StatusBadRequest, "section is required", nil)
+		return
+	}
+
+	// Get session
+	sess, err := s.sessionService.Get(r.Context(), sessionID)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	// Verify it's an authoring session
+	if sess.Intent != session.IntentSpecAuthoring {
+		s.jsonError(w, http.StatusBadRequest, "session is not a spec authoring session", nil)
+		return
+	}
+
+	// Load spec
+	spec, err := s.specService.Load(r.Context(), sess.SpecPath)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to load spec", err)
+		return
+	}
+
+	// Discover and load documents
+	workspaceRoot := s.specService.GetWorkspaceRoot()
+	discoverer := docindex.NewDiscoverer(workspaceRoot)
+	docs, err := discoverer.Discover(docindex.DiscoverOptions{
+		Paths:     sess.AuthoringDocs,
+		Recursive: true,
+		MaxDepth:  3,
+	})
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to discover documents", err)
+		return
+	}
+
+	if len(docs) == 0 {
+		s.jsonError(w, http.StatusBadRequest, "no documents found for authoring", nil)
+		return
+	}
+
+	// Update session's current section
+	sess.SetAuthoringSection(req.Section)
+	// Note: We don't save this to store since it's just for context
+
+	// Build authoring context for LLM
+	ctx := pairing.AuthoringContext{
+		Spec:      spec,
+		Section:   req.Section,
+		Documents: docs,
+	}
+
+	// Get suggestions from pairing service
+	suggestions, err := s.pairingService.SuggestForSection(r.Context(), ctx)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to generate suggestions", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"section":     req.Section,
+		"suggestions": suggestions,
+	})
+}
+
+func (s *Server) handleAuthoringApply(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	var req struct {
+		Section      string `json:"section"`
+		SuggestionID string `json:"suggestion_id"`
+		Value        any    `json:"value,omitempty"` // Direct value to apply (alternative to suggestion_id)
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.Section == "" {
+		s.jsonError(w, http.StatusBadRequest, "section is required", nil)
+		return
+	}
+
+	// Get session
+	sess, err := s.sessionService.Get(r.Context(), sessionID)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	// Verify it's an authoring session
+	if sess.Intent != session.IntentSpecAuthoring {
+		s.jsonError(w, http.StatusBadRequest, "session is not a spec authoring session", nil)
+		return
+	}
+
+	// Apply the suggestion to the spec
+	// For now, we return the value that should be applied - the editor will update the file
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"applied":       true,
+		"section":       req.Section,
+		"suggestion_id": req.SuggestionID,
+		"value":         req.Value,
+	})
+}
+
+func (s *Server) handleAuthoringHint(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("id")
+	if sessionID == "" {
+		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
+		return
+	}
+
+	var req struct {
+		Section  string `json:"section"`
+		Question string `json:"question"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	// Get session
+	sess, err := s.sessionService.Get(r.Context(), sessionID)
+	if err != nil {
+		if err == session.ErrSessionNotFound {
+			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	// Verify it's an authoring session
+	if sess.Intent != session.IntentSpecAuthoring {
+		s.jsonError(w, http.StatusBadRequest, "session is not a spec authoring session", nil)
+		return
+	}
+
+	// Load spec
+	spec, err := s.specService.Load(r.Context(), sess.SpecPath)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to load spec", err)
+		return
+	}
+
+	// Discover and load documents
+	workspaceRoot := s.specService.GetWorkspaceRoot()
+	discoverer := docindex.NewDiscoverer(workspaceRoot)
+	docs, err := discoverer.Discover(docindex.DiscoverOptions{
+		Paths:     sess.AuthoringDocs,
+		Recursive: true,
+		MaxDepth:  3,
+	})
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to discover documents", err)
+		return
+	}
+
+	// Build authoring context
+	ctx := pairing.AuthoringContext{
+		Spec:      spec,
+		Section:   req.Section,
+		Documents: docs,
+		Question:  req.Question,
+	}
+
+	// Get hint from pairing service
+	hint, err := s.pairingService.AuthoringHint(r.Context(), ctx)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to generate hint", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, hint)
 }

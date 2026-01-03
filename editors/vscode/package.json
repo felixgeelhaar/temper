@@ -79,6 +79,26 @@
       {
         "command": "temper.health",
         "title": "Temper: Check Daemon Health"
+      },
+      {
+        "command": "temper.specAuthor",
+        "title": "Temper: Start Spec Authoring"
+      },
+      {
+        "command": "temper.authorDiscover",
+        "title": "Temper: Discover Project Docs"
+      },
+      {
+        "command": "temper.authorSuggest",
+        "title": "Temper: Suggest Section"
+      },
+      {
+        "command": "temper.authorApply",
+        "title": "Temper: Apply Suggestion"
+      },
+      {
+        "command": "temper.authorAsk",
+        "title": "Temper: Ask Authoring Question"
       }
     ],
     "configuration": {

@@ -203,3 +203,72 @@ func (s *Service) extractTargets(ctx InterventionContext) []domain.Target {
 		},
 	}
 }
+
+// SuggestForSection generates suggestions for a spec section based on project docs
+func (s *Service) SuggestForSection(ctx context.Context, authCtx AuthoringContext) ([]domain.AuthoringSuggestion, error) {
+	if !authCtx.HasDocuments() {
+		return nil, fmt.Errorf("no documents available for authoring")
+	}
+
+	// Build prompt for suggestions
+	prompt := s.prompter.BuildAuthoringPrompt(authCtx)
+
+	// Get LLM provider
+	provider, err := s.llmRegistry.Default()
+	if err != nil {
+		return nil, fmt.Errorf("get LLM provider: %w", err)
+	}
+
+	// Generate suggestions
+	llmResp, err := provider.Generate(ctx, &llm.Request{
+		Messages: []llm.Message{
+			{Role: llm.RoleUser, Content: prompt},
+		},
+		System:      s.prompter.AuthoringSystemPrompt(authCtx.Section),
+		MaxTokens:   2048,
+		Temperature: 0.7,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("generate suggestions: %w", err)
+	}
+
+	// Parse suggestions from response
+	suggestions := s.prompter.ParseSuggestions(llmResp.Content, authCtx.Section)
+
+	return suggestions, nil
+}
+
+// AuthoringHint generates a hint for spec authoring based on a question
+func (s *Service) AuthoringHint(ctx context.Context, authCtx AuthoringContext) (*domain.Intervention, error) {
+	// Build prompt for hint
+	prompt := s.prompter.BuildAuthoringHintPrompt(authCtx)
+
+	// Get LLM provider
+	provider, err := s.llmRegistry.Default()
+	if err != nil {
+		return nil, fmt.Errorf("get LLM provider: %w", err)
+	}
+
+	// Generate hint
+	llmResp, err := provider.Generate(ctx, &llm.Request{
+		Messages: []llm.Message{
+			{Role: llm.RoleUser, Content: prompt},
+		},
+		System:      s.prompter.AuthoringSystemPrompt(authCtx.Section),
+		MaxTokens:   1024,
+		Temperature: 0.7,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("generate hint: %w", err)
+	}
+
+	return &domain.Intervention{
+		ID:          uuid.New(),
+		Intent:      domain.IntentExplain,
+		Level:       domain.L3ConstrainedSnippet,
+		Type:        domain.TypeExplain,
+		Content:     llmResp.Content,
+		RequestedAt: time.Now(),
+		DeliveredAt: time.Now(),
+	}, nil
+}
