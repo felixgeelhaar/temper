@@ -118,19 +118,24 @@ func (r *Registry) Get(name string) (Provider, error) {
 }
 
 // Default returns the default provider
+// If default is "auto" or not found, returns the first available provider
 func (r *Registry) Default() (Provider, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if r.defaultP == "" {
-		return nil, ErrNoDefaultProvider
+	// Try explicit default first (unless it's "auto")
+	if r.defaultP != "" && r.defaultP != "auto" {
+		if p, ok := r.providers[r.defaultP]; ok {
+			return p, nil
+		}
 	}
 
-	p, ok := r.providers[r.defaultP]
-	if !ok {
-		return nil, ErrNoDefaultProvider
+	// Auto-select: return first available provider
+	for _, p := range r.providers {
+		return p, nil
 	}
-	return p, nil
+
+	return nil, ErrNoDefaultProvider
 }
 
 // List returns all registered provider names

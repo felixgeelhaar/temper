@@ -115,7 +115,7 @@ func DefaultLocalConfig() *LocalConfig {
 			LogLevel: "info",
 		},
 		LLM: LLMConfig{
-			DefaultProvider: "claude",
+			DefaultProvider: "auto",
 			Providers: map[string]*ProviderConfig{
 				"claude": {
 					Enabled: true,
