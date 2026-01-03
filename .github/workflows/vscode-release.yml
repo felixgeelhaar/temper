@@ -1,0 +1,112 @@
+name: VS Code Extension Release
+
+on:
+  push:
+    tags:
+      - 'vscode-v*'
+  workflow_dispatch:
+    inputs:
+      publish_marketplace:
+        description: 'Publish to VS Code Marketplace'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  build:
+    name: Build and Release VS Code Extension
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: editors/vscode
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile TypeScript
+        run: npm run compile
+
+      - name: Run tests
+        run: npm test
+        continue-on-error: true
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/vscode-v}
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Package extension
+        run: vsce package -o temper-${{ steps.version.outputs.version }}.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: temper-vsix
+          path: editors/vscode/temper-*.vsix
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: VS Code Extension v${{ steps.version.outputs.version }}
+          body: |
+            ## VS Code Extension v${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            **From VS Code Marketplace:**
+            1. Open VS Code
+            2. Go to Extensions (Cmd+Shift+X / Ctrl+Shift+X)
+            3. Search for "Temper"
+            4. Click Install
+
+            **From VSIX:**
+            1. Download the `.vsix` file below
+            2. In VS Code, open Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+            3. Run "Extensions: Install from VSIX..."
+            4. Select the downloaded file
+
+            ### Requirements
+
+            - VS Code >= 1.80
+            - Temper daemon running (`temper start`)
+
+            ### Changes
+
+            See [CHANGELOG](https://github.com/felixgeelhaar/temper/blob/main/editors/vscode/CHANGELOG.md) for details.
+          files: editors/vscode/temper-*.vsix
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to VS Code Marketplace
+        if: startsWith(github.ref, 'refs/tags/') || inputs.publish_marketplace == 'true'
+        run: vsce publish -p ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        continue-on-error: true

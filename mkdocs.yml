@@ -1,0 +1,89 @@
+site_name: Temper Documentation
+site_description: Adaptive AI pairing tool for learning through deliberate practice
+site_author: Felix Geelhaar
+site_url: https://felixgeelhaar.github.io/temper
+
+repo_name: felixgeelhaar/temper
+repo_url: https://github.com/felixgeelhaar/temper
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Quick Start: quickstart.md
+      - Learning Contract: learning-contract.md
+  - User Guide:
+      - CLI Reference: cli-reference.md
+      - Sessions: sessions.md
+      - Interventions: interventions.md
+      - Specifications: specifications.md
+      - Progress Tracking: progress.md
+  - Editor Integration:
+      - VS Code: editors/vscode.md
+      - Neovim: editors/neovim.md
+      - Cursor: editors/cursor.md
+  - Exercises:
+      - Overview: exercises/overview.md
+      - Go Fundamentals: exercises/go.md
+      - Python Fundamentals: exercises/python.md
+      - TypeScript Fundamentals: exercises/typescript.md
+      - Authoring Guide: exercise-authoring.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Contributing: development/contributing.md
+      - Roadmap: roadmap.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/felixgeelhaar/temper
+
+copyright: Copyright &copy; 2024-2026 Felix Geelhaar
