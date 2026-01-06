@@ -256,6 +256,10 @@ function M.show_exercises(packs)
 		table.insert(lines, "")
 	end
 
+	table.insert(lines, "")
+	table.insert(lines, "Tip: Use :TemperPickExercise to launch a session, or :TemperSpecStart to begin spec-based work.")
+	table.insert(lines, "You can also run :TemperStart <pack>/<exercise> if you already know the slug.")
+
 	M.set_panel_content(lines, "Temper - Exercises")
 end
 

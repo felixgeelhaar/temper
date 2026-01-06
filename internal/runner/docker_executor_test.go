@@ -35,7 +35,7 @@ func TestDockerExecutor_RunFormat(t *testing.T) {
 	skipIfNoDocker(t)
 
 	cfg := runner.DefaultDockerConfig()
-	cfg.Timeout = 60 * time.Second // Longer timeout for image pull
+	cfg.Timeout = 180 * time.Second // Longer timeout for image pull
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create Docker executor: %v", err)
@@ -101,7 +101,7 @@ func TestDockerExecutor_RunBuild(t *testing.T) {
 	skipIfNoDocker(t)
 
 	cfg := runner.DefaultDockerConfig()
-	cfg.Timeout = 60 * time.Second
+	cfg.Timeout = 180 * time.Second
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create Docker executor: %v", err)
@@ -180,7 +180,7 @@ func TestDockerExecutor_RunTests(t *testing.T) {
 	skipIfNoDocker(t)
 
 	cfg := runner.DefaultDockerConfig()
-	cfg.Timeout = 60 * time.Second
+	cfg.Timeout = 180 * time.Second
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create Docker executor: %v", err)
@@ -270,7 +270,7 @@ func TestDockerExecutor_ResourceLimits(t *testing.T) {
 		MemoryMB:   384, // Go compiler needs ~300MB on ARM64 with CPU throttling
 		CPULimit:   0.5,
 		NetworkOff: true,
-		Timeout:    90 * time.Second, // Go builds need time in containers
+		Timeout:    180 * time.Second, // Go builds need time in containers
 	}
 
 	exec, err := runner.NewDockerExecutor(cfg)
@@ -306,7 +306,7 @@ func TestDockerExecutor_NetworkDisabled(t *testing.T) {
 
 	cfg := runner.DefaultDockerConfig()
 	cfg.NetworkOff = true
-	cfg.Timeout = 90 * time.Second // Go builds need time in containers
+	cfg.Timeout = 180 * time.Second // Go builds need time in containers
 
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {

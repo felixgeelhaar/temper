@@ -165,6 +165,20 @@ func TestCreateTempCodeDir(t *testing.T) {
 			code:    map[string]string{},
 			wantErr: false,
 		},
+		{
+			name: "path traversal",
+			code: map[string]string{
+				"../evil.go": "package main\n",
+			},
+			wantErr: true,
+		},
+		{
+			name: "absolute path",
+			code: map[string]string{
+				string(filepath.Separator) + "etc/passwd": "nope",
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tc := range tests {

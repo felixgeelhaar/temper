@@ -28,28 +28,28 @@ import (
 
 // Server represents the Temper daemon HTTP server
 type Server struct {
-	cfg      *config.LocalConfig
-	server   *http.Server
-	router   *http.ServeMux
+	cfg    *config.LocalConfig
+	server *http.Server
+	router *http.ServeMux
 
 	// Services
-	llmRegistry          *llm.Registry
-	exerciseLoader       *exercise.Loader
-	runnerExecutor       runner.Executor
-	sessionService       *session.Service
-	pairingService       *pairing.Service
-	profileService       *profile.Service
-	specService          *spec.Service
-	appreciationService  *appreciation.Service
-	patchService         *patch.Service
+	llmRegistry         *llm.Registry
+	exerciseLoader      *exercise.Loader
+	runnerExecutor      runner.Executor
+	sessionService      *session.Service
+	pairingService      *pairing.Service
+	profileService      *profile.Service
+	specService         *spec.Service
+	appreciationService *appreciation.Service
+	patchService        *patch.Service
 }
 
 // ServerConfig holds configuration for creating a new server
 type ServerConfig struct {
-	Config        *config.LocalConfig
-	ExercisePath  string // Primary exercise path
-	SessionsPath  string // Path for session storage
-	SpecsPath     string // Path for spec storage (workspace root for .specs/)
+	Config       *config.LocalConfig
+	ExercisePath string // Primary exercise path
+	SessionsPath string // Path for session storage
+	SpecsPath    string // Path for spec storage (workspace root for .specs/)
 }
 
 // NewServer creates a new daemon server
@@ -80,8 +80,12 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		}
 		executor, err := runner.NewDockerExecutor(dockerCfg)
 		if err != nil {
-			slog.Warn("Docker executor not available, using local executor", "error", err)
-			s.runnerExecutor = runner.NewLocalExecutor("")
+			if cfg.Config.Runner.AllowLocalFallback {
+				slog.Warn("Docker executor not available, using local executor", "error", err)
+				s.runnerExecutor = runner.NewLocalExecutor("")
+			} else {
+				return nil, fmt.Errorf("docker executor unavailable: %w", err)
+			}
 		} else {
 			s.runnerExecutor = executor
 		}
@@ -315,10 +319,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	// Return config without secrets
 	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
-		"daemon":           s.cfg.Daemon,
+		"daemon":            s.cfg.Daemon,
 		"learning_contract": s.cfg.Learning,
-		"runner":           s.cfg.Runner,
-		"default_provider": s.cfg.LLM.DefaultProvider,
+		"runner":            s.cfg.Runner,
+		"default_provider":  s.cfg.LLM.DefaultProvider,
 	})
 }
 
@@ -347,12 +351,26 @@ func (s *Server) handleListExercises(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]map[string]interface{}, 0, len(packs))
 	for _, pack := range packs {
+		exercises := make([]map[string]interface{}, 0, len(pack.ExerciseIDs))
+		if packExercises, err := s.exerciseLoader.LoadPackExercises(pack.ID); err == nil {
+			for _, ex := range packExercises {
+				exercises = append(exercises, map[string]interface{}{
+					"id":         ex.ID,
+					"title":      ex.Title,
+					"difficulty": ex.Difficulty,
+				})
+			}
+		} else {
+			slog.Warn("failed to load pack exercises", "pack", pack.ID, "error", err)
+		}
+
 		result = append(result, map[string]interface{}{
 			"id":             pack.ID,
 			"name":           pack.Name,
 			"description":    pack.Description,
 			"language":       pack.Language,
 			"exercise_count": len(pack.ExerciseIDs),
+			"exercises":      exercises,
 		})
 	}
 
@@ -790,7 +808,11 @@ func (s *Server) handlePairingWithEscalation(w http.ResponseWriter, r *http.Requ
 	}
 
 	if req.RunID != "" {
-		runUUID := uuid.MustParse(req.RunID)
+		runUUID, err := uuid.Parse(req.RunID)
+		if err != nil {
+			s.jsonError(w, http.StatusBadRequest, "invalid run_id", err)
+			return
+		}
 		pairingReq.RunID = &runUUID
 	}
 
@@ -892,9 +914,9 @@ func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request, intent do
 	if !sess.CanRequestIntervention(domain.L3ConstrainedSnippet) {
 		remaining := sess.CooldownRemaining()
 		s.jsonResponse(w, http.StatusTooManyRequests, map[string]interface{}{
-			"error":             "cooldown active",
+			"error":              "cooldown active",
 			"cooldown_remaining": remaining.Seconds(),
-			"message":           fmt.Sprintf("Please wait %.0f seconds before requesting more detailed help", remaining.Seconds()),
+			"message":            fmt.Sprintf("Please wait %.0f seconds before requesting more detailed help", remaining.Seconds()),
 		})
 		return
 	}
@@ -928,7 +950,11 @@ func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request, intent do
 	}
 
 	if req.RunID != "" {
-		runUUID := uuid.MustParse(req.RunID)
+		runUUID, err := uuid.Parse(req.RunID)
+		if err != nil {
+			s.jsonError(w, http.StatusBadRequest, "invalid run_id", err)
+			return
+		}
 		pairingReq.RunID = &runUUID
 	}
 
@@ -1003,7 +1029,7 @@ func (s *Server) handlePairingStream(w http.ResponseWriter, r *http.Request, req
 	// Start streaming
 	stream, err := s.pairingService.IntervenStream(r.Context(), req)
 	if err != nil {
-		fmt.Fprintf(w, "event: error\ndata: %s\n\n", err.Error())
+		writeSSEEvent(w, "error", err.Error())
 		flusher.Flush()
 		return
 	}
@@ -1018,13 +1044,13 @@ func (s *Server) handlePairingStream(w http.ResponseWriter, r *http.Request, req
 			if chunk.Metadata != nil {
 				level = chunk.Metadata.Level
 				interventionType = chunk.Metadata.Type
-				fmt.Fprintf(w, "event: metadata\ndata: {\"level\":%d,\"type\":\"%s\"}\n\n", level, interventionType)
+				writeSSEEvent(w, "metadata", fmt.Sprintf("{\"level\":%d,\"type\":\"%s\"}", level, interventionType))
 			}
 		case "content":
 			contentBuilder.WriteString(chunk.Content)
-			fmt.Fprintf(w, "event: content\ndata: %s\n\n", chunk.Content)
+			writeSSEEvent(w, "content", chunk.Content)
 		case "error":
-			fmt.Fprintf(w, "event: error\ndata: %s\n\n", chunk.Error.Error())
+			writeSSEEvent(w, "error", chunk.Error.Error())
 		case "done":
 			// Record the complete intervention
 			intervention := &session.Intervention{
@@ -1040,7 +1066,7 @@ func (s *Server) handlePairingStream(w http.ResponseWriter, r *http.Request, req
 				slog.Warn("failed to record intervention", "error", err)
 			}
 
-			fmt.Fprintf(w, "event: done\ndata: {\"id\":\"%s\"}\n\n", intervention.ID)
+			writeSSEEvent(w, "done", fmt.Sprintf("{\"id\":\"%s\"}", intervention.ID))
 		}
 		flusher.Flush()
 	}
@@ -1058,13 +1084,22 @@ func (s *Server) jsonResponse(w http.ResponseWriter, status int, data interface{
 
 func (s *Server) jsonError(w http.ResponseWriter, status int, message string, err error) {
 	response := map[string]interface{}{
-		"error":   message,
-		"status":  status,
+		"error":  message,
+		"status": status,
 	}
 	if err != nil {
 		response["details"] = err.Error()
 	}
 	s.jsonResponse(w, status, response)
+}
+
+func writeSSEEvent(w http.ResponseWriter, event string, data string) {
+	fmt.Fprintf(w, "event: %s\n", event)
+	normalized := strings.ReplaceAll(data, "\r\n", "\n")
+	for _, line := range strings.Split(normalized, "\n") {
+		fmt.Fprintf(w, "data: %s\n", line)
+	}
+	fmt.Fprint(w, "\n")
 }
 
 // Profile & Analytics handlers

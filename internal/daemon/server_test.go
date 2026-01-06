@@ -33,6 +33,7 @@ func setupTestServer(t *testing.T) (*Server, func()) {
 	// Create test config
 	cfg := config.DefaultLocalConfig()
 	cfg.Daemon.Port = 0 // Let system choose port
+	cfg.Runner.Executor = "local"
 
 	// Create server
 	server, err := NewServer(context.Background(), ServerConfig{

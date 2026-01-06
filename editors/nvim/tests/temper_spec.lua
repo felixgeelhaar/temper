@@ -17,6 +17,7 @@ describe("temper", function()
 		package.loaded["temper.ui"] = nil
 		package.loaded["temper.telescope"] = nil
 		temper = require("temper")
+		temper.health_check = function() end
 	end)
 
 	describe("setup", function()
@@ -59,7 +60,7 @@ describe("temper", function()
 		end)
 	end)
 
-	describe("state", function()
+describe("state", function()
 		it("should initialize with nil session", function()
 			assert.is_nil(temper.state.session_id)
 			assert.is_nil(temper.state.exercise_id)
@@ -67,6 +68,26 @@ describe("temper", function()
 
 		it("should have default track", function()
 			assert.equals("practice", temper.state.track)
+		end)
+	end)
+
+	describe("daemon health check", function()
+		it("runs health_check by default", function()
+			local calls = 0
+			temper.health_check = function()
+				calls = calls + 1
+			end
+			temper.setup({})
+			assert.equals(1, calls)
+		end)
+
+		it("skips health_check when disabled", function()
+			local calls = 0
+			temper.health_check = function()
+				calls = calls + 1
+			end
+			temper.setup({ check_daemon_on_start = false })
+			assert.equals(0, calls)
 		end)
 	end)
 
@@ -108,7 +129,7 @@ describe("temper", function()
 		end)
 	end)
 
-	describe("tracks", function()
+describe("tracks", function()
 		it("should support practice track", function()
 			temper.state.track = "practice"
 			assert.equals("practice", temper.state.track)
@@ -117,6 +138,14 @@ describe("temper", function()
 		it("should support interview-prep track", function()
 			temper.state.track = "interview-prep"
 			assert.equals("interview-prep", temper.state.track)
+		end)
+	end)
+
+	describe("session guidance", function()
+		it("should mention pickers in the hint text", function()
+			local hint = temper.session_hint_text()
+			assert.matches("TemperPickExercise", hint, nil, true)
+			assert.matches("TemperSpecStart", hint, nil, true)
 		end)
 	end)
 end)
@@ -183,6 +212,7 @@ describe("temper.telescope", function()
 		if telescope_temper then
 			-- If we got here, module loaded
 			assert.is_boolean(telescope_temper.available)
+			assert.equals("function", type(telescope_temper.select))
 		end
 	end)
 end)

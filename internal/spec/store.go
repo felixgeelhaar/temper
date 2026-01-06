@@ -41,18 +41,20 @@ func (s *FileStore) BasePath() string {
 }
 
 // SpecPath returns the full path to a spec file
-func (s *FileStore) SpecPath(relativePath string) string {
-	// If path already starts with .specs/, use it directly
-	if strings.HasPrefix(relativePath, SpecDir) {
-		return filepath.Join(s.basePath, relativePath)
+func (s *FileStore) SpecPath(relativePath string) (string, error) {
+	fullPath, _, err := s.resolveSpecPath(relativePath)
+	if err != nil {
+		return "", err
 	}
-	// Otherwise, prepend .specs/
-	return filepath.Join(s.basePath, SpecDir, relativePath)
+	return fullPath, nil
 }
 
 // Load reads and parses a spec from the given path
 func (s *FileStore) Load(path string) (*domain.ProductSpec, error) {
-	fullPath := s.SpecPath(path)
+	fullPath, cleanedPath, err := s.resolveSpecPath(path)
+	if err != nil {
+		return nil, err
+	}
 
 	content, err := os.ReadFile(fullPath)
 	if err != nil {
@@ -67,7 +69,7 @@ func (s *FileStore) Load(path string) (*domain.ProductSpec, error) {
 		return nil, fmt.Errorf("parse spec: %w", err)
 	}
 
-	spec.FilePath = path
+	spec.FilePath = cleanedPath
 
 	// Get file timestamps
 	info, err := os.Stat(fullPath)
@@ -84,7 +86,11 @@ func (s *FileStore) Save(spec *domain.ProductSpec) error {
 		return ErrInvalidPath
 	}
 
-	fullPath := s.SpecPath(spec.FilePath)
+	fullPath, cleanedPath, err := s.resolveSpecPath(spec.FilePath)
+	if err != nil {
+		return err
+	}
+	spec.FilePath = cleanedPath
 
 	// Ensure directory exists
 	dir := filepath.Dir(fullPath)
@@ -161,7 +167,10 @@ func (s *FileStore) List() ([]*domain.ProductSpec, error) {
 
 // Delete removes a spec file
 func (s *FileStore) Delete(path string) error {
-	fullPath := s.SpecPath(path)
+	fullPath, _, err := s.resolveSpecPath(path)
+	if err != nil {
+		return err
+	}
 	if err := os.Remove(fullPath); err != nil {
 		if os.IsNotExist(err) {
 			return ErrSpecNotFound
@@ -230,4 +239,36 @@ func ParseSpec(content []byte) (*domain.ProductSpec, error) {
 // SerializeSpec serializes a spec to YAML
 func SerializeSpec(spec *domain.ProductSpec) ([]byte, error) {
 	return yaml.Marshal(spec)
+}
+
+func (s *FileStore) resolveSpecPath(relativePath string) (string, string, error) {
+	if strings.TrimSpace(relativePath) == "" {
+		return "", "", ErrInvalidPath
+	}
+
+	cleaned := filepath.Clean(relativePath)
+	if cleaned == "." || cleaned == ".." {
+		return "", "", ErrInvalidPath
+	}
+	if filepath.IsAbs(cleaned) {
+		return "", "", ErrInvalidPath
+	}
+	sep := string(filepath.Separator)
+	if strings.HasPrefix(cleaned, ".."+sep) {
+		return "", "", ErrInvalidPath
+	}
+
+	cleaned = strings.TrimPrefix(cleaned, "."+sep)
+	rel := cleaned
+	if rel != SpecDir && !strings.HasPrefix(rel, SpecDir+sep) {
+		rel = filepath.Join(SpecDir, rel)
+	}
+
+	fullPath := filepath.Join(s.basePath, rel)
+	relToBase, err := filepath.Rel(s.basePath, fullPath)
+	if err != nil || strings.HasPrefix(relToBase, ".."+sep) || relToBase == ".." {
+		return "", "", ErrInvalidPath
+	}
+
+	return fullPath, rel, nil
 }

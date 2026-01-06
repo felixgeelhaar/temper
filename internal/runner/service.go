@@ -24,7 +24,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		PoolSize:  3,
-		Timeout:   30 * time.Second,
+		Timeout:   120 * time.Second,
 		MemoryMB:  256,
 		CPULimit:  0.5,
 		BaseImage: "temper-runner-sandbox:latest",

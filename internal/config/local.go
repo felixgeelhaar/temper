@@ -51,8 +51,9 @@ type TrackConfig struct {
 
 // RunnerConfig holds code execution settings
 type RunnerConfig struct {
-	Executor string             `yaml:"executor"`
-	Docker   DockerRunnerConfig `yaml:"docker"`
+	Executor           string             `yaml:"executor"`
+	AllowLocalFallback bool               `yaml:"allow_local_fallback"`
+	Docker             DockerRunnerConfig `yaml:"docker"`
 }
 
 // DockerRunnerConfig holds Docker executor settings
@@ -151,11 +152,12 @@ func DefaultLocalConfig() *LocalConfig {
 		},
 		Runner: RunnerConfig{
 			Executor: "docker",
+			AllowLocalFallback: false,
 			Docker: DockerRunnerConfig{
 				Image:          "golang:1.23-alpine",
 				MemoryMB:       384,
 				CPULimit:       0.5,
-				TimeoutSeconds: 30,
+				TimeoutSeconds: 120,
 				NetworkOff:     true,
 			},
 		},

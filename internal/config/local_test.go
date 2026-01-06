@@ -100,6 +100,9 @@ func TestDefaultLocalConfig(t *testing.T) {
 	if cfg.Runner.Executor != "docker" {
 		t.Errorf("Runner.Executor = %q, want docker", cfg.Runner.Executor)
 	}
+	if cfg.Runner.AllowLocalFallback {
+		t.Error("Runner.AllowLocalFallback should be false by default")
+	}
 	if cfg.Runner.Docker.MemoryMB != 384 {
 		t.Errorf("Runner.Docker.MemoryMB = %d, want 384", cfg.Runner.Docker.MemoryMB)
 	}

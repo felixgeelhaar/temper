@@ -193,7 +193,12 @@ func createTempCodeDir(code map[string]string) (string, error) {
 	}
 
 	for filename, content := range code {
-		filePath := filepath.Join(tmpDir, filename)
+		cleaned, err := sanitizeRelativePath(filename)
+		if err != nil {
+			removeTempDir(tmpDir)
+			return "", fmt.Errorf("invalid filename %q: %w", filename, err)
+		}
+		filePath := filepath.Join(tmpDir, cleaned)
 		// Create parent directories if needed
 		if dir := filepath.Dir(filePath); dir != tmpDir {
 			_ = os.MkdirAll(dir, 0755)
@@ -209,6 +214,24 @@ func createTempCodeDir(code map[string]string) (string, error) {
 
 func removeTempDir(dir string) {
 	os.RemoveAll(dir)
+}
+
+func sanitizeRelativePath(path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", fmt.Errorf("path is empty")
+	}
+	cleaned := filepath.Clean(path)
+	if cleaned == "." || cleaned == ".." {
+		return "", fmt.Errorf("path must be a file path")
+	}
+	if filepath.IsAbs(cleaned) {
+		return "", fmt.Errorf("absolute paths are not allowed")
+	}
+	sep := string(filepath.Separator)
+	if strings.HasPrefix(cleaned, ".."+sep) {
+		return "", fmt.Errorf("path traversal is not allowed")
+	}
+	return cleaned, nil
 }
 
 // DockerExecutor executes code in Docker containers
@@ -237,7 +260,7 @@ func DefaultDockerConfig() DockerConfig {
 		MemoryMB:   256,
 		CPULimit:   0.5,
 		NetworkOff: true,
-		Timeout:    30 * time.Second,
+		Timeout:    120 * time.Second,
 	}
 }
 
@@ -253,7 +276,7 @@ func NewDockerExecutor(cfg DockerConfig) (*DockerExecutor, error) {
 		cfg.CPULimit = 0.5
 	}
 	if cfg.Timeout == 0 {
-		cfg.Timeout = 30 * time.Second
+		cfg.Timeout = 120 * time.Second
 	}
 
 	// Try to create client with environment settings first

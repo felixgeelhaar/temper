@@ -5,6 +5,7 @@ local M = {}
 
 local client = require("temper.client")
 local ui = require("temper.ui")
+local telescope = require("temper.telescope")
 
 -- Current session state
 M.state = {
@@ -25,6 +26,7 @@ M.config = {
 
 	-- Auto behaviors
 	auto_run_on_save = false,
+	check_daemon_on_start = true,
 	show_hints_in_quickfix = false,
 
 	-- Keymaps (set to false to disable)
@@ -38,6 +40,20 @@ M.config = {
 		toggle = "<leader>tt",
 	},
 }
+
+local function session_hint()
+	return "Start with :TemperPickExercise, :TemperSpecStart <path>, or :TemperStart <pack>/<exercise>."
+end
+
+M.session_hint_text = session_hint
+
+local function require_session()
+	if not M.state.session_id then
+		ui.notify("No active session. " .. session_hint(), vim.log.levels.WARN)
+		return false
+	end
+	return true
+end
 
 -- Setup function
 function M.setup(opts)
@@ -60,17 +76,21 @@ function M.setup(opts)
 		M.setup_keymaps()
 	end
 
-	-- Auto-run on save
-	if M.config.auto_run_on_save then
-		vim.api.nvim_create_autocmd("BufWritePost", {
-			pattern = "*.go",
-			callback = function()
-				if M.state.session_id then
-					M.run()
-				end
-			end,
-		})
-	end
+		-- Auto-run on save
+		if M.config.auto_run_on_save then
+			vim.api.nvim_create_autocmd("BufWritePost", {
+				pattern = "*.go",
+				callback = function()
+					if M.state.session_id then
+						M.run()
+					end
+				end,
+			})
+		end
+
+		if M.config.check_daemon_on_start then
+			M.health_check()
+		end
 end
 
 -- Create user commands
@@ -141,6 +161,10 @@ function M.create_commands()
 		M.list_exercises()
 	end, { desc = "List available exercises" })
 
+	vim.api.nvim_create_user_command("TemperPickExercise", function()
+		M.pick_exercise()
+	end, { desc = "Browse exercises and start a session" })
+
 	-- UI toggle
 	vim.api.nvim_create_user_command("TemperToggle", function()
 		ui.toggle_panel()
@@ -159,6 +183,10 @@ function M.create_commands()
 	vim.api.nvim_create_user_command("TemperSpecList", function()
 		M.spec_list()
 	end, { desc = "List specs in workspace" })
+
+	vim.api.nvim_create_user_command("TemperSpecStart", function(opts)
+		M.spec_start(opts.args ~= "" and opts.args or nil)
+	end, { nargs = "?", desc = "Start a spec/feature session (choose or provide path)" })
 
 	vim.api.nvim_create_user_command("TemperSpecValidate", function(opts)
 		M.spec_validate(opts.args ~= "" and opts.args or nil)
@@ -290,7 +318,7 @@ end
 -- Usage: :TemperStart <pack>/<exercise> OR :TemperStart --spec <spec_name>
 function M.start(args)
 	if not args or args == "" then
-		ui.notify("Usage: :TemperStart <pack>/<exercise> or :TemperStart --spec <name>", vim.log.levels.WARN)
+		ui.notify("Usage: :TemperStart <pack>/<exercise> or :TemperStart --spec <name>. Try :TemperPickExercise or :TemperSpecStart to browse options.", vim.log.levels.WARN)
 		return
 	end
 
@@ -456,8 +484,7 @@ end
 
 -- Request explicit escalation (L4/L5)
 function M.escalate(args)
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -498,8 +525,7 @@ end
 
 -- Common intervention request handler
 function M.request_intervention(intent, request_fn)
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -514,7 +540,11 @@ function M.request_intervention(intent, request_fn)
 
 		-- Check for cooldown
 		if result.error == "cooldown active" then
-			ui.notify(result.message, vim.log.levels.WARN)
+			local remaining = result.cooldown_remaining or 0
+			local wait = math.max(0, math.ceil(remaining))
+			local message = result.message or "Cooldown active"
+			message = string.format("%s – try again in %ds", message, wait)
+			ui.notify(message, vim.log.levels.WARN)
 			return
 		end
 
@@ -524,8 +554,7 @@ end
 
 -- Run code checks
 function M.run()
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -544,8 +573,7 @@ end
 
 -- Format code
 function M.format()
-	if not M.state.session_id then
-		ui.notify("No active session", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -603,6 +631,38 @@ function M.list_exercises()
 	end)
 end
 
+function M.pick_exercise()
+	ui.show_loading("Loading exercises...")
+
+	client.list_exercises(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local choices = {}
+		for _, pack in ipairs(result.packs or {}) do
+			for _, ex in ipairs(pack.exercises or {}) do
+				local label = string.format("%s → %s (%s)", pack.name or pack.id, ex.title or ex.id, ex.difficulty or "unknown")
+				table.insert(choices, { label = label, value = ex.id })
+			end
+		end
+
+		if #choices == 0 then
+			ui.notify("No exercises found. Create a spec with :TemperSpecCreate to work on a feature.", vim.log.levels.INFO)
+			return
+		end
+
+			telescope.select(choices, {
+				prompt = "Select exercise to start a session",
+			}, function(choice)
+				if choice and choice.value then
+					M._start_exercise_session(choice.value)
+				end
+			end)
+	end)
+end
+
 -- Health check
 function M.health_check()
 	client.is_running(function(running)
@@ -631,7 +691,8 @@ function M.spec_create(name)
 			return
 		end
 
-		ui.notify("Spec created: " .. (result.file_path or name))
+		local path = result.file_path or name
+		ui.notify("Spec created: " .. path .. ". Run :TemperSpecStart " .. path .. " to start feature guidance.", vim.log.levels.INFO)
 		M.spec_list()
 	end)
 end
@@ -669,6 +730,41 @@ function M.spec_list()
 		else
 			ui.set_panel_content({ "", "  No specs found in .specs/ directory", "" }, "Temper - Specs")
 		end
+	end)
+end
+
+function M.spec_start(path)
+	if path and path ~= "" then
+		M._start_spec_session(path)
+		return
+	end
+
+	ui.show_loading("Loading specs...")
+
+	client.list_specs(function(err, result)
+		if err then
+			ui.show_error(err)
+			return
+		end
+
+		local choices = {}
+		for _, spec in ipairs(result.specs or {}) do
+			local label = string.format("%s (v%s) → %s", spec.name or "Unnamed", spec.version or "1.0.0", spec.file_path or "unknown")
+			table.insert(choices, { label = label, value = spec.file_path })
+		end
+
+		if #choices == 0 then
+			ui.notify("No specs found. Create one with :TemperSpecCreate <name>.", vim.log.levels.INFO)
+			return
+		end
+
+			telescope.select(choices, {
+				prompt = "Select spec to start feature guidance",
+			}, function(choice)
+				if choice and choice.value then
+					M._start_spec_session(choice.value)
+				end
+			end)
 	end)
 end
 
@@ -944,8 +1040,7 @@ end
 
 -- Preview pending patch
 function M.patch_preview()
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -999,8 +1094,7 @@ end
 
 -- Apply pending patch
 function M.patch_apply()
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -1031,8 +1125,7 @@ end
 
 -- Reject pending patch
 function M.patch_reject()
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 
@@ -1050,8 +1143,7 @@ end
 
 -- List all patches in session
 function M.list_patches()
-	if not M.state.session_id then
-		ui.notify("No active session. Use :TemperStart first", vim.log.levels.WARN)
+	if not require_session() then
 		return
 	end
 

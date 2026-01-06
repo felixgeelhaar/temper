@@ -68,8 +68,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.PoolSize != 3 {
 		t.Errorf("PoolSize = %d, want 3", cfg.PoolSize)
 	}
-	if cfg.Timeout != 30*time.Second {
-		t.Errorf("Timeout = %v, want 30s", cfg.Timeout)
+	if cfg.Timeout != 120*time.Second {
+		t.Errorf("Timeout = %v, want 120s", cfg.Timeout)
 	}
 	if cfg.MemoryMB != 256 {
 		t.Errorf("MemoryMB = %d, want 256", cfg.MemoryMB)
@@ -345,8 +345,8 @@ func TestDefaultDockerConfig(t *testing.T) {
 	if !cfg.NetworkOff {
 		t.Error("NetworkOff should be true")
 	}
-	if cfg.Timeout != 30*time.Second {
-		t.Errorf("Timeout = %v, want 30s", cfg.Timeout)
+	if cfg.Timeout != 120*time.Second {
+		t.Errorf("Timeout = %v, want 120s", cfg.Timeout)
 	}
 }
 
@@ -1361,4 +1361,3 @@ not json line
 		})
 	}
 }
-

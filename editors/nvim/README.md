@@ -58,6 +58,7 @@ require("temper").setup({
 
   -- Auto behaviors
   auto_run_on_save = false,
+  check_daemon_on_start = true,
 
   -- Keymaps (set to false to disable all, or individual keys)
   keymaps = {
@@ -72,6 +73,8 @@ require("temper").setup({
 })
 ```
 
+Set `check_daemon_on_start = false` if you prefer to disable the automatic health check (the plugin will otherwise call `:TemperHealth` once when it loads to confirm the daemon is up).
+
 ## Commands
 
 ### Session Management
@@ -82,6 +85,7 @@ require("temper").setup({
 | `:TemperStop` | End current session |
 | `:TemperStatus` | Show session status |
 | `:TemperHealth` | Check daemon health |
+| `:TemperPickExercise` | Browse exercises interactively and start a session |
 
 ### Pairing Commands
 
@@ -111,6 +115,7 @@ require("temper").setup({
 | `:TemperSpecStatus <path>` | Show spec progress |
 | `:TemperSpecLock <path>` | Generate SpecLock for drift detection |
 | `:TemperSpecDrift <path>` | Show drift from locked spec |
+| `:TemperSpecStart [path]` | Start feature guidance based on a spec (browse if no path) |
 
 ### Stats/Analytics
 
@@ -150,6 +155,13 @@ require("temper").setup({
 6. Request help when needed: `:TemperHint`, `:TemperStuck`, etc.
 7. End session: `:TemperStop`
 
+## Feature work (spec-driven)
+
+1. Create a spec scaffold: `:TemperSpecCreate my-feature`
+2. Start a spec-guided session: `:TemperSpecStart my-feature.yaml` (or just `:TemperSpecStart` to pick)
+3. Use authoring helpers like `:TemperAuthorSuggest`/`:TemperAuthorAsk` and track progress with `:TemperSpecStatus`
+4. Request guidance via `:TemperHint`, `:TemperNext`, or `:TemperEscalate` and wrap up with `:TemperStop` when done
+
 ## Learning Contract
 
 Temper enforces a Learning Contract that limits how much help you receive:
@@ -162,6 +174,12 @@ Temper enforces a Learning Contract that limits how much help you receive:
 - **L5**: Full solutions (rare)
 
 The AI will select the minimum helpful intervention level based on your intent and context.
+
+## Escalation & Cooldown Guidance
+
+- Temper requires at least two hint requests (`:TemperHint`) before you can request an L4/L5 escalation (`:TemperEscalate`), ensuring you try lower levels first.
+- Provide a 20+ character justification when escalating; the example command in the Pairing section demonstrates the required format.
+- Cooldowns are surfaced in the session panel under “Policy → Cooldown” and via the warning message if the server returns `cooldown active`; wait the indicated seconds before trying again.
 
 ## License
 
