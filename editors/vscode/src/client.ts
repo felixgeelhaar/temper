@@ -148,7 +148,7 @@ export class TemperClient {
         return this.request('GET', `/v1/sessions/${sessionId}`);
     }
 
-    async deleteSession(sessionId: string): Promise<{ deleted: boolean }> {
+    async deleteSession(sessionId: string): Promise<DeleteSessionResponse> {
         return this.request('DELETE', `/v1/sessions/${sessionId}`);
     }
 
@@ -267,4 +267,20 @@ export interface PatchPreview {
         warnings?: string[];
     };
     message?: string;
+}
+
+export interface SessionSummary {
+    duration: string;
+    run_count: number;
+    hint_count: number;
+    intent: string;
+    spec_path?: string;
+    spec_progress?: string;
+    message: string;
+    accomplishment?: string;
+}
+
+export interface DeleteSessionResponse {
+    deleted: boolean;
+    summary?: SessionSummary;
 }

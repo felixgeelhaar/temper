@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TemperClient, Session, Intervention, RunResult, AuthoringSuggestion } from './client';
+import { TemperClient, Session, Intervention, RunResult, AuthoringSuggestion, SessionSummary } from './client';
 
 // Global state
 let client: TemperClient;
@@ -167,16 +167,61 @@ async function stopSession() {
     }
 
     try {
-        await client.deleteSession(currentSession.id);
+        const result = await client.deleteSession(currentSession.id);
         const sessionId = currentSession.id;
         currentSession = null;
         updateStatusBar();
 
-        vscode.window.showInformationMessage(`Session ended: ${sessionId.substring(0, 8)}`);
-        outputChannel.appendLine(`Session ended: ${sessionId}`);
+        // Display session summary
+        if (result.summary) {
+            showSessionSummary(result.summary, sessionId);
+        } else {
+            vscode.window.showInformationMessage(`Session ended: ${sessionId.substring(0, 8)}`);
+            outputChannel.appendLine(`Session ended: ${sessionId}`);
+        }
 
     } catch (error) {
         vscode.window.showErrorMessage(`Failed to end session: ${error}`);
+    }
+}
+
+function showSessionSummary(summary: SessionSummary, sessionId: string) {
+    outputChannel.clear();
+    outputChannel.appendLine('=== Session Summary ===');
+    outputChannel.appendLine('');
+
+    // Show accomplishment badge if present
+    if (summary.accomplishment) {
+        outputChannel.appendLine(`🏆 ${summary.accomplishment}`);
+        outputChannel.appendLine('');
+    }
+
+    // Show stats
+    outputChannel.appendLine(`Duration: ${summary.duration}`);
+    outputChannel.appendLine(`Runs: ${summary.run_count}`);
+    outputChannel.appendLine(`Hints: ${summary.hint_count}`);
+
+    // Show spec progress for feature guidance sessions
+    if (summary.spec_progress) {
+        outputChannel.appendLine(`Spec Progress: ${summary.spec_progress}`);
+    }
+
+    outputChannel.appendLine('');
+    outputChannel.appendLine('---');
+    outputChannel.appendLine('');
+
+    // Show motivational message
+    outputChannel.appendLine(summary.message);
+
+    outputChannel.appendLine('');
+    outputChannel.appendLine(`Session ID: ${sessionId}`);
+    outputChannel.show();
+
+    // Show notification with accomplishment or simple message
+    if (summary.accomplishment) {
+        vscode.window.showInformationMessage(`🏆 ${summary.accomplishment} - ${summary.duration} of practice`);
+    } else {
+        vscode.window.showInformationMessage(`Session complete - ${summary.duration}`);
     }
 }
 
