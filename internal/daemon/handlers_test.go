@@ -79,6 +79,7 @@ func (m *mockLLMProvider) SupportsStreaming() bool {
 type testServerContext struct {
 	Server       *Server
 	SessionsPath string
+	SpecsPath    string
 	Cleanup      func()
 }
 
@@ -100,9 +101,10 @@ func setupTestServerWithContext(t *testing.T) *testServerContext {
 	}
 
 	sessionsPath := filepath.Join(tmpDir, "sessions")
+	specsPath := filepath.Join(tmpDir, "workspace")
 
 	// Create subdirectories
-	for _, dir := range []string{"sessions", "exercises", "logs"} {
+	for _, dir := range []string{"sessions", "exercises", "logs", "workspace", "workspace/.specs"} {
 		if err := os.MkdirAll(filepath.Join(tmpDir, dir), 0755); err != nil {
 			t.Fatalf("create subdir %s: %v", dir, err)
 		}
@@ -118,6 +120,7 @@ func setupTestServerWithContext(t *testing.T) *testServerContext {
 		Config:       cfg,
 		ExercisePath: filepath.Join(tmpDir, "exercises"),
 		SessionsPath: sessionsPath,
+		SpecsPath:    specsPath,
 	})
 	if err != nil {
 		os.RemoveAll(tmpDir)
@@ -141,6 +144,7 @@ func setupTestServerWithContext(t *testing.T) *testServerContext {
 	return &testServerContext{
 		Server:       server,
 		SessionsPath: sessionsPath,
+		SpecsPath:    specsPath,
 		Cleanup: func() {
 			os.RemoveAll(tmpDir)
 		},
@@ -839,6 +843,134 @@ func TestHandlers_CreateRun_InvalidJSON(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected status %d, got %d: %s", http.StatusBadRequest, w.Code, w.Body.String())
 	}
+}
+
+// TestHandlers_SpecSession_RunAndReview verifies that :TemperRun and :TemperReview
+// work with spec-based (feature_guidance) sessions, not just exercise-based sessions.
+func TestHandlers_SpecSession_RunAndReview(t *testing.T) {
+	ctx := setupTestServerWithContext(t)
+	defer ctx.Cleanup()
+	server := ctx.Server
+
+	// Create a spec file in the .specs directory (relative path required)
+	specFullPath := filepath.Join(ctx.SpecsPath, ".specs", "test-feature.spec.yaml")
+	specContent := `name: Test Feature
+title: Test Feature
+goals:
+  - Implement hello world functionality
+acceptance_criteria:
+  - id: ac-1
+    description: Code compiles successfully
+  - id: ac-2
+    description: Tests pass
+features:
+  - id: f-1
+    title: Hello World
+    description: Print hello world
+`
+	if err := os.WriteFile(specFullPath, []byte(specContent), 0644); err != nil {
+		t.Fatalf("write spec: %v", err)
+	}
+
+	// Create a spec-based session (feature_guidance intent) using relative path
+	body := strings.NewReader(`{"spec_path": ".specs/test-feature.spec.yaml", "intent": "feature_guidance"}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions", body)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("failed to create spec session: %d: %s", w.Code, w.Body.String())
+	}
+
+	var sessionResp map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&sessionResp); err != nil {
+		t.Fatalf("decode session response: %v", err)
+	}
+
+	sessionID := sessionResp["id"].(string)
+
+	// Verify session has feature_guidance intent
+	intent, ok := sessionResp["intent"].(string)
+	if !ok || intent != "feature_guidance" {
+		t.Errorf("expected intent 'feature_guidance', got %v", sessionResp["intent"])
+	}
+
+	// Test 1: Run endpoint should work with spec-based session
+	t.Run("run works with spec session", func(t *testing.T) {
+		runBody := strings.NewReader(`{
+			"code": {"main.go": "package main\n\nfunc main() {\n\tprintln(\"hello\")\n}"},
+			"format": true,
+			"build": true
+		}`)
+		runReq := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/runs", runBody)
+		runReq.Header.Set("Content-Type", "application/json")
+		runW := httptest.NewRecorder()
+
+		server.router.ServeHTTP(runW, runReq)
+
+		if runW.Code != http.StatusOK {
+			t.Errorf("run should work with spec session: expected %d, got %d: %s",
+				http.StatusOK, runW.Code, runW.Body.String())
+		}
+
+		var runResp map[string]interface{}
+		if err := json.NewDecoder(runW.Body).Decode(&runResp); err != nil {
+			t.Fatalf("decode run response: %v", err)
+		}
+
+		if _, ok := runResp["run"]; !ok {
+			t.Error("expected 'run' field in response")
+		}
+	})
+
+	// Test 2: Review endpoint should work with spec-based session
+	t.Run("review works with spec session", func(t *testing.T) {
+		reviewBody := strings.NewReader(`{
+			"code": {"main.go": "package main\n\nfunc main() {\n\tprintln(\"hello\")\n}"}
+		}`)
+		reviewReq := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/review", reviewBody)
+		reviewReq.Header.Set("Content-Type", "application/json")
+		reviewW := httptest.NewRecorder()
+
+		server.router.ServeHTTP(reviewW, reviewReq)
+
+		// Review uses LLM, so it should succeed (mock LLM is registered)
+		if reviewW.Code != http.StatusOK {
+			t.Errorf("review should work with spec session: expected %d, got %d: %s",
+				http.StatusOK, reviewW.Code, reviewW.Body.String())
+		}
+
+		var reviewResp map[string]interface{}
+		if err := json.NewDecoder(reviewW.Body).Decode(&reviewResp); err != nil {
+			t.Fatalf("decode review response: %v", err)
+		}
+
+		// Response should have intervention content
+		if _, ok := reviewResp["content"]; !ok {
+			t.Error("expected 'content' field in review response")
+		}
+	})
+
+	// Test 3: Hint endpoint should also work with spec-based session
+	// Note: May return 429 (cooldown) after review call, which is expected behavior
+	t.Run("hint works with spec session", func(t *testing.T) {
+		hintBody := strings.NewReader(`{
+			"code": {"main.go": "package main\n\nfunc main() {\n\tprintln(\"hello\")\n}"}
+		}`)
+		hintReq := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/hint", hintBody)
+		hintReq.Header.Set("Content-Type", "application/json")
+		hintW := httptest.NewRecorder()
+
+		server.router.ServeHTTP(hintW, hintReq)
+
+		// 200 = success, 429 = cooldown active (both indicate the endpoint works with spec sessions)
+		if hintW.Code != http.StatusOK && hintW.Code != http.StatusTooManyRequests {
+			t.Errorf("hint should work with spec session: expected 200 or 429, got %d: %s",
+				hintW.Code, hintW.Body.String())
+		}
+	})
 }
 
 func TestHandlers_Format_WithSession(t *testing.T) {
