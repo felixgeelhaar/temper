@@ -1,0 +1,26 @@
+name: test-feature-spec
+version: 1.0.0
+goals:
+    - Define the primary objective of this feature
+features:
+    - id: feat-test-feature-spec-1
+      title: Core Feature
+      description: Describe what this feature does
+      priority: high
+      success_criteria:
+        - Define measurable success criteria
+non_functional:
+    performance: []
+    security: []
+    scalability: []
+acceptance_criteria:
+    - id: ac-1
+      description: Define a verifiable acceptance criterion
+      satisfied: false
+milestones:
+    - id: m-1
+      name: MVP
+      features:
+        - feat-test-feature-spec-1
+      target: "2026-01-22"
+      description: Initial implementation

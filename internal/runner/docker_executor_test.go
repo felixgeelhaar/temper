@@ -35,14 +35,12 @@ func TestDockerExecutor_RunFormat(t *testing.T) {
 	skipIfNoDocker(t)
 
 	cfg := runner.DefaultDockerConfig()
-	cfg.Timeout = 180 * time.Second // Longer timeout for image pull
+	cfg.Timeout = 120 * time.Second // Per-container timeout
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create Docker executor: %v", err)
 	}
 	defer exec.Close()
-
-	ctx := context.Background()
 
 	tests := []struct {
 		name     string
@@ -80,6 +78,9 @@ println("hello")
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+			defer cancel()
+
 			result, err := exec.RunFormat(ctx, tc.code)
 			if err != nil {
 				t.Fatalf("RunFormat failed: %v", err)
@@ -101,14 +102,12 @@ func TestDockerExecutor_RunBuild(t *testing.T) {
 	skipIfNoDocker(t)
 
 	cfg := runner.DefaultDockerConfig()
-	cfg.Timeout = 180 * time.Second
+	cfg.Timeout = 120 * time.Second // Per-container timeout
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create Docker executor: %v", err)
 	}
 	defer exec.Close()
-
-	ctx := context.Background()
 
 	tests := []struct {
 		name       string
@@ -159,6 +158,9 @@ func main() {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+			defer cancel()
+
 			result, err := exec.RunBuild(ctx, tc.code)
 			if err != nil {
 				t.Fatalf("RunBuild failed: %v", err)
@@ -180,14 +182,12 @@ func TestDockerExecutor_RunTests(t *testing.T) {
 	skipIfNoDocker(t)
 
 	cfg := runner.DefaultDockerConfig()
-	cfg.Timeout = 180 * time.Second
+	cfg.Timeout = 120 * time.Second // Per-container timeout
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create Docker executor: %v", err)
 	}
 	defer exec.Close()
-
-	ctx := context.Background()
 
 	tests := []struct {
 		name   string
@@ -242,6 +242,10 @@ func TestAdd(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			// Per-subtest timeout to prevent hanging
+			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+			defer cancel()
+
 			result, err := exec.RunTests(ctx, tc.code, []string{"-v"})
 			if err != nil {
 				t.Fatalf("RunTests failed: %v", err)
@@ -270,7 +274,7 @@ func TestDockerExecutor_ResourceLimits(t *testing.T) {
 		MemoryMB:   384, // Go compiler needs ~300MB on ARM64 with CPU throttling
 		CPULimit:   0.5,
 		NetworkOff: true,
-		Timeout:    180 * time.Second, // Go builds need time in containers
+		Timeout:    120 * time.Second, // Per-container timeout
 	}
 
 	exec, err := runner.NewDockerExecutor(cfg)
@@ -279,7 +283,8 @@ func TestDockerExecutor_ResourceLimits(t *testing.T) {
 	}
 	defer exec.Close()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 
 	// Simple code that should still work with limited resources
 	code := map[string]string{
@@ -306,7 +311,7 @@ func TestDockerExecutor_NetworkDisabled(t *testing.T) {
 
 	cfg := runner.DefaultDockerConfig()
 	cfg.NetworkOff = true
-	cfg.Timeout = 180 * time.Second // Go builds need time in containers
+	cfg.Timeout = 120 * time.Second // Per-container timeout
 
 	exec, err := runner.NewDockerExecutor(cfg)
 	if err != nil {
@@ -314,7 +319,8 @@ func TestDockerExecutor_NetworkDisabled(t *testing.T) {
 	}
 	defer exec.Close()
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 
 	// Simple code - just verify the container runs with network disabled
 	code := map[string]string{

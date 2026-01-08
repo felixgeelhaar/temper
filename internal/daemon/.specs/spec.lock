@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "spec_hash": "55ca00d8cf148ebf28871a5e3cd38437b3d6d97cd37c4a7d9c8f72db744a996a",
+  "features": {
+    "feat-lock-test-spec-1": {
+      "hash": "7201c1fd02c611c6f36330408b734bfbcd599e77b63713e290d294f765bfeaaa"
+    }
+  },
+  "locked_at": "2026-01-08T20:00:35.742482+01:00"
+}
