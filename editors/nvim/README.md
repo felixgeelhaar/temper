@@ -159,8 +159,15 @@ Set `check_daemon_on_start = false` if you prefer to disable the automatic healt
 
 1. Create a spec scaffold: `:TemperSpecCreate my-feature`
 2. Start a spec-guided session: `:TemperSpecStart my-feature.yaml` (or just `:TemperSpecStart` to pick)
-3. Use authoring helpers like `:TemperAuthorSuggest`/`:TemperAuthorAsk` and track progress with `:TemperSpecStatus`
-4. Request guidance via `:TemperHint`, `:TemperNext`, or `:TemperEscalate` and wrap up with `:TemperStop` when done
+3. Use authoring helpers like `:TemperAuthorSuggest`/`:TemperAuthorAsk` to develop the spec
+4. Write implementation code
+5. Run checks: `:TemperRun` to verify format/build/tests pass
+6. Request guidance: `:TemperHint`, `:TemperNext`, or `:TemperEscalate` when stuck
+7. Request review: `:TemperReview` for code review feedback
+8. Track progress: `:TemperSpecStatus` to see acceptance criteria completion
+9. Wrap up: `:TemperStop` when done
+
+All pairing commands (`:TemperHint`, `:TemperReview`, `:TemperRun`, etc.) work in both exercise and spec-based sessions.
 
 ## Learning Contract
 
