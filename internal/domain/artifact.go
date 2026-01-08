@@ -10,7 +10,7 @@ import (
 type Artifact struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID
-	ExerciseID *string           // nil for freeform workspaces
+	ExerciseID *string // nil for freeform workspaces
 	Name       string
 	Content    map[string]string // filename -> content
 	CreatedAt  time.Time

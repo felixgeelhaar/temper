@@ -464,15 +464,15 @@ func TestLanguage_String(t *testing.T) {
 
 // mockLanguageExecutor is a test implementation of LanguageExecutor
 type mockLanguageExecutor struct {
-	lang          Language
-	formatResult  *FormatResult
-	formatFixRes  map[string]string
-	buildResult   *BuildResult
-	testResult    *TestResult
-	formatErr     error
-	formatFixErr  error
-	buildErr      error
-	testErr       error
+	lang         Language
+	formatResult *FormatResult
+	formatFixRes map[string]string
+	buildResult  *BuildResult
+	testResult   *TestResult
+	formatErr    error
+	formatFixErr error
+	buildErr     error
+	testErr      error
 }
 
 func (m *mockLanguageExecutor) Language() Language {

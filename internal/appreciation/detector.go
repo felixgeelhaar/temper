@@ -27,12 +27,12 @@ type MomentType string
 
 const (
 	// Session-level moments
-	MomentNoHintsNeeded     MomentType = "no_hints_needed"
-	MomentMinimalHints      MomentType = "minimal_hints"
-	MomentNoEscalation      MomentType = "no_escalation"
-	MomentFirstTrySuccess   MomentType = "first_try_success"
-	MomentQuickResolution   MomentType = "quick_resolution"
-	MomentAllTestsPassing   MomentType = "all_tests_passing"
+	MomentNoHintsNeeded   MomentType = "no_hints_needed"
+	MomentMinimalHints    MomentType = "minimal_hints"
+	MomentNoEscalation    MomentType = "no_escalation"
+	MomentFirstTrySuccess MomentType = "first_try_success"
+	MomentQuickResolution MomentType = "quick_resolution"
+	MomentAllTestsPassing MomentType = "all_tests_passing"
 
 	// Progress-level moments
 	MomentReducedDependency MomentType = "reduced_dependency"
@@ -51,10 +51,10 @@ const (
 // Evidence provides the data backing an appreciation moment
 type Evidence struct {
 	// Session metrics
-	HintCount      int     `json:"hint_count,omitempty"`
-	RunCount       int     `json:"run_count,omitempty"`
-	MaxLevelUsed   int     `json:"max_level_used,omitempty"`
-	Duration       string  `json:"duration,omitempty"`
+	HintCount    int    `json:"hint_count,omitempty"`
+	RunCount     int    `json:"run_count,omitempty"`
+	MaxLevelUsed int    `json:"max_level_used,omitempty"`
+	Duration     string `json:"duration,omitempty"`
 
 	// Progress metrics
 	PreviousDependency float64 `json:"previous_dependency,omitempty"`
@@ -78,15 +78,15 @@ type Evidence struct {
 
 // SessionSummary provides a motivational summary when a session ends
 type SessionSummary struct {
-	Duration       string         `json:"duration"`
-	RunCount       int            `json:"run_count"`
-	HintCount      int            `json:"hint_count"`
-	Intent         string         `json:"intent"`
-	SpecPath       string         `json:"spec_path,omitempty"`
-	SpecProgress   string         `json:"spec_progress,omitempty"`
-	Message        string         `json:"message"`
-	Accomplishment string         `json:"accomplishment,omitempty"`
-	Evidence       *Evidence      `json:"evidence,omitempty"`
+	Duration       string    `json:"duration"`
+	RunCount       int       `json:"run_count"`
+	HintCount      int       `json:"hint_count"`
+	Intent         string    `json:"intent"`
+	SpecPath       string    `json:"spec_path,omitempty"`
+	SpecProgress   string    `json:"spec_progress,omitempty"`
+	Message        string    `json:"message"`
+	Accomplishment string    `json:"accomplishment,omitempty"`
+	Evidence       *Evidence `json:"evidence,omitempty"`
 }
 
 // Detector identifies appreciation-worthy moments

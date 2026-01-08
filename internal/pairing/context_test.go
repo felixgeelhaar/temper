@@ -65,7 +65,7 @@ func TestInterventionContext_IsFeatureGuidance(t *testing.T) {
 		},
 		{
 			name: "no intent",
-			ctx: InterventionContext{},
+			ctx:  InterventionContext{},
 			want: false,
 		},
 	}

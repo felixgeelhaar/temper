@@ -96,9 +96,9 @@ func TestCorrelationIDMiddleware_PropagatesExistingID(t *testing.T) {
 
 func TestLoggingMiddleware_CapturesStatusCode(t *testing.T) {
 	tests := []struct {
-		name         string
-		statusCode   int
-		writeHeader  bool
+		name        string
+		statusCode  int
+		writeHeader bool
 	}{
 		{"ok status", http.StatusOK, true},
 		{"created status", http.StatusCreated, true},

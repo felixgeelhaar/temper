@@ -32,10 +32,10 @@ func TestDetector_DetectSessionMoments(t *testing.T) {
 	d := NewDetector()
 
 	tests := []struct {
-		name       string
-		session    *session.Session
-		output     *domain.RunOutput
-		wantTypes  []MomentType
+		name        string
+		session     *session.Session
+		output      *domain.RunOutput
+		wantTypes   []MomentType
 		wantAtLeast int
 	}{
 		{
@@ -152,17 +152,17 @@ func TestDetector_DetectProfileMoments(t *testing.T) {
 	d := NewDetector()
 
 	tests := []struct {
-		name       string
-		profile    *domain.LearningProfile
-		previous   *domain.LearningProfile
-		wantTypes  []MomentType
+		name        string
+		profile     *domain.LearningProfile
+		previous    *domain.LearningProfile
+		wantTypes   []MomentType
 		wantAtLeast int
 	}{
 		{
-			name:       "nil profile",
-			profile:    nil,
-			previous:   nil,
-			wantTypes:  []MomentType{},
+			name:        "nil profile",
+			profile:     nil,
+			previous:    nil,
+			wantTypes:   []MomentType{},
 			wantAtLeast: 0,
 		},
 		{
@@ -231,17 +231,17 @@ func TestDetector_DetectTopicMoments(t *testing.T) {
 	d := NewDetector()
 
 	tests := []struct {
-		name       string
-		skill      *Skill
-		isFirst    bool
-		wantTypes  []MomentType
+		name        string
+		skill       *Skill
+		isFirst     bool
+		wantTypes   []MomentType
 		wantAtLeast int
 	}{
 		{
-			name:       "nil skill",
-			skill:      nil,
-			isFirst:   false,
-			wantTypes:  []MomentType{},
+			name:        "nil skill",
+			skill:       nil,
+			isFirst:     false,
+			wantTypes:   []MomentType{},
 			wantAtLeast: 0,
 		},
 		{
@@ -318,17 +318,17 @@ func TestDetector_DetectSpecMoments(t *testing.T) {
 	d := NewDetector()
 
 	tests := []struct {
-		name       string
-		spec       *domain.ProductSpec
-		criterion  *domain.AcceptanceCriterion
-		wantTypes  []MomentType
+		name        string
+		spec        *domain.ProductSpec
+		criterion   *domain.AcceptanceCriterion
+		wantTypes   []MomentType
 		wantAtLeast int
 	}{
 		{
-			name:       "nil spec",
-			spec:       nil,
-			criterion:  nil,
-			wantTypes:  []MomentType{},
+			name:        "nil spec",
+			spec:        nil,
+			criterion:   nil,
+			wantTypes:   []MomentType{},
 			wantAtLeast: 0,
 		},
 		{

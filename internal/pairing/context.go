@@ -7,10 +7,10 @@ import (
 
 // AuthoringContext holds context for spec authoring sessions
 type AuthoringContext struct {
-	Spec      *domain.ProductSpec  // The spec being authored
-	Section   string               // Current section: goals, features, acceptance_criteria, non_functional
-	Documents []domain.Document    // Discovered project documents
-	Question  string               // Optional user question for hints
+	Spec      *domain.ProductSpec // The spec being authored
+	Section   string              // Current section: goals, features, acceptance_criteria, non_functional
+	Documents []domain.Document   // Discovered project documents
+	Question  string              // Optional user question for hints
 }
 
 // HasDocuments returns true if there are documents available

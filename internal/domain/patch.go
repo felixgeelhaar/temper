@@ -12,10 +12,10 @@ type Patch struct {
 	InterventionID uuid.UUID   `json:"intervention_id"`
 	SessionID      uuid.UUID   `json:"session_id"`
 	File           string      `json:"file"`
-	Original       string      `json:"original"`       // original content (if known)
-	Proposed       string      `json:"proposed"`       // proposed new content
-	Diff           string      `json:"diff"`           // unified diff format
-	Description    string      `json:"description"`    // what this patch does
+	Original       string      `json:"original"`    // original content (if known)
+	Proposed       string      `json:"proposed"`    // proposed new content
+	Diff           string      `json:"diff"`        // unified diff format
+	Description    string      `json:"description"` // what this patch does
 	Status         PatchStatus `json:"status"`
 	CreatedAt      time.Time   `json:"created_at"`
 	AppliedAt      *time.Time  `json:"applied_at,omitempty"`
@@ -34,7 +34,7 @@ const (
 
 // PatchPreview contains information for displaying a patch to the user
 type PatchPreview struct {
-	Patch       *Patch   `json:"patch"`
+	Patch         *Patch   `json:"patch"`
 	ContextBefore []string `json:"context_before"` // lines before the change
 	ContextAfter  []string `json:"context_after"`  // lines after the change
 	Additions     int      `json:"additions"`      // lines added

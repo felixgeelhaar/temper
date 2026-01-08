@@ -2,8 +2,8 @@ package domain
 
 // Exercise represents a structured learning task
 type Exercise struct {
-	ID            string            // slug: "go-v1/basics/hello-world"
-	PackID        string            // "go-v1"
+	ID            string // slug: "go-v1/basics/hello-world"
+	PackID        string // "go-v1"
 	Title         string
 	Description   string
 	Difficulty    Difficulty

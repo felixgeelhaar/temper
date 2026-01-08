@@ -59,8 +59,8 @@ ok      module/package`,
 			expected: 1,
 		},
 		{
-			name: "error with path",
-			output: `pkg/handler/user.go:42:15: cannot use x (type int) as type string`,
+			name:     "error with path",
+			output:   `pkg/handler/user.go:42:15: cannot use x (type int) as type string`,
 			expected: 1,
 			wantFile: "pkg/handler/user.go",
 			wantLine: 42,
@@ -272,10 +272,10 @@ func TestParser_ParseFormatDiff(t *testing.T) {
 	p := NewParser()
 
 	tests := []struct {
-		name            string
-		output          string
-		wantHasChanges  bool
-		wantDiff        string
+		name           string
+		output         string
+		wantHasChanges bool
+		wantDiff       string
 	}{
 		{
 			name:           "empty output",

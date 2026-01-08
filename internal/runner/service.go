@@ -13,11 +13,11 @@ import (
 
 // Config holds runner configuration
 type Config struct {
-	PoolSize    int
-	Timeout     time.Duration
-	MemoryMB    int
-	CPULimit    float64
-	BaseImage   string
+	PoolSize  int
+	Timeout   time.Duration
+	MemoryMB  int
+	CPULimit  float64
+	BaseImage string
 }
 
 // DefaultConfig returns default runner configuration
@@ -43,9 +43,9 @@ type Service struct {
 }
 
 type runState struct {
-	run      *domain.Run
-	cancel   context.CancelFunc
-	doneCh   chan struct{}
+	run    *domain.Run
+	cancel context.CancelFunc
+	doneCh chan struct{}
 }
 
 // NewService creates a new runner service

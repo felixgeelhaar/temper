@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	ErrSessionNotFound   = errors.New("session not found")
-	ErrExerciseNotFound  = errors.New("exercise not found")
-	ErrCooldownActive    = errors.New("intervention cooldown active")
-	ErrSessionNotActive  = errors.New("session is not active")
-	ErrSpecRequired      = errors.New("spec path required for feature guidance intent")
-	ErrSpecInvalid       = errors.New("spec validation failed")
-	ErrDocsRequired      = errors.New("docs paths required for spec authoring intent")
+	ErrSessionNotFound  = errors.New("session not found")
+	ErrExerciseNotFound = errors.New("exercise not found")
+	ErrCooldownActive   = errors.New("intervention cooldown active")
+	ErrSessionNotActive = errors.New("session is not active")
+	ErrSpecRequired     = errors.New("spec path required for feature guidance intent")
+	ErrSpecInvalid      = errors.New("spec validation failed")
+	ErrDocsRequired     = errors.New("docs paths required for spec authoring intent")
 )
 
 // Service manages pairing sessions
@@ -58,11 +58,11 @@ func (s *Service) SetSpecService(ss *spec.Service) {
 
 // CreateRequest contains data for creating a session
 type CreateRequest struct {
-	ExerciseID string                // For training intent
-	SpecPath   string                // For feature guidance or spec authoring intent
-	DocsPaths  []string              // For spec authoring intent (paths to search for docs)
-	Intent     SessionIntent         // Explicit intent (optional, inferred if empty)
-	Code       map[string]string     // Initial code (for greenfield/feature)
+	ExerciseID string            // For training intent
+	SpecPath   string            // For feature guidance or spec authoring intent
+	DocsPaths  []string          // For spec authoring intent (paths to search for docs)
+	Intent     SessionIntent     // Explicit intent (optional, inferred if empty)
+	Code       map[string]string // Initial code (for greenfield/feature)
 	Policy     *domain.LearningPolicy
 }
 

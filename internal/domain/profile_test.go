@@ -262,11 +262,11 @@ func TestLearningProfile_SuggestMaxLevel(t *testing.T) {
 
 func TestProfileSignals_NeedsIntervention(t *testing.T) {
 	tests := []struct {
-		name             string
-		runsThisSession  int
-		timeOnExercise   time.Duration
-		errorsCount      int
-		want             bool
+		name            string
+		runsThisSession int
+		timeOnExercise  time.Duration
+		errorsCount     int
+		want            bool
 	}{
 		{"no signals", 0, 0, 0, false},
 		{"few runs", 3, 0, 0, false},

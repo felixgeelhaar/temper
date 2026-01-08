@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("workspace not found")
-	ErrAccessDenied  = errors.New("access denied")
-	ErrInvalidInput  = errors.New("invalid input")
+	ErrNotFound     = errors.New("workspace not found")
+	ErrAccessDenied = errors.New("access denied")
+	ErrInvalidInput = errors.New("invalid input")
 )
 
 // Repository defines the interface for workspace data access

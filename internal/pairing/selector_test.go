@@ -239,10 +239,10 @@ func TestSelector_adjustForRunOutput(t *testing.T) {
 	s := NewSelector()
 
 	tests := []struct {
-		name        string
-		level       domain.InterventionLevel
-		output      *domain.RunOutput
-		want        domain.InterventionLevel
+		name   string
+		level  domain.InterventionLevel
+		output *domain.RunOutput
+		want   domain.InterventionLevel
 	}{
 		{
 			name:   "nil output returns unchanged level",
@@ -479,10 +479,10 @@ func TestSelector_SelectLevel_Integration(t *testing.T) {
 	policy := domain.DefaultPolicy()
 
 	tests := []struct {
-		name    string
-		intent  domain.Intent
-		ctx     InterventionContext
-		want    domain.InterventionLevel
+		name   string
+		intent domain.Intent
+		ctx    InterventionContext
+		want   domain.InterventionLevel
 	}{
 		{
 			name:   "basic hint intent with empty context",

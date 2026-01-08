@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	collectionSessions      = "sessions"
-	subdirRuns              = "runs"
-	subdirInterventions     = "interventions"
+	collectionSessions  = "sessions"
+	subdirRuns          = "runs"
+	subdirInterventions = "interventions"
 )
 
 var (

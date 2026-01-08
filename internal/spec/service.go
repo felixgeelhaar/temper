@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrSpecInvalid     = errors.New("spec validation failed")
+	ErrSpecInvalid       = errors.New("spec validation failed")
 	ErrCriterionNotFound = errors.New("criterion not found")
 )
 

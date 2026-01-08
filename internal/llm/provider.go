@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	ErrProviderNotFound = errors.New("provider not found")
+	ErrProviderNotFound  = errors.New("provider not found")
 	ErrNoDefaultProvider = errors.New("no default provider configured")
 )
 

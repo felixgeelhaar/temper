@@ -190,8 +190,8 @@ func TestEmail(t *testing.T) {
 			want  string
 		}{
 			{"user@example.com", "user@example.com"},
-			{"USER@EXAMPLE.COM", "user@example.com"},        // normalized to lowercase
-			{"  user@example.com  ", "user@example.com"},    // trimmed
+			{"USER@EXAMPLE.COM", "user@example.com"},     // normalized to lowercase
+			{"  user@example.com  ", "user@example.com"}, // trimmed
 			{"user.name+tag@example.co.uk", "user.name+tag@example.co.uk"},
 		}
 		for _, tt := range tests {

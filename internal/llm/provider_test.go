@@ -436,10 +436,10 @@ func TestResilientProvider_Generate_Success(t *testing.T) {
 
 	// Use minimal config for fast test
 	cfg := ResilientConfig{
-		EnableRetry:     true,
-		EnableBulkhead:  true,
-		MaxConcurrent:   2,
-		RatePerSecond:   10,
+		EnableRetry:    true,
+		EnableBulkhead: true,
+		MaxConcurrent:  2,
+		RatePerSecond:  10,
 	}
 	rp := NewResilientProvider(p, cfg)
 
@@ -596,9 +596,9 @@ func TestResilientProvider_Close_NoRateLimit(t *testing.T) {
 
 func TestIsRetryableHTTPError(t *testing.T) {
 	tests := []struct {
-		name    string
-		err     error
-		want    bool
+		name string
+		err  error
+		want bool
 	}{
 		{"nil error", nil, false},
 		{"status 429", fmt.Errorf("request failed: status 429"), true},
@@ -687,7 +687,7 @@ func TestNewLLMHTTPClient(t *testing.T) {
 
 func TestResilientProvider_Generate_BulkheadDefaults(t *testing.T) {
 	p := &mockProvider{
-		name: "test",
+		name:     "test",
 		response: &Response{Content: "ok"},
 	}
 
@@ -713,7 +713,7 @@ func TestResilientProvider_Generate_BulkheadDefaults(t *testing.T) {
 
 func TestResilientProvider_RateLimitDefaults(t *testing.T) {
 	p := &mockProvider{
-		name: "test",
+		name:     "test",
 		response: &Response{Content: "ok"},
 	}
 
@@ -1207,7 +1207,7 @@ func TestOpenAIProvider_ParseResponse_EmptyChoices(t *testing.T) {
 	p := NewOpenAIProvider(OpenAIConfig{APIKey: "test"})
 
 	resp := &openaiResponse{
-		ID:      "chatcmpl-test",
+		ID: "chatcmpl-test",
 		Choices: []struct {
 			Message struct {
 				Role    string `json:"role"`
@@ -1393,9 +1393,9 @@ func TestOllamaProvider_Generate_HTTPSuccess(t *testing.T) {
 				"role":    "assistant",
 				"content": "Hello from Ollama!",
 			},
-			"done":             true,
-			"total_duration":   1000000,
-			"eval_count":       5,
+			"done":              true,
+			"total_duration":    1000000,
+			"eval_count":        5,
 			"prompt_eval_count": 10,
 		}
 		json.NewEncoder(w).Encode(resp)

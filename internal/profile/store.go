@@ -16,19 +16,19 @@ var ErrNotFound = errors.New("profile not found")
 
 // StoredProfile is the JSON-serializable profile structure
 type StoredProfile struct {
-	ID                  string                   `json:"id"`
-	TopicSkills         map[string]StoredSkill   `json:"topic_skills"`
-	TotalExercises      int                      `json:"total_exercises"`
-	TotalSessions       int                      `json:"total_sessions"`
-	CompletedSessions   int                      `json:"completed_sessions"`
-	TotalRuns           int                      `json:"total_runs"`
-	HintRequests        int                      `json:"hint_requests"`
-	AvgTimeToGreenMs    int64                    `json:"avg_time_to_green_ms"`
-	ExerciseHistory     []ExerciseAttempt        `json:"exercise_history"`
-	ErrorPatterns       map[string]int           `json:"error_patterns"`
-	HintDependencyTrend []HintDependencyPoint    `json:"hint_dependency_trend"`
-	UpdatedAt           time.Time                `json:"updated_at"`
-	CreatedAt           time.Time                `json:"created_at"`
+	ID                  string                 `json:"id"`
+	TopicSkills         map[string]StoredSkill `json:"topic_skills"`
+	TotalExercises      int                    `json:"total_exercises"`
+	TotalSessions       int                    `json:"total_sessions"`
+	CompletedSessions   int                    `json:"completed_sessions"`
+	TotalRuns           int                    `json:"total_runs"`
+	HintRequests        int                    `json:"hint_requests"`
+	AvgTimeToGreenMs    int64                  `json:"avg_time_to_green_ms"`
+	ExerciseHistory     []ExerciseAttempt      `json:"exercise_history"`
+	ErrorPatterns       map[string]int         `json:"error_patterns"`
+	HintDependencyTrend []HintDependencyPoint  `json:"hint_dependency_trend"`
+	UpdatedAt           time.Time              `json:"updated_at"`
+	CreatedAt           time.Time              `json:"created_at"`
 }
 
 // StoredSkill is the JSON-serializable skill structure
@@ -97,13 +97,13 @@ func (s *Store) GetDefault() (*StoredProfile, error) {
 		if errors.Is(err, ErrNotFound) {
 			// Create new default profile
 			profile = &StoredProfile{
-				ID:              defaultProfileID,
-				TopicSkills:     make(map[string]StoredSkill),
-				ErrorPatterns:   make(map[string]int),
-				ExerciseHistory: []ExerciseAttempt{},
+				ID:                  defaultProfileID,
+				TopicSkills:         make(map[string]StoredSkill),
+				ErrorPatterns:       make(map[string]int),
+				ExerciseHistory:     []ExerciseAttempt{},
 				HintDependencyTrend: []HintDependencyPoint{},
-				CreatedAt:       time.Now(),
-				UpdatedAt:       time.Now(),
+				CreatedAt:           time.Now(),
+				UpdatedAt:           time.Now(),
 			}
 			if err := s.Save(profile); err != nil {
 				return nil, err

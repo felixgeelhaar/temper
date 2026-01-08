@@ -60,18 +60,18 @@ type ollamaMessage struct {
 }
 
 type ollamaOptions struct {
-	Temperature float64 `json:"temperature,omitempty"`
-	NumPredict  int     `json:"num_predict,omitempty"`
+	Temperature float64  `json:"temperature,omitempty"`
+	NumPredict  int      `json:"num_predict,omitempty"`
 	Stop        []string `json:"stop,omitempty"`
 }
 
 type ollamaResponse struct {
-	Model     string `json:"model"`
-	Message   ollamaMessage `json:"message"`
-	Done      bool   `json:"done"`
-	TotalDuration  int64 `json:"total_duration"`
-	EvalCount      int   `json:"eval_count"`
-	PromptEvalCount int  `json:"prompt_eval_count"`
+	Model           string        `json:"model"`
+	Message         ollamaMessage `json:"message"`
+	Done            bool          `json:"done"`
+	TotalDuration   int64         `json:"total_duration"`
+	EvalCount       int           `json:"eval_count"`
+	PromptEvalCount int           `json:"prompt_eval_count"`
 }
 
 func (p *OllamaProvider) Generate(ctx context.Context, req *Request) (*Response, error) {

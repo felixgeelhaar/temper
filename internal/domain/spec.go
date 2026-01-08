@@ -4,16 +4,16 @@ import "time"
 
 // ProductSpec represents a Specular specification for feature work
 type ProductSpec struct {
-	Name               string               `yaml:"name" json:"name"`
-	Version            string               `yaml:"version" json:"version"`
-	Goals              []string             `yaml:"goals" json:"goals"`
-	Features           []Feature            `yaml:"features" json:"features"`
-	NonFunctional      NonFunctionalReqs    `yaml:"non_functional" json:"non_functional"`
+	Name               string                `yaml:"name" json:"name"`
+	Version            string                `yaml:"version" json:"version"`
+	Goals              []string              `yaml:"goals" json:"goals"`
+	Features           []Feature             `yaml:"features" json:"features"`
+	NonFunctional      NonFunctionalReqs     `yaml:"non_functional" json:"non_functional"`
 	AcceptanceCriteria []AcceptanceCriterion `yaml:"acceptance_criteria" json:"acceptance_criteria"`
-	Milestones         []Milestone          `yaml:"milestones" json:"milestones"`
-	FilePath           string               `yaml:"-" json:"file_path"`
-	CreatedAt          time.Time            `yaml:"-" json:"created_at"`
-	UpdatedAt          time.Time            `yaml:"-" json:"updated_at"`
+	Milestones         []Milestone           `yaml:"milestones" json:"milestones"`
+	FilePath           string                `yaml:"-" json:"file_path"`
+	CreatedAt          time.Time             `yaml:"-" json:"created_at"`
+	UpdatedAt          time.Time             `yaml:"-" json:"updated_at"`
 }
 
 // Feature represents a distinct capability in the spec
@@ -77,9 +77,9 @@ type SpecValidation struct {
 
 // SpecProgress represents completion status
 type SpecProgress struct {
-	TotalCriteria     int     `json:"total_criteria"`
-	SatisfiedCriteria int     `json:"satisfied_criteria"`
-	PercentComplete   float64 `json:"percent_complete"`
+	TotalCriteria     int                   `json:"total_criteria"`
+	SatisfiedCriteria int                   `json:"satisfied_criteria"`
+	PercentComplete   float64               `json:"percent_complete"`
 	PendingCriteria   []AcceptanceCriterion `json:"pending_criteria"`
 }
 

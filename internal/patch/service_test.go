@@ -50,7 +50,7 @@ func TestService_ExtractFromIntervention(t *testing.T) {
 	intervention := &domain.Intervention{
 		ID:        uuid.New(),
 		SessionID: sessionID,
-		Content: "Here's a fix:\n```go\n// main.go\npackage main\n\nfunc main() { fmt.Println(\"Hello\") }\n```",
+		Content:   "Here's a fix:\n```go\n// main.go\npackage main\n\nfunc main() { fmt.Println(\"Hello\") }\n```",
 	}
 
 	currentCode := map[string]string{

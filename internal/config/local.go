@@ -39,7 +39,7 @@ type ProviderConfig struct {
 
 // LearningConfig holds learning contract settings
 type LearningConfig struct {
-	DefaultTrack string                `yaml:"default_track"`
+	DefaultTrack string                 `yaml:"default_track"`
 	Tracks       map[string]TrackConfig `yaml:"tracks"`
 }
 
@@ -58,11 +58,11 @@ type RunnerConfig struct {
 
 // DockerRunnerConfig holds Docker executor settings
 type DockerRunnerConfig struct {
-	Image          string `yaml:"image"`
-	MemoryMB       int    `yaml:"memory_mb"`
+	Image          string  `yaml:"image"`
+	MemoryMB       int     `yaml:"memory_mb"`
 	CPULimit       float64 `yaml:"cpu_limit"`
-	TimeoutSeconds int    `yaml:"timeout_seconds"`
-	NetworkOff     bool   `yaml:"network_off"`
+	TimeoutSeconds int     `yaml:"timeout_seconds"`
+	NetworkOff     bool    `yaml:"network_off"`
 }
 
 // SecretsConfig holds API keys loaded from secrets.yaml
@@ -151,7 +151,7 @@ func DefaultLocalConfig() *LocalConfig {
 			},
 		},
 		Runner: RunnerConfig{
-			Executor: "docker",
+			Executor:           "docker",
 			AllowLocalFallback: false,
 			Docker: DockerRunnerConfig{
 				Image:          "golang:1.23-alpine",

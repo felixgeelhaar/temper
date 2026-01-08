@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
-  "spec_hash": "55ca00d8cf148ebf28871a5e3cd38437b3d6d97cd37c4a7d9c8f72db744a996a",
+  "spec_hash": "ece3277c79d4f08229b3e2d1afe5104c2f5f536fc0e96190bf2f754e1e9738a1",
   "features": {
-    "feat-lock-test-spec-1": {
-      "hash": "7201c1fd02c611c6f36330408b734bfbcd599e77b63713e290d294f765bfeaaa"
+    "feat-test-spec-1": {
+      "hash": "f6af6af0d10b48128a35701e8c70295ccef98960cacd6ccb5ffcd645734cf5a5"
     }
   },
-  "locked_at": "2026-01-08T20:00:35.742482+01:00"
+  "locked_at": "2026-01-08T23:16:30.504238+01:00"
 }

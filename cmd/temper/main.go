@@ -977,8 +977,8 @@ func cmdSpecStatus(path string) error {
 	}
 
 	var spec struct {
-		Name               string `json:"name"`
-		Version            string `json:"version"`
+		Name               string   `json:"name"`
+		Version            string   `json:"version"`
 		Goals              []string `json:"goals"`
 		AcceptanceCriteria []struct {
 			ID          string `json:"id"`

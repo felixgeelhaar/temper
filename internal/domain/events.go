@@ -60,8 +60,8 @@ type EventHandler func(event Event)
 
 // EventDispatcher manages event subscriptions and publishing
 type EventDispatcher struct {
-	mu       sync.RWMutex
-	handlers map[string][]EventHandler
+	mu          sync.RWMutex
+	handlers    map[string][]EventHandler
 	allHandlers []EventHandler // handlers for all events
 }
 
@@ -168,10 +168,10 @@ func NewSessionStartedEvent(sessionID, userID uuid.UUID, exerciseID, intent stri
 // SessionEndedEvent is published when a pairing session ends
 type SessionEndedEvent struct {
 	BaseEvent
-	UserID      uuid.UUID     `json:"user_id"`
-	Duration    time.Duration `json:"duration"`
-	Interventions int         `json:"interventions"`
-	FinalLevel  InterventionLevel `json:"final_level"`
+	UserID        uuid.UUID         `json:"user_id"`
+	Duration      time.Duration     `json:"duration"`
+	Interventions int               `json:"interventions"`
+	FinalLevel    InterventionLevel `json:"final_level"`
 }
 
 // NewSessionEndedEvent creates a new session ended event
@@ -252,12 +252,12 @@ func NewExerciseStartedEvent(artifactID, userID, sessionID uuid.UUID, exerciseID
 // ExerciseCompletedEvent is published when a user completes an exercise
 type ExerciseCompletedEvent struct {
 	BaseEvent
-	UserID      uuid.UUID     `json:"user_id"`
-	SessionID   uuid.UUID     `json:"session_id"`
-	ExerciseID  string        `json:"exercise_id"`
-	Duration    time.Duration `json:"duration"`
-	HintsUsed   int           `json:"hints_used"`
-	MaxLevel    InterventionLevel `json:"max_level"`
+	UserID     uuid.UUID         `json:"user_id"`
+	SessionID  uuid.UUID         `json:"session_id"`
+	ExerciseID string            `json:"exercise_id"`
+	Duration   time.Duration     `json:"duration"`
+	HintsUsed  int               `json:"hints_used"`
+	MaxLevel   InterventionLevel `json:"max_level"`
 }
 
 // NewExerciseCompletedEvent creates a new exercise completed event
@@ -280,11 +280,11 @@ func NewExerciseCompletedEvent(artifactID, userID, sessionID uuid.UUID, exercise
 // RunCompletedEvent is published when a code run completes
 type RunCompletedEvent struct {
 	BaseEvent
-	UserID     uuid.UUID `json:"user_id"`
-	SessionID  uuid.UUID `json:"session_id"`
-	Success    bool      `json:"success"`
-	TestsPass  int       `json:"tests_pass"`
-	TestsFail  int       `json:"tests_fail"`
+	UserID    uuid.UUID `json:"user_id"`
+	SessionID uuid.UUID `json:"session_id"`
+	Success   bool      `json:"success"`
+	TestsPass int       `json:"tests_pass"`
+	TestsFail int       `json:"tests_fail"`
 }
 
 // NewRunCompletedEvent creates a new run completed event
@@ -366,10 +366,10 @@ func NewPatchRejectedEvent(patchID, sessionID, userID uuid.UUID, file string) Pa
 // SkillUpdatedEvent is published when a user's skill level changes
 type SkillUpdatedEvent struct {
 	BaseEvent
-	Topic       string  `json:"topic"`
-	OldLevel    float64 `json:"old_level"`
-	NewLevel    float64 `json:"new_level"`
-	Reason      string  `json:"reason"`
+	Topic    string  `json:"topic"`
+	OldLevel float64 `json:"old_level"`
+	NewLevel float64 `json:"new_level"`
+	Reason   string  `json:"reason"`
 }
 
 // NewSkillUpdatedEvent creates a new skill updated event

@@ -188,14 +188,14 @@ export default defineConfig({
 
 // VitestResult represents vitest JSON output structure
 type VitestResult struct {
-	NumTotalTestSuites  int     `json:"numTotalTestSuites"`
-	NumPassedTestSuites int     `json:"numPassedTestSuites"`
-	NumFailedTestSuites int     `json:"numFailedTestSuites"`
-	NumTotalTests       int     `json:"numTotalTests"`
-	NumPassedTests      int     `json:"numPassedTests"`
-	NumFailedTests      int     `json:"numFailedTests"`
-	StartTime           int64   `json:"startTime"`
-	Success             bool    `json:"success"`
+	NumTotalTestSuites  int   `json:"numTotalTestSuites"`
+	NumPassedTestSuites int   `json:"numPassedTestSuites"`
+	NumFailedTestSuites int   `json:"numFailedTestSuites"`
+	NumTotalTests       int   `json:"numTotalTests"`
+	NumPassedTests      int   `json:"numPassedTests"`
+	NumFailedTests      int   `json:"numFailedTests"`
+	StartTime           int64 `json:"startTime"`
+	Success             bool  `json:"success"`
 	TestResults         []struct {
 		Name     string `json:"name"`
 		Status   string `json:"status"`

@@ -793,11 +793,11 @@ func TestPrompter_ParseSuggestions(t *testing.T) {
 	p := NewPrompter()
 
 	tests := []struct {
-		name            string
-		content         string
-		section         string
-		expectedCount   int
-		checkFirst      func(*domain.AuthoringSuggestion) bool
+		name          string
+		content       string
+		section       string
+		expectedCount int
+		checkFirst    func(*domain.AuthoringSuggestion) bool
 	}{
 		{
 			name: "numbered list",
@@ -831,8 +831,8 @@ func TestPrompter_ParseSuggestions(t *testing.T) {
 			},
 		},
 		{
-			name: "with source citation",
-			content: `1. Goal with source Source: docs/vision.md#Mission`,
+			name:          "with source citation",
+			content:       `1. Goal with source Source: docs/vision.md#Mission`,
 			section:       "goals",
 			expectedCount: 1,
 			checkFirst: func(s *domain.AuthoringSuggestion) bool {
@@ -840,11 +840,11 @@ func TestPrompter_ParseSuggestions(t *testing.T) {
 			},
 		},
 		{
-			name:            "empty content",
-			content:         "",
-			section:         "goals",
-			expectedCount:   0,
-			checkFirst:      nil,
+			name:          "empty content",
+			content:       "",
+			section:       "goals",
+			expectedCount: 0,
+			checkFirst:    nil,
 		},
 		{
 			name: "multiline suggestion",

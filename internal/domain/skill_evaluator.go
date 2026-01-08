@@ -17,17 +17,17 @@ func NewSkillEvaluator() *SkillEvaluator {
 type SkillGrowthRate string
 
 const (
-	GrowthRapid  SkillGrowthRate = "rapid"
-	GrowthSteady SkillGrowthRate = "steady"
-	GrowthSlow   SkillGrowthRate = "slow"
+	GrowthRapid     SkillGrowthRate = "rapid"
+	GrowthSteady    SkillGrowthRate = "steady"
+	GrowthSlow      SkillGrowthRate = "slow"
 	GrowthPlateaued SkillGrowthRate = "plateaued"
 )
 
 // SkillAssessment provides a comprehensive evaluation of a user's skill
 type SkillAssessment struct {
 	// Overall metrics
-	OverallLevel  float64         // 0.0 - 1.0 aggregate skill level
-	GrowthRate    SkillGrowthRate // velocity of improvement
+	OverallLevel   float64         // 0.0 - 1.0 aggregate skill level
+	GrowthRate     SkillGrowthRate // velocity of improvement
 	HintDependency float64         // 0.0 - 1.0 reliance on hints
 
 	// Topic analysis

@@ -13,29 +13,29 @@ import (
 
 // LogEntry represents a single patch action in the audit log
 type LogEntry struct {
-	ID             string              `json:"id"`
-	Timestamp      time.Time           `json:"timestamp"`
-	Action         LogAction           `json:"action"`
-	SessionID      string              `json:"session_id"`
-	PatchID        string              `json:"patch_id"`
-	InterventionID string              `json:"intervention_id"`
-	File           string              `json:"file"`
-	Description    string              `json:"description"`
-	Diff           string              `json:"diff,omitempty"`
-	LinesAdded     int                 `json:"lines_added"`
-	LinesRemoved   int                 `json:"lines_removed"`
-	Status         domain.PatchStatus  `json:"status"`
+	ID             string             `json:"id"`
+	Timestamp      time.Time          `json:"timestamp"`
+	Action         LogAction          `json:"action"`
+	SessionID      string             `json:"session_id"`
+	PatchID        string             `json:"patch_id"`
+	InterventionID string             `json:"intervention_id"`
+	File           string             `json:"file"`
+	Description    string             `json:"description"`
+	Diff           string             `json:"diff,omitempty"`
+	LinesAdded     int                `json:"lines_added"`
+	LinesRemoved   int                `json:"lines_removed"`
+	Status         domain.PatchStatus `json:"status"`
 }
 
 // LogAction represents the type of action taken on a patch
 type LogAction string
 
 const (
-	LogActionCreated  LogAction = "created"
+	LogActionCreated   LogAction = "created"
 	LogActionPreviewed LogAction = "previewed"
-	LogActionApplied  LogAction = "applied"
-	LogActionRejected LogAction = "rejected"
-	LogActionExpired  LogAction = "expired"
+	LogActionApplied   LogAction = "applied"
+	LogActionRejected  LogAction = "rejected"
+	LogActionExpired   LogAction = "expired"
 )
 
 // Logger manages the patch audit log

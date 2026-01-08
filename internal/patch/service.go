@@ -22,9 +22,9 @@ type Service struct {
 	extractor *Extractor
 	logger    *Logger
 	mu        sync.RWMutex
-	patches   map[uuid.UUID]*domain.Patch       // patchID -> patch
-	sessions  map[uuid.UUID][]*domain.Patch     // sessionID -> patches
-	pending   map[uuid.UUID]*domain.Patch       // sessionID -> current pending patch
+	patches   map[uuid.UUID]*domain.Patch   // patchID -> patch
+	sessions  map[uuid.UUID][]*domain.Patch // sessionID -> patches
+	pending   map[uuid.UUID]*domain.Patch   // sessionID -> current pending patch
 }
 
 // NewService creates a new patch service

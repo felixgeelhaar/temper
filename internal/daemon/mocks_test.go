@@ -166,15 +166,15 @@ var _ patch.PatchService = (*mockPatchService)(nil)
 
 // mockSpecService implements spec.SpecService for testing
 type mockSpecService struct {
-	createFn                  func(ctx context.Context, name string) (*domain.ProductSpec, error)
-	loadFn                    func(ctx context.Context, path string) (*domain.ProductSpec, error)
-	listFn                    func(ctx context.Context) ([]*domain.ProductSpec, error)
-	validateFn                func(ctx context.Context, path string) (*domain.SpecValidation, error)
-	markCriterionSatisfiedFn  func(ctx context.Context, path, criterionID, evidence string) error
-	lockFn                    func(ctx context.Context, path string) (*domain.SpecLock, error)
-	getProgressFn             func(ctx context.Context, path string) (*domain.SpecProgress, error)
-	getDriftFn                func(ctx context.Context, path string) (*spec.DriftReport, error)
-	getWorkspaceRootFn        func() string
+	createFn                 func(ctx context.Context, name string) (*domain.ProductSpec, error)
+	loadFn                   func(ctx context.Context, path string) (*domain.ProductSpec, error)
+	listFn                   func(ctx context.Context) ([]*domain.ProductSpec, error)
+	validateFn               func(ctx context.Context, path string) (*domain.SpecValidation, error)
+	markCriterionSatisfiedFn func(ctx context.Context, path, criterionID, evidence string) error
+	lockFn                   func(ctx context.Context, path string) (*domain.SpecLock, error)
+	getProgressFn            func(ctx context.Context, path string) (*domain.SpecProgress, error)
+	getDriftFn               func(ctx context.Context, path string) (*spec.DriftReport, error)
+	getWorkspaceRootFn       func() string
 }
 
 func (m *mockSpecService) Create(ctx context.Context, name string) (*domain.ProductSpec, error) {
@@ -244,15 +244,15 @@ var _ spec.SpecService = (*mockSpecService)(nil)
 
 // mockProfileService implements profile.ProfileService for testing
 type mockProfileService struct {
-	getProfileFn       func(ctx context.Context) (*profile.StoredProfile, error)
-	getOverviewFn      func(ctx context.Context) (*profile.AnalyticsOverview, error)
+	getProfileFn        func(ctx context.Context) (*profile.StoredProfile, error)
+	getOverviewFn       func(ctx context.Context) (*profile.AnalyticsOverview, error)
 	getSkillBreakdownFn func(ctx context.Context) (*profile.SkillBreakdown, error)
-	getErrorPatternsFn func(ctx context.Context) ([]profile.ErrorPattern, error)
-	getHintTrendFn     func(ctx context.Context) ([]profile.HintDependencyPoint, error)
-	onSessionStartFn   func(ctx context.Context, sess profile.SessionInfo) error
+	getErrorPatternsFn  func(ctx context.Context) ([]profile.ErrorPattern, error)
+	getHintTrendFn      func(ctx context.Context) ([]profile.HintDependencyPoint, error)
+	onSessionStartFn    func(ctx context.Context, sess profile.SessionInfo) error
 	onSessionCompleteFn func(ctx context.Context, sess profile.SessionInfo) error
-	onRunCompleteFn    func(ctx context.Context, sess profile.SessionInfo, run profile.RunInfo) error
-	onHintDeliveredFn  func(ctx context.Context, sess profile.SessionInfo) error
+	onRunCompleteFn     func(ctx context.Context, sess profile.SessionInfo, run profile.RunInfo) error
+	onHintDeliveredFn   func(ctx context.Context, sess profile.SessionInfo) error
 }
 
 func (m *mockProfileService) GetProfile(ctx context.Context) (*profile.StoredProfile, error) {
@@ -429,14 +429,14 @@ func newServerWithMocks() *serverWithMocks {
 	router := http.NewServeMux()
 
 	srv := &Server{
-		router:          router,
-		sessionService:  sessions,
-		pairingService:  pairingMock,
-		patchService:    patches,
-		specService:     specs,
-		profileService:  profiles,
-		llmRegistry:     registry,
-		runnerExecutor:  executor,
+		router:         router,
+		sessionService: sessions,
+		pairingService: pairingMock,
+		patchService:   patches,
+		specService:    specs,
+		profileService: profiles,
+		llmRegistry:    registry,
+		runnerExecutor: executor,
 	}
 
 	// Register routes (need to set up routes manually for isolated testing)

@@ -37,12 +37,12 @@ const (
 type InterventionLevel int
 
 const (
-	L0Clarify           InterventionLevel = 0 // Clarifying question only
-	L1CategoryHint      InterventionLevel = 1 // Category hint
-	L2LocationConcept   InterventionLevel = 2 // Location + concept (no code)
+	L0Clarify            InterventionLevel = 0 // Clarifying question only
+	L1CategoryHint       InterventionLevel = 1 // Category hint
+	L2LocationConcept    InterventionLevel = 2 // Location + concept (no code)
 	L3ConstrainedSnippet InterventionLevel = 3 // Constrained snippet/outline
-	L4PartialSolution   InterventionLevel = 4 // Partial solution (gated)
-	L5FullSolution      InterventionLevel = 5 // Full solution (rare)
+	L4PartialSolution    InterventionLevel = 4 // Partial solution (gated)
+	L5FullSolution       InterventionLevel = 5 // Full solution (rare)
 )
 
 // String returns the human-readable name of the intervention level

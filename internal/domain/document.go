@@ -10,14 +10,14 @@ import (
 type DocumentType string
 
 const (
-	DocTypeVision   DocumentType = "vision"
-	DocTypePRD      DocumentType = "prd"
-	DocTypeTDD      DocumentType = "tdd"
-	DocTypeRoadmap  DocumentType = "roadmap"
-	DocTypeReadme   DocumentType = "readme"
-	DocTypeDesign   DocumentType = "design"
-	DocTypeAPI      DocumentType = "api"
-	DocTypeOther    DocumentType = "other"
+	DocTypeVision  DocumentType = "vision"
+	DocTypePRD     DocumentType = "prd"
+	DocTypeTDD     DocumentType = "tdd"
+	DocTypeRoadmap DocumentType = "roadmap"
+	DocTypeReadme  DocumentType = "readme"
+	DocTypeDesign  DocumentType = "design"
+	DocTypeAPI     DocumentType = "api"
+	DocTypeOther   DocumentType = "other"
 )
 
 // Document represents a project documentation file

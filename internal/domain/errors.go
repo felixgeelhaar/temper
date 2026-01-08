@@ -25,7 +25,7 @@ var (
 
 // Artifact errors
 var (
-	ErrArtifactNotFound      = errors.New("artifact not found")
+	ErrArtifactNotFound        = errors.New("artifact not found")
 	ErrArtifactVersionNotFound = errors.New("artifact version not found")
 )
 
@@ -46,16 +46,16 @@ var (
 
 // Exercise errors
 var (
-	ErrExerciseNotFound = errors.New("exercise not found")
+	ErrExerciseNotFound     = errors.New("exercise not found")
 	ErrExercisePackNotFound = errors.New("exercise pack not found")
 )
 
 // General errors
 var (
-	ErrNotFound          = errors.New("not found")
-	ErrConflict          = errors.New("conflict")
-	ErrInvalidInput      = errors.New("invalid input")
-	ErrUnauthorized      = errors.New("unauthorized")
-	ErrForbidden         = errors.New("forbidden")
-	ErrInternalError     = errors.New("internal error")
+	ErrNotFound      = errors.New("not found")
+	ErrConflict      = errors.New("conflict")
+	ErrInvalidInput  = errors.New("invalid input")
+	ErrUnauthorized  = errors.New("unauthorized")
+	ErrForbidden     = errors.New("forbidden")
+	ErrInternalError = errors.New("internal error")
 )

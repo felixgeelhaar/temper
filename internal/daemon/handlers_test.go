@@ -4055,7 +4055,6 @@ func TestHandlers_Run_WithTimeout(t *testing.T) {
 	}
 }
 
-
 func TestHandlers_Run_FormatOnly(t *testing.T) {
 	server, cleanup := setupTestServer(t)
 	defer cleanup()

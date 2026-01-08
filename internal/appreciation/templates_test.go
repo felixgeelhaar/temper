@@ -21,11 +21,11 @@ func TestGenerator_Generate(t *testing.T) {
 	g := NewGenerator()
 
 	tests := []struct {
-		name       string
-		moment     *Moment
-		wantNil    bool
-		wantType   MomentType
-		checkEvid  bool
+		name      string
+		moment    *Moment
+		wantNil   bool
+		wantType  MomentType
+		checkEvid bool
 	}{
 		{
 			name:    "nil moment returns nil",
@@ -249,10 +249,10 @@ func TestGenerator_FormatTemplate(t *testing.T) {
 
 func TestShouldAppreciate(t *testing.T) {
 	tests := []struct {
-		name           string
-		lastMinutes    int
-		priority       int
-		want           bool
+		name        string
+		lastMinutes int
+		priority    int
+		want        bool
 	}{
 		{"high priority always shows", 0, 8, true},
 		{"high priority after long time", 120, 9, true},

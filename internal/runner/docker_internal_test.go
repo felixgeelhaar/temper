@@ -95,7 +95,7 @@ func makeDockerHeader(streamType byte, size int, payload []byte) []byte {
 func TestDemuxDockerOutput_PartialPayload(t *testing.T) {
 	// Create a header that promises more data than provided
 	header := make([]byte, 8)
-	header[0] = 1 // stdout
+	header[0] = 1                               // stdout
 	binary.BigEndian.PutUint32(header[4:], 100) // claims 100 bytes
 
 	input := append(header, []byte("partial")...) // but only provides 7

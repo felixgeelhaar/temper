@@ -186,12 +186,12 @@ func (e *PythonExecutor) Test(ctx context.Context, code map[string]string, flags
 
 // PytestResult represents pytest JSON output structure
 type PytestResult struct {
-	Created   float64 `json:"created"`
-	Duration  float64 `json:"duration"`
-	ExitCode  int     `json:"exitcode"`
+	Created    float64 `json:"created"`
+	Duration   float64 `json:"duration"`
+	ExitCode   int     `json:"exitcode"`
 	Collectors []struct {
-		NodeID   string `json:"nodeid"`
-		Outcome  string `json:"outcome"`
+		NodeID  string `json:"nodeid"`
+		Outcome string `json:"outcome"`
 	} `json:"collectors"`
 	Tests []struct {
 		NodeID   string  `json:"nodeid"`
@@ -202,9 +202,9 @@ type PytestResult struct {
 		} `json:"call"`
 	} `json:"tests"`
 	Summary struct {
-		Passed  int `json:"passed"`
-		Failed  int `json:"failed"`
-		Total   int `json:"total"`
+		Passed int `json:"passed"`
+		Failed int `json:"failed"`
+		Total  int `json:"total"`
 	} `json:"summary"`
 }
 

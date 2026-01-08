@@ -33,19 +33,19 @@ const (
 
 // RunOutput contains the results of a code execution
 type RunOutput struct {
-	FormatOK    bool          `json:"format_passed"`  // gofmt passed
-	FormatDiff  string        `json:"format_output"`  // gofmt diff output (if any changes needed)
-	BuildOK     bool          `json:"build_passed"`   // go build passed
-	BuildOutput string        `json:"build_output"`   // build error output
-	BuildErrors []Diagnostic  `json:"build_errors"`   // compilation errors
-	TestOK      bool          `json:"test_passed"`    // all tests passed
-	TestOutput  string        `json:"test_output"`    // test output
-	TestResults []TestResult  `json:"test_results"`   // individual test results
-	TestsPassed int           `json:"tests_passed"`   // count of passing tests
-	TestsFailed int           `json:"tests_failed"`   // count of failing tests
-	Duration    time.Duration `json:"duration"`       // total execution time
-	Logs        string        `json:"logs"`           // full output logs
-	Risks       []RiskNotice  `json:"risks"`          // detected risky patterns
+	FormatOK    bool          `json:"format_passed"` // gofmt passed
+	FormatDiff  string        `json:"format_output"` // gofmt diff output (if any changes needed)
+	BuildOK     bool          `json:"build_passed"`  // go build passed
+	BuildOutput string        `json:"build_output"`  // build error output
+	BuildErrors []Diagnostic  `json:"build_errors"`  // compilation errors
+	TestOK      bool          `json:"test_passed"`   // all tests passed
+	TestOutput  string        `json:"test_output"`   // test output
+	TestResults []TestResult  `json:"test_results"`  // individual test results
+	TestsPassed int           `json:"tests_passed"`  // count of passing tests
+	TestsFailed int           `json:"tests_failed"`  // count of failing tests
+	Duration    time.Duration `json:"duration"`      // total execution time
+	Logs        string        `json:"logs"`          // full output logs
+	Risks       []RiskNotice  `json:"risks"`         // detected risky patterns
 }
 
 // RiskNotice represents a detected risky pattern in code

@@ -41,12 +41,12 @@ func ParseLanguage(s string) (Language, error) {
 
 // LanguageConfig contains language-specific configuration
 type LanguageConfig struct {
-	DockerImage     string
-	FormatCommand   []string
-	BuildCommand    []string
-	TestCommand     []string
-	FileExtensions  []string
-	InitFiles       map[string]string // e.g., go.mod, package.json
+	DockerImage    string
+	FormatCommand  []string
+	BuildCommand   []string
+	TestCommand    []string
+	FileExtensions []string
+	InitFiles      map[string]string // e.g., go.mod, package.json
 }
 
 // DefaultLanguageConfigs returns default configurations for all supported languages
@@ -79,7 +79,7 @@ func DefaultLanguageConfigs() map[Language]LanguageConfig {
 			TestCommand:    []string{"npx", "vitest", "run", "--reporter=json"},
 			FileExtensions: []string{".ts", ".tsx"},
 			InitFiles: map[string]string{
-				"package.json": `{"type":"module","devDependencies":{"typescript":"^5.0","vitest":"^1.0","prettier":"^3.0"}}`,
+				"package.json":  `{"type":"module","devDependencies":{"typescript":"^5.0","vitest":"^1.0","prettier":"^3.0"}}`,
 				"tsconfig.json": `{"compilerOptions":{"target":"ES2022","module":"ESNext","strict":true,"moduleResolution":"bundler"}}`,
 			},
 		},

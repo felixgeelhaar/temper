@@ -111,9 +111,9 @@ func TestSkillEvaluator_DetermineGrowthRate(t *testing.T) {
 	e := NewSkillEvaluator()
 
 	tests := []struct {
-		name         string
-		profile      *LearningProfile
-		want         SkillGrowthRate
+		name    string
+		profile *LearningProfile
+		want    SkillGrowthRate
 	}{
 		{
 			name: "not enough data",

@@ -1,4 +1,4 @@
-name: test-spec
+name: Test Spec
 version: 1.0.0
 goals:
     - Define the primary objective of this feature
