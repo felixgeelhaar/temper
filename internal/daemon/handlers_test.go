@@ -973,6 +973,308 @@ features:
 	})
 }
 
+// TestHandlers_FeatureGuidance_FullWorkflow is a comprehensive end-to-end test that walks
+// through the entire feature guidance workflow from spec creation to feature completion.
+func TestHandlers_FeatureGuidance_FullWorkflow(t *testing.T) {
+	ctx := setupTestServerWithContext(t)
+	defer ctx.Cleanup()
+	server := ctx.Server
+
+	specPath := ".specs/calculator.spec.yaml"
+	specFullPath := filepath.Join(ctx.SpecsPath, specPath)
+
+	// Step 1: Create a spec file with clear acceptance criteria
+	specContent := `name: Calculator Feature
+title: Simple Calculator
+goals:
+  - Build a basic calculator that can add two numbers
+acceptance_criteria:
+  - id: ac-compile
+    description: Code compiles without errors
+  - id: ac-tests
+    description: All tests pass
+  - id: ac-format
+    description: Code is properly formatted
+features:
+  - id: f-add
+    title: Addition Function
+    description: Implement an Add function that returns the sum of two integers
+`
+	if err := os.WriteFile(specFullPath, []byte(specContent), 0644); err != nil {
+		t.Fatalf("write spec: %v", err)
+	}
+
+	// Step 2: Start a feature_guidance session
+	var sessionID string
+	t.Run("start spec session", func(t *testing.T) {
+		body := strings.NewReader(`{"spec_path": "` + specPath + `", "intent": "feature_guidance"}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/sessions", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("failed to create session: %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&resp)
+		sessionID = resp["id"].(string)
+
+		if resp["intent"] != "feature_guidance" {
+			t.Errorf("expected intent 'feature_guidance', got %v", resp["intent"])
+		}
+		if resp["spec_path"] != specPath {
+			t.Errorf("expected spec_path '%s', got %v", specPath, resp["spec_path"])
+		}
+	})
+
+	// Step 3: Check initial spec progress (should be 0%)
+	t.Run("check initial progress", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/v1/specs/progress/"+specPath, nil)
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("failed to get progress: %d: %s", w.Code, w.Body.String())
+		}
+
+		var progress map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&progress)
+
+		if progress["percent_complete"].(float64) != 0 {
+			t.Errorf("initial progress should be 0%%, got %v%%", progress["percent_complete"])
+		}
+		if int(progress["total_criteria"].(float64)) != 3 {
+			t.Errorf("expected 3 criteria, got %v", progress["total_criteria"])
+		}
+	})
+
+	// Step 4: Write initial code and run format check
+	initialCode := map[string]string{
+		"calc.go": `package calc
+
+func Add(a, b int) int {
+	return a + b
+}
+`,
+		"calc_test.go": `package calc
+
+import "testing"
+
+func TestAdd(t *testing.T) {
+	if Add(2, 3) != 5 {
+		t.Error("Add(2, 3) should equal 5")
+	}
+}
+`,
+	}
+
+	t.Run("run format check", func(t *testing.T) {
+		codeJSON, _ := json.Marshal(initialCode)
+		body := strings.NewReader(`{"code": ` + string(codeJSON) + `, "format": true}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/runs", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("format check failed: %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&resp)
+
+		run := resp["run"].(map[string]interface{})
+		result := run["result"].(map[string]interface{})
+		if !result["format_ok"].(bool) {
+			t.Logf("format diff: %v", result["format_diff"])
+		}
+	})
+
+	// Step 5: Run build check
+	t.Run("run build check", func(t *testing.T) {
+		codeJSON, _ := json.Marshal(initialCode)
+		body := strings.NewReader(`{"code": ` + string(codeJSON) + `, "build": true}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/runs", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("build check failed: %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&resp)
+
+		run := resp["run"].(map[string]interface{})
+		result := run["result"].(map[string]interface{})
+		if !result["build_ok"].(bool) {
+			t.Errorf("build should succeed, output: %v", result["build_output"])
+		}
+	})
+
+	// Step 6: Run tests
+	t.Run("run tests", func(t *testing.T) {
+		codeJSON, _ := json.Marshal(initialCode)
+		body := strings.NewReader(`{"code": ` + string(codeJSON) + `, "test": true}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/runs", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("test run failed: %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&resp)
+
+		run := resp["run"].(map[string]interface{})
+		result := run["result"].(map[string]interface{})
+		if !result["test_ok"].(bool) {
+			t.Errorf("tests should pass, output: %v", result["test_output"])
+		}
+	})
+
+	// Step 7: Request a code review
+	t.Run("request code review", func(t *testing.T) {
+		codeJSON, _ := json.Marshal(initialCode)
+		body := strings.NewReader(`{"code": ` + string(codeJSON) + `}`)
+		req := httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/review", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("review failed: %d: %s", w.Code, w.Body.String())
+		}
+
+		var resp map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&resp)
+
+		if _, ok := resp["content"]; !ok {
+			t.Error("review should return content")
+		}
+		if _, ok := resp["level"]; !ok {
+			t.Error("review should return intervention level")
+		}
+	})
+
+	// Step 8: Mark acceptance criteria as satisfied (simulating successful implementation)
+	t.Run("mark format criterion satisfied", func(t *testing.T) {
+		body := strings.NewReader(`{"path": "` + specPath + `", "evidence": "gofmt reports no formatting issues"}`)
+		req := httptest.NewRequest(http.MethodPut, "/v1/specs/criteria/ac-format", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("mark criterion failed: %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("mark compile criterion satisfied", func(t *testing.T) {
+		body := strings.NewReader(`{"path": "` + specPath + `", "evidence": "go build completes with exit code 0"}`)
+		req := httptest.NewRequest(http.MethodPut, "/v1/specs/criteria/ac-compile", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("mark criterion failed: %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("mark tests criterion satisfied", func(t *testing.T) {
+		body := strings.NewReader(`{"path": "` + specPath + `", "evidence": "go test -v reports PASS"}`)
+		req := httptest.NewRequest(http.MethodPut, "/v1/specs/criteria/ac-tests", body)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("mark criterion failed: %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	// Step 9: Check final spec progress (should be 100%)
+	t.Run("check final progress - feature complete", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/v1/specs/progress/"+specPath, nil)
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("failed to get progress: %d: %s", w.Code, w.Body.String())
+		}
+
+		var progress map[string]interface{}
+		json.NewDecoder(w.Body).Decode(&progress)
+
+		percentComplete := progress["percent_complete"].(float64)
+		if percentComplete != 100 {
+			t.Errorf("final progress should be 100%%, got %.1f%%", percentComplete)
+		}
+
+		satisfiedCount := int(progress["satisfied_criteria"].(float64))
+		totalCount := int(progress["total_criteria"].(float64))
+		if satisfiedCount != totalCount {
+			t.Errorf("all criteria should be satisfied: %d/%d", satisfiedCount, totalCount)
+		}
+
+		// Verify no pending criteria (may be nil or empty array)
+		if pendingCriteria, ok := progress["pending_criteria"].([]interface{}); ok && len(pendingCriteria) > 0 {
+			t.Errorf("should have no pending criteria, got %d", len(pendingCriteria))
+		}
+
+		t.Logf("✓ Feature complete! %d/%d criteria satisfied (%.0f%%)",
+			satisfiedCount, totalCount, percentComplete)
+	})
+
+	// Step 10: End the session
+	t.Run("end session", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodDelete, "/v1/sessions/"+sessionID, nil)
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		// DELETE may return 200 or 204
+		if w.Code != http.StatusOK && w.Code != http.StatusNoContent {
+			t.Errorf("failed to end session: %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	// Step 11: Verify session is no longer active
+	t.Run("verify session ended", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/v1/sessions/"+sessionID, nil)
+		w := httptest.NewRecorder()
+
+		server.router.ServeHTTP(w, req)
+
+		// Session should exist but be completed/abandoned, or return 404
+		if w.Code == http.StatusOK {
+			var sess map[string]interface{}
+			json.NewDecoder(w.Body).Decode(&sess)
+			status := sess["status"].(string)
+			if status == "active" {
+				t.Error("session should not be active after deletion")
+			}
+		}
+		// 404 is also acceptable if session was fully deleted
+	})
+}
+
 func TestHandlers_Format_WithSession(t *testing.T) {
 	server, cleanup := setupTestServer(t)
 	defer cleanup()
