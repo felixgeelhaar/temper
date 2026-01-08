@@ -7,7 +7,10 @@ help:
 	@echo "Usage:"
 	@echo "  make build          Build the API binary"
 	@echo "  make run            Run the API server locally"
-	@echo "  make test           Run all tests"
+	@echo "  make test           Run unit tests"
+	@echo "  make test-cover     Run unit tests with coverage report"
+	@echo "  make test-integration  Run integration tests (requires Docker)"
+	@echo "  make test-all       Run all tests including integration"
 	@echo "  make lint           Run linters"
 	@echo "  make clean          Clean build artifacts"
 	@echo ""
@@ -43,6 +46,18 @@ test:
 test-cover:
 	go test -race -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
+
+# Integration tests (requires Docker for testcontainers)
+test-integration:
+	go test -tags=integration -race -v -timeout 180s ./...
+
+test-integration-cover:
+	go test -tags=integration -race -coverprofile=coverage-integration.out -timeout 180s ./...
+	go tool cover -html=coverage-integration.out -o coverage-integration.html
+
+# Run all tests including integration
+test-all:
+	go test -tags=integration -race -v -timeout 180s ./...
 
 # Lint
 lint:

@@ -32,16 +32,21 @@ type Server struct {
 	server *http.Server
 	router *http.ServeMux
 
-	// Services
-	llmRegistry         *llm.Registry
+	// Services (using interfaces for testability)
+	llmRegistry         llm.LLMRegistry
 	exerciseLoader      *exercise.Loader
 	runnerExecutor      runner.Executor
-	sessionService      *session.Service
-	pairingService      *pairing.Service
-	profileService      *profile.Service
-	specService         *spec.Service
+	sessionService      session.SessionService
+	pairingService      pairing.PairingService
+	profileService      profile.ProfileService
+	specService         spec.SpecService
 	appreciationService *appreciation.Service
-	patchService        *patch.Service
+	patchService        patch.PatchService
+
+	// Concrete services needed for internal setup (SetProfileService, SetSpecService)
+	sessionServiceConcrete *session.Service
+	llmRegistryConcrete    *llm.Registry
+	specServiceConcrete    *spec.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -65,6 +70,7 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		return nil, fmt.Errorf("setup llm providers: %w", err)
 	}
 	s.llmRegistry = registry
+	s.llmRegistryConcrete = registry
 
 	// Initialize exercise loader
 	s.exerciseLoader = exercise.NewLoader(cfg.ExercisePath)
@@ -109,30 +115,35 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create session store: %w", err)
 	}
-	s.sessionService = session.NewService(sessionStore, s.exerciseLoader, s.runnerExecutor)
+	sessionSvc := session.NewService(sessionStore, s.exerciseLoader, s.runnerExecutor)
+	s.sessionService = sessionSvc
+	s.sessionServiceConcrete = sessionSvc
 
 	// Initialize profile service
 	profileStore, err := profile.NewStore(filepath.Join(temperDir, "profiles"))
 	if err != nil {
 		return nil, fmt.Errorf("create profile store: %w", err)
 	}
-	s.profileService = profile.NewService(profileStore)
+	profileSvc := profile.NewService(profileStore)
+	s.profileService = profileSvc
 
 	// Connect profile service to session service for event hooks
-	s.sessionService.SetProfileService(s.profileService)
+	s.sessionServiceConcrete.SetProfileService(profileSvc)
 
 	// Initialize spec service
 	specsPath := cfg.SpecsPath
 	if specsPath == "" {
 		specsPath = "." // Default to current working directory
 	}
-	s.specService = spec.NewService(specsPath)
+	specSvc := spec.NewService(specsPath)
+	s.specService = specSvc
+	s.specServiceConcrete = specSvc
 
 	// Connect spec service to session service for feature guidance
-	s.sessionService.SetSpecService(s.specService)
+	s.sessionServiceConcrete.SetSpecService(specSvc)
 
 	// Initialize pairing service
-	s.pairingService = pairing.NewService(s.llmRegistry, cfg.Config.LLM.DefaultProvider)
+	s.pairingService = pairing.NewService(s.llmRegistryConcrete, cfg.Config.LLM.DefaultProvider)
 
 	// Initialize appreciation service
 	s.appreciationService = appreciation.NewService()
@@ -151,8 +162,10 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	s.setupRoutes()
 
 	// Create HTTP server with middleware chain
+	// Order: correlationID -> recovery -> logging -> router
+	// This ensures correlation ID is available in all logs and error handling
 	addr := fmt.Sprintf("%s:%d", cfg.Config.Daemon.Bind, cfg.Config.Daemon.Port)
-	handler := recoveryMiddleware(loggingMiddleware(s.router))
+	handler := correlationIDMiddleware(recoveryMiddleware(loggingMiddleware(s.router)))
 	s.server = &http.Server{
 		Addr:         addr,
 		Handler:      handler,
@@ -213,6 +226,7 @@ func (s *Server) setupLLMProviders(registry *llm.Registry) error {
 func (s *Server) setupRoutes() {
 	// Health & status
 	s.router.HandleFunc("GET /v1/health", s.handleHealth)
+	s.router.HandleFunc("GET /v1/ready", s.handleReady)
 	s.router.HandleFunc("GET /v1/status", s.handleStatus)
 
 	// Config
@@ -304,6 +318,62 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// ReadinessCheck represents a single readiness check result
+type ReadinessCheck struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
+	checks := make(map[string]ReadinessCheck)
+	allReady := true
+
+	// Check LLM provider availability
+	providers := s.llmRegistry.List()
+	if len(providers) > 0 {
+		checks["llm_provider"] = ReadinessCheck{
+			Status:  "ready",
+			Message: fmt.Sprintf("providers registered: %v", providers),
+		}
+	} else {
+		allReady = false
+		checks["llm_provider"] = ReadinessCheck{
+			Status:  "not_ready",
+			Message: "no LLM providers registered",
+		}
+	}
+
+	// Check runner/executor availability
+	if s.runnerExecutor != nil {
+		// Try to check if the executor is functional
+		// For docker executor, we just check it's not nil (actual health is complex)
+		checks["runner"] = ReadinessCheck{
+			Status:  "ready",
+			Message: fmt.Sprintf("executor type: %s", s.cfg.Runner.Executor),
+		}
+	} else {
+		allReady = false
+		checks["runner"] = ReadinessCheck{
+			Status:  "not_ready",
+			Message: "no runner executor configured",
+		}
+	}
+
+	// Build response
+	status := "ready"
+	statusCode := http.StatusOK
+	if !allReady {
+		status = "degraded"
+		statusCode = http.StatusServiceUnavailable
+	}
+
+	s.jsonResponse(w, statusCode, map[string]interface{}{
+		"status":    status,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"checks":    checks,
 	})
 }
 
@@ -1404,10 +1474,6 @@ func (s *Server) handleGetSpecDrift(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePatchPreview(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	// Parse session ID
 	sessUUID, err := uuid.Parse(sessionID)
@@ -1438,10 +1504,6 @@ func (s *Server) handlePatchPreview(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePatchApply(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	sessUUID, err := uuid.Parse(sessionID)
 	if err != nil {
@@ -1504,10 +1566,6 @@ func (s *Server) handlePatchApply(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePatchReject(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	sessUUID, err := uuid.Parse(sessionID)
 	if err != nil {
@@ -1533,10 +1591,6 @@ func (s *Server) handlePatchReject(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListPatches(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	sessUUID, err := uuid.Parse(sessionID)
 	if err != nil {
@@ -1651,10 +1705,6 @@ func (s *Server) handleAuthoringDiscover(w http.ResponseWriter, r *http.Request)
 
 func (s *Server) handleAuthoringSuggest(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	var req struct {
 		Section string `json:"section"` // goals, features, acceptance_criteria, non_functional
@@ -1739,10 +1789,6 @@ func (s *Server) handleAuthoringSuggest(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) handleAuthoringApply(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	var req struct {
 		Section      string `json:"section"`
@@ -1789,10 +1835,6 @@ func (s *Server) handleAuthoringApply(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAuthoringHint(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
-	if sessionID == "" {
-		s.jsonError(w, http.StatusBadRequest, "session ID required", nil)
-		return
-	}
 
 	var req struct {
 		Section  string `json:"section"`
