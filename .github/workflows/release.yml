@@ -50,11 +50,11 @@ jobs:
           fi
 
           # Build temper CLI
-          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" \
             -o temper-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} ./cmd/temper
 
           # Build temperd daemon
-          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" \
             -o temperd-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} ./cmd/temperd
 
       - name: Package (Unix)
@@ -161,20 +161,83 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
 
-          # Update version
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/temper.rb
+          # Generate new formula with correct checksums
+          cat > Formula/temper.rb << 'FORMULA'
+# Homebrew formula for Temper
+# To install: brew tap felixgeelhaar/tap && brew install temper
+class Temper < Formula
+  desc "Adaptive AI pairing tool for learning through deliberate practice"
+  homepage "https://github.com/felixgeelhaar/temper"
+  version "VERSION_PLACEHOLDER"
+  license "MIT"
 
-          # Update SHA256 checksums (replace existing or placeholder)
-          sed -i "s/sha256 \".*\" # darwin-arm64/sha256 \"${{ steps.sha.outputs.darwin_arm64 }}\" # darwin-arm64/" Formula/temper.rb
-          sed -i "s/sha256 \".*\" # darwin-amd64/sha256 \"${{ steps.sha.outputs.darwin_amd64 }}\" # darwin-amd64/" Formula/temper.rb
-          sed -i "s/sha256 \".*\" # linux-arm64/sha256 \"${{ steps.sha.outputs.linux_arm64 }}\" # linux-arm64/" Formula/temper.rb
-          sed -i "s/sha256 \".*\" # linux-amd64/sha256 \"${{ steps.sha.outputs.linux_amd64 }}\" # linux-amd64/" Formula/temper.rb
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/felixgeelhaar/temper/releases/download/v#{version}/temper-darwin-arm64.tar.gz"
+      sha256 "SHA_DARWIN_ARM64"
 
-          # Also handle PLACEHOLDER format
-          sed -i "s/PLACEHOLDER_DARWIN_ARM64/${{ steps.sha.outputs.darwin_arm64 }}/" Formula/temper.rb
-          sed -i "s/PLACEHOLDER_DARWIN_AMD64/${{ steps.sha.outputs.darwin_amd64 }}/" Formula/temper.rb
-          sed -i "s/PLACEHOLDER_LINUX_ARM64/${{ steps.sha.outputs.linux_arm64 }}/" Formula/temper.rb
-          sed -i "s/PLACEHOLDER_LINUX_AMD64/${{ steps.sha.outputs.linux_amd64 }}/" Formula/temper.rb
+      def install
+        bin.install "temper-darwin-arm64" => "temper"
+        bin.install "temperd-darwin-arm64" => "temperd"
+      end
+    else
+      url "https://github.com/felixgeelhaar/temper/releases/download/v#{version}/temper-darwin-amd64.tar.gz"
+      sha256 "SHA_DARWIN_AMD64"
+
+      def install
+        bin.install "temper-darwin-amd64" => "temper"
+        bin.install "temperd-darwin-amd64" => "temperd"
+      end
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.arm?
+      url "https://github.com/felixgeelhaar/temper/releases/download/v#{version}/temper-linux-arm64.tar.gz"
+      sha256 "SHA_LINUX_ARM64"
+
+      def install
+        bin.install "temper-linux-arm64" => "temper"
+        bin.install "temperd-linux-arm64" => "temperd"
+      end
+    else
+      url "https://github.com/felixgeelhaar/temper/releases/download/v#{version}/temper-linux-amd64.tar.gz"
+      sha256 "SHA_LINUX_AMD64"
+
+      def install
+        bin.install "temper-linux-amd64" => "temper"
+        bin.install "temperd-linux-amd64" => "temperd"
+      end
+    end
+  end
+
+  def caveats
+    <<~EOS
+      To get started with Temper:
+        temper doctor        # Check system health
+        temper start         # Start the daemon
+        temper status        # Check daemon status
+
+      Editor integrations:
+        - VS Code: Install the Temper extension from marketplace
+        - Neovim: Add felixgeelhaar/temper plugin
+
+      Documentation: https://github.com/felixgeelhaar/temper#readme
+    EOS
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/temper --version")
+  end
+end
+FORMULA
+
+          # Replace placeholders with actual values
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/" Formula/temper.rb
+          sed -i "s/SHA_DARWIN_ARM64/${{ steps.sha.outputs.darwin_arm64 }}/" Formula/temper.rb
+          sed -i "s/SHA_DARWIN_AMD64/${{ steps.sha.outputs.darwin_amd64 }}/" Formula/temper.rb
+          sed -i "s/SHA_LINUX_ARM64/${{ steps.sha.outputs.linux_arm64 }}/" Formula/temper.rb
+          sed -i "s/SHA_LINUX_AMD64/${{ steps.sha.outputs.linux_amd64 }}/" Formula/temper.rb
 
       - name: Commit and push to tap
         working-directory: homebrew-tap
