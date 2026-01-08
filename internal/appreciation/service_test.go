@@ -439,3 +439,197 @@ func TestService_Concurrency(t *testing.T) {
 
 	// If we get here without deadlock, the test passes
 }
+
+func TestService_GenerateSessionSummary(t *testing.T) {
+	s := NewService()
+
+	tests := []struct {
+		name             string
+		session          *session.Session
+		specProgress     string
+		wantNil          bool
+		wantAccomplish   string
+		wantRunCount     int
+		wantHintCount    int
+		wantSpecProgress string
+	}{
+		{
+			name:    "nil session returns nil",
+			session: nil,
+			wantNil: true,
+		},
+		{
+			name: "spec complete",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 2,
+				RunCount:  5,
+				Intent:    session.IntentFeatureGuidance,
+				SpecPath:  ".specs/feature.yaml",
+				CreatedAt: time.Now().Add(-30 * time.Minute),
+			},
+			specProgress:     "100%",
+			wantNil:          false,
+			wantAccomplish:   "Spec Complete",
+			wantRunCount:     5,
+			wantHintCount:    2,
+			wantSpecProgress: "100%",
+		},
+		{
+			name: "no hints needed",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 0,
+				RunCount:  3,
+				Intent:    session.IntentTraining,
+				CreatedAt: time.Now().Add(-20 * time.Minute),
+			},
+			wantNil:        false,
+			wantAccomplish: "Self-Reliant",
+			wantRunCount:   3,
+			wantHintCount:  0,
+		},
+		{
+			name: "minimal hints",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 1,
+				RunCount:  4,
+				Intent:    session.IntentTraining,
+				CreatedAt: time.Now().Add(-25 * time.Minute),
+			},
+			wantNil:        false,
+			wantAccomplish: "Focused Learning",
+			wantRunCount:   4,
+			wantHintCount:  1,
+		},
+		{
+			name: "quick session",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 5,
+				RunCount:  2,
+				Intent:    session.IntentTraining,
+				CreatedAt: time.Now().Add(-5 * time.Minute),
+			},
+			wantNil:        false,
+			wantAccomplish: "Quick Progress",
+			wantRunCount:   2,
+			wantHintCount:  5,
+		},
+		{
+			name: "making progress on spec",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 5,
+				RunCount:  0,
+				Intent:    session.IntentFeatureGuidance,
+				SpecPath:  ".specs/feature.yaml",
+				CreatedAt: time.Now().Add(-60 * time.Minute),
+			},
+			specProgress:     "50%",
+			wantNil:          false,
+			wantAccomplish:   "Making Progress",
+			wantRunCount:     0,
+			wantHintCount:    5,
+			wantSpecProgress: "50%",
+		},
+		{
+			name: "persistent effort",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 10,
+				RunCount:  5,
+				Intent:    session.IntentTraining,
+				CreatedAt: time.Now().Add(-60 * time.Minute),
+			},
+			wantNil:        false,
+			wantAccomplish: "Persistent Effort",
+			wantRunCount:   5,
+			wantHintCount:  10,
+		},
+		{
+			name: "default session complete",
+			session: &session.Session{
+				ID:        uuid.New().String(),
+				HintCount: 10,
+				RunCount:  0,
+				Intent:    session.IntentTraining,
+				CreatedAt: time.Now().Add(-60 * time.Minute),
+			},
+			wantNil:        false,
+			wantAccomplish: "Session Complete",
+			wantRunCount:   0,
+			wantHintCount:  10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			summary := s.GenerateSessionSummary(tt.session, tt.specProgress)
+
+			if tt.wantNil {
+				if summary != nil {
+					t.Errorf("GenerateSessionSummary() = %v, want nil", summary)
+				}
+				return
+			}
+
+			if summary == nil {
+				t.Fatal("GenerateSessionSummary() = nil, want summary")
+			}
+
+			if summary.Accomplishment != tt.wantAccomplish {
+				t.Errorf("Accomplishment = %s, want %s", summary.Accomplishment, tt.wantAccomplish)
+			}
+
+			if summary.RunCount != tt.wantRunCount {
+				t.Errorf("RunCount = %d, want %d", summary.RunCount, tt.wantRunCount)
+			}
+
+			if summary.HintCount != tt.wantHintCount {
+				t.Errorf("HintCount = %d, want %d", summary.HintCount, tt.wantHintCount)
+			}
+
+			if tt.wantSpecProgress != "" && summary.SpecProgress != tt.wantSpecProgress {
+				t.Errorf("SpecProgress = %s, want %s", summary.SpecProgress, tt.wantSpecProgress)
+			}
+
+			if summary.Message == "" {
+				t.Error("Message should not be empty")
+			}
+
+			if summary.Duration == "" {
+				t.Error("Duration should not be empty")
+			}
+
+			if summary.Evidence == nil {
+				t.Error("Evidence should not be nil")
+			}
+		})
+	}
+}
+
+func TestFormatSessionDuration(t *testing.T) {
+	tests := []struct {
+		duration time.Duration
+		want     string
+	}{
+		{30 * time.Second, "under a minute"},
+		{1 * time.Minute, "1 minute"},
+		{5 * time.Minute, "5 minutes"},
+		{1 * time.Hour, "1 hour"},
+		{1*time.Hour + 15*time.Minute, "1 hour 15 minutes"},
+		{2 * time.Hour, "2 hours"},
+		{2*time.Hour + 30*time.Minute, "2 hours 30 minutes"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			got := formatSessionDuration(tt.duration)
+			if got != tt.want {
+				t.Errorf("formatSessionDuration(%v) = %s, want %s", tt.duration, got, tt.want)
+			}
+		})
+	}
+}

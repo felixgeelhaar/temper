@@ -91,6 +91,9 @@ func (g *Generator) formatTemplate(template string, moment *Moment) string {
 	case MomentSpecComplete:
 		return fmt.Sprintf(template, e.SpecName)
 
+	case MomentSessionEnd:
+		return fmt.Sprintf(template, e.SessionDuration)
+
 	default:
 		return template
 	}
@@ -164,6 +167,13 @@ func defaultTemplates() map[MomentType][]string {
 		MomentSpecComplete: {
 			"All acceptance criteria for %s satisfied. The feature is complete.",
 			"Spec %s complete. You built what was needed, nothing more.",
+		},
+
+		// Session end messages
+		MomentSessionEnd: {
+			"Good session. %s of focused work builds lasting skill.",
+			"Session complete. %s invested in your craft.",
+			"Every session counts. %s of practice today.",
 		},
 	}
 }

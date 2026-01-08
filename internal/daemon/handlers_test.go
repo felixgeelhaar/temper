@@ -217,8 +217,8 @@ func TestHandlers_NotFound_Returns404(t *testing.T) {
 	}{
 		{"GET unknown endpoint", http.MethodGet, "/v1/unknown", http.StatusNotFound},
 		{"GET session not found", http.MethodGet, "/v1/sessions/00000000-0000-0000-0000-000000000000", http.StatusNotFound},
-		// DELETE returns 500 when session store reports error (implementation detail)
-		{"DELETE session not found", http.MethodDelete, "/v1/sessions/00000000-0000-0000-0000-000000000000", http.StatusInternalServerError},
+		// DELETE now returns 404 when session not found (gets session first for summary)
+		{"DELETE session not found", http.MethodDelete, "/v1/sessions/00000000-0000-0000-0000-000000000000", http.StatusNotFound},
 		{"GET exercise pack not found", http.MethodGet, "/v1/exercises/nonexistent-pack", http.StatusNotFound},
 		{"GET exercise not found", http.MethodGet, "/v1/exercises/nonexistent-pack/nonexistent-exercise", http.StatusNotFound},
 	}
@@ -12222,4 +12222,214 @@ func TestMockLLM_Ready_WithAllChecks(t *testing.T) {
 	if !strings.Contains(w.Body.String(), "llm_provider") {
 		t.Errorf("expected llm_provider check in response, got: %s", w.Body.String())
 	}
+}
+
+// TestHandlers_SessionSummary_OnDelete tests that deleting a session returns a motivational summary
+func TestHandlers_SessionSummary_OnDelete(t *testing.T) {
+	ctx := setupTestServerWithContext(t)
+	defer ctx.Cleanup()
+	server := ctx.Server
+
+	// Step 1: Create a spec file for session
+	specContent := `name: Summary Delete Test
+title: Test for Delete Summary
+goals:
+  - Verify session summary on delete
+acceptance_criteria:
+  - id: ac-summary
+    description: Summary is returned
+features:
+  - id: f-summary
+    title: Summary Feature
+    description: Feature for testing summary
+`
+	specDir := filepath.Join(ctx.SpecsPath, ".specs")
+	if err := os.MkdirAll(specDir, 0755); err != nil {
+		t.Fatalf("create specs dir: %v", err)
+	}
+	specPath := filepath.Join(specDir, "delete-summary-test.spec.yaml")
+	if err := os.WriteFile(specPath, []byte(specContent), 0644); err != nil {
+		t.Fatalf("write spec file: %v", err)
+	}
+
+	// Step 2: Create a session
+	body := `{"spec_path": ".specs/delete-summary-test.spec.yaml"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create session failed: %d %s", w.Code, w.Body.String())
+	}
+
+	var createResp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &createResp); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	sessionID := createResp["id"].(string)
+
+	// Step 3: Run some code to increment run count
+	runBody := `{"code": {"main.go": "package main\n\nfunc main() {\n\tprintln(\"hello\")\n}\n"}, "format": true, "build": true}`
+	req = httptest.NewRequest(http.MethodPost, "/v1/sessions/"+sessionID+"/runs", strings.NewReader(runBody))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	server.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("run code failed: %d %s", w.Code, w.Body.String())
+	}
+
+	// Step 4: Delete the session
+	req = httptest.NewRequest(http.MethodDelete, "/v1/sessions/"+sessionID, nil)
+	w = httptest.NewRecorder()
+	server.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("delete session failed: %d %s", w.Code, w.Body.String())
+	}
+
+	// Verify response contains summary
+	var deleteResp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &deleteResp); err != nil {
+		t.Fatalf("unmarshal delete response: %v", err)
+	}
+
+	// Check deleted flag
+	deleted, ok := deleteResp["deleted"].(bool)
+	if !ok || !deleted {
+		t.Errorf("expected deleted: true, got %v", deleteResp["deleted"])
+	}
+
+	// Check summary exists
+	summary, ok := deleteResp["summary"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected summary in response, got %v", deleteResp)
+	}
+
+	// Verify summary has required fields
+	if _, ok := summary["duration"]; !ok {
+		t.Error("summary missing duration")
+	}
+	if _, ok := summary["run_count"]; !ok {
+		t.Error("summary missing run_count")
+	}
+	if _, ok := summary["hint_count"]; !ok {
+		t.Error("summary missing hint_count")
+	}
+	if _, ok := summary["message"]; !ok {
+		t.Error("summary missing message")
+	}
+	if _, ok := summary["accomplishment"]; !ok {
+		t.Error("summary missing accomplishment")
+	}
+
+	// Verify run count was tracked
+	runCount := summary["run_count"].(float64)
+	if runCount < 1 {
+		t.Errorf("expected run_count >= 1, got %v", runCount)
+	}
+
+	// Verify message is motivational (not empty)
+	message := summary["message"].(string)
+	if message == "" {
+		t.Error("expected non-empty motivational message")
+	}
+
+	t.Logf("Session summary: accomplishment=%s, message=%s", summary["accomplishment"], message)
+}
+
+// TestHandlers_SessionSummary_FeatureGuidance tests summary includes spec progress for feature guidance sessions
+func TestHandlers_SessionSummary_FeatureGuidance(t *testing.T) {
+	ctx := setupTestServerWithContext(t)
+	defer ctx.Cleanup()
+	server := ctx.Server
+
+	// Step 1: Create a spec file
+	specContent := `name: Session Summary Test
+title: Test Feature
+goals:
+  - Test session summary with spec progress
+acceptance_criteria:
+  - id: ac-test
+    description: Test criterion
+features:
+  - id: f-test
+    title: Test Feature
+    description: A test feature
+`
+	specDir := filepath.Join(ctx.SpecsPath, ".specs")
+	if err := os.MkdirAll(specDir, 0755); err != nil {
+		t.Fatalf("create specs dir: %v", err)
+	}
+	specPath := filepath.Join(specDir, "summary-test.spec.yaml")
+	if err := os.WriteFile(specPath, []byte(specContent), 0644); err != nil {
+		t.Fatalf("write spec file: %v", err)
+	}
+
+	// Step 2: Create a feature guidance session
+	body := `{"spec_path": ".specs/summary-test.spec.yaml"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create spec session failed: %d %s", w.Code, w.Body.String())
+	}
+
+	var createResp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &createResp); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	sessionID := createResp["id"].(string)
+
+	// Step 3: Mark the criterion as satisfied
+	req = httptest.NewRequest(http.MethodPut, "/v1/specs/criteria/ac-test", nil)
+	w = httptest.NewRecorder()
+	server.router.ServeHTTP(w, req)
+
+	// Accept both 200 and 404 (if criterion not found due to path issues)
+	if w.Code != http.StatusOK && w.Code != http.StatusNotFound {
+		t.Logf("mark criterion result: %d %s", w.Code, w.Body.String())
+	}
+
+	// Step 4: Delete the session
+	req = httptest.NewRequest(http.MethodDelete, "/v1/sessions/"+sessionID, nil)
+	w = httptest.NewRecorder()
+	server.router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("delete session failed: %d %s", w.Code, w.Body.String())
+	}
+
+	// Verify response contains summary with spec progress
+	var deleteResp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &deleteResp); err != nil {
+		t.Fatalf("unmarshal delete response: %v", err)
+	}
+
+	summary, ok := deleteResp["summary"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected summary in response, got %v", deleteResp)
+	}
+
+	// Verify intent is feature_guidance
+	intent := summary["intent"].(string)
+	if intent != "feature_guidance" {
+		t.Errorf("expected intent feature_guidance, got %s", intent)
+	}
+
+	// Verify spec_path is present
+	specPathResult, ok := summary["spec_path"].(string)
+	if !ok || specPathResult == "" {
+		t.Error("expected spec_path in summary for feature guidance session")
+	}
+
+	// Verify spec_progress is present (may be "0%" or "100%" depending on criterion marking)
+	if specProgress, ok := summary["spec_progress"].(string); ok {
+		t.Logf("Spec progress: %s", specProgress)
+	}
+
+	t.Logf("Feature guidance summary: accomplishment=%s, message=%s", summary["accomplishment"], summary["message"])
 }

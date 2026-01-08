@@ -43,6 +43,9 @@ const (
 	// Spec-level moments
 	MomentCriterionSatisfied MomentType = "criterion_satisfied"
 	MomentSpecComplete       MomentType = "spec_complete"
+
+	// Session end moment
+	MomentSessionEnd MomentType = "session_end"
 )
 
 // Evidence provides the data backing an appreciation moment
@@ -67,6 +70,23 @@ type Evidence struct {
 	CriterionDesc string `json:"criterion_desc,omitempty"`
 	SpecName      string `json:"spec_name,omitempty"`
 	Progress      string `json:"progress,omitempty"`
+
+	// Session end metrics
+	SessionDuration string `json:"session_duration,omitempty"`
+	SpecProgress    string `json:"spec_progress,omitempty"`
+}
+
+// SessionSummary provides a motivational summary when a session ends
+type SessionSummary struct {
+	Duration       string         `json:"duration"`
+	RunCount       int            `json:"run_count"`
+	HintCount      int            `json:"hint_count"`
+	Intent         string         `json:"intent"`
+	SpecPath       string         `json:"spec_path,omitempty"`
+	SpecProgress   string         `json:"spec_progress,omitempty"`
+	Message        string         `json:"message"`
+	Accomplishment string         `json:"accomplishment,omitempty"`
+	Evidence       *Evidence      `json:"evidence,omitempty"`
 }
 
 // Detector identifies appreciation-worthy moments

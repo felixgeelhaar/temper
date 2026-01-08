@@ -1,6 +1,7 @@
 package appreciation
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -173,4 +174,117 @@ func (s *Service) MinutesSinceLastAppreciation(userID uuid.UUID) int {
 	}
 
 	return int(time.Since(lastTime).Minutes())
+}
+
+// GenerateSessionSummary creates a motivational summary for a completed session
+func (s *Service) GenerateSessionSummary(sess *session.Session, specProgress string) *SessionSummary {
+	if sess == nil {
+		return nil
+	}
+
+	duration := time.Since(sess.CreatedAt)
+	durationStr := formatSessionDuration(duration)
+
+	// Create the base summary
+	summary := &SessionSummary{
+		Duration:     durationStr,
+		RunCount:     sess.RunCount,
+		HintCount:    sess.HintCount,
+		Intent:       string(sess.Intent),
+		SpecPath:     sess.SpecPath,
+		SpecProgress: specProgress,
+	}
+
+	// Determine accomplishment and message based on session performance
+	accomplishment, message := s.determineAccomplishment(sess, specProgress, duration)
+	summary.Accomplishment = accomplishment
+	summary.Message = message
+
+	// Add evidence
+	summary.Evidence = &Evidence{
+		HintCount:       sess.HintCount,
+		RunCount:        sess.RunCount,
+		SessionDuration: durationStr,
+		SpecProgress:    specProgress,
+	}
+
+	return summary
+}
+
+// determineAccomplishment selects the right accomplishment and message based on session metrics
+func (s *Service) determineAccomplishment(sess *session.Session, specProgress string, duration time.Duration) (accomplishment, message string) {
+	durationStr := formatSessionDuration(duration)
+
+	// Check for spec completion
+	if specProgress == "100%" {
+		return "Spec Complete", "You completed all acceptance criteria. The feature is done."
+	}
+
+	// Check for no hints needed
+	if sess.HintCount == 0 && sess.RunCount > 0 {
+		return "Self-Reliant", "No hints needed. Your independent problem-solving is strong."
+	}
+
+	// Check for minimal hints
+	if sess.HintCount > 0 && sess.HintCount <= 2 {
+		return "Focused Learning", "Minimal guidance needed. You're building real understanding."
+	}
+
+	// Check for quick session (less than 15 minutes)
+	if duration < 15*time.Minute && sess.RunCount > 0 {
+		return "Quick Progress", "Efficient session. You knew what to do and did it."
+	}
+
+	// Check for spec progress
+	if specProgress != "" && specProgress != "0%" {
+		return "Making Progress", "Steady progress on the feature. Keep building."
+	}
+
+	// Check for effort (multiple runs)
+	if sess.RunCount >= 3 {
+		return "Persistent Effort", "Multiple iterations show determination. That's how skills are built."
+	}
+
+	// Default motivational message
+	moment := &Moment{
+		Type: MomentSessionEnd,
+		Evidence: Evidence{
+			SessionDuration: durationStr,
+		},
+	}
+	msg := s.generator.Generate(moment)
+	if msg != nil {
+		return "Session Complete", msg.Text
+	}
+
+	return "Session Complete", "Every session is practice. Keep going."
+}
+
+// formatSessionDuration formats a duration in a human-readable way
+func formatSessionDuration(d time.Duration) string {
+	if d < time.Minute {
+		return "under a minute"
+	}
+
+	hours := int(d.Hours())
+	mins := int(d.Minutes()) % 60
+
+	if hours == 0 {
+		if mins == 1 {
+			return "1 minute"
+		}
+		return fmt.Sprintf("%d minutes", mins)
+	}
+
+	if hours == 1 {
+		if mins == 0 {
+			return "1 hour"
+		}
+		return fmt.Sprintf("1 hour %d minutes", mins)
+	}
+
+	if mins == 0 {
+		return fmt.Sprintf("%d hours", hours)
+	}
+	return fmt.Sprintf("%d hours %d minutes", hours, mins)
 }

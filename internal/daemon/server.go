@@ -583,18 +583,47 @@ func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDeleteSession(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	if err := s.sessionService.Delete(r.Context(), id); err != nil {
+	// Get session before deleting to generate summary
+	sess, err := s.sessionService.Get(r.Context(), id)
+	if err != nil {
 		if err == session.ErrSessionNotFound {
 			s.jsonError(w, http.StatusNotFound, "session not found", nil)
 			return
 		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
+		return
+	}
+
+	// Get spec progress if this is a feature guidance session
+	var specProgress string
+	if sess.SpecPath != "" && s.specService != nil {
+		if progress, err := s.specService.GetProgress(r.Context(), sess.SpecPath); err == nil {
+			specProgress = fmt.Sprintf("%.0f%%", progress.PercentComplete)
+		}
+	}
+
+	// Generate session summary
+	var summary *appreciation.SessionSummary
+	if s.appreciationService != nil {
+		summary = s.appreciationService.GenerateSessionSummary(sess, specProgress)
+	}
+
+	// Delete the session
+	if err := s.sessionService.Delete(r.Context(), id); err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "failed to delete session", err)
 		return
 	}
 
-	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+	// Build response with summary
+	response := map[string]interface{}{
 		"deleted": true,
-	})
+	}
+
+	if summary != nil {
+		response["summary"] = summary
+	}
+
+	s.jsonResponse(w, http.StatusOK, response)
 }
 
 // Run handlers
