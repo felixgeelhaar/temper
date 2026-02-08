@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/fortify/bulkhead"
@@ -250,7 +251,7 @@ func extractStatusCode(err error) int {
 	}
 
 	for pattern, code := range statusCodes {
-		if containsString(errStr, pattern) {
+		if strings.Contains(errStr, pattern) {
 			return code
 		}
 	}
@@ -258,11 +259,3 @@ func extractStatusCode(err error) int {
 	return 0
 }
 
-func containsString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}

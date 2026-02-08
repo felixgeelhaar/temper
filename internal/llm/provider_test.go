@@ -647,30 +647,6 @@ func TestExtractStatusCode(t *testing.T) {
 	}
 }
 
-func TestContainsString(t *testing.T) {
-	tests := []struct {
-		s      string
-		substr string
-		want   bool
-	}{
-		{"hello world", "world", true},
-		{"hello world", "hello", true},
-		{"hello world", "xyz", false},
-		{"", "a", false},
-		{"abc", "", true},
-		{"status 429 error", "status 429", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.s+"-"+tt.substr, func(t *testing.T) {
-			got := containsString(tt.s, tt.substr)
-			if got != tt.want {
-				t.Errorf("containsString(%q, %q) = %v, want %v", tt.s, tt.substr, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNewLLMHTTPClient(t *testing.T) {
 	client := newLLMHTTPClient()
 

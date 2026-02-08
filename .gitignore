@@ -58,3 +58,6 @@ temp/
 
 # Playwright MCP
 .playwright-mcp/
+
+# Relicta
+.relicta/
