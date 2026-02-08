@@ -1,0 +1,215 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import SkillRadar from '../components/SkillRadar.vue';
+---
+
+<MainLayout title="Profile">
+  <div class="profile-page">
+    <section class="profile-header grid grid-2">
+      <div class="card">
+        <h3 class="section-title">Learner Profile</h3>
+        <div id="profile-info">
+          <div class="profile-stat">
+            <span class="stat-label">Overall Skill</span>
+            <span class="stat-value" id="overall-skill">—</span>
+          </div>
+          <div class="profile-stat">
+            <span class="stat-label">Total Sessions</span>
+            <span class="stat-value" id="total-sessions">—</span>
+          </div>
+          <div class="profile-stat">
+            <span class="stat-label">Total Practice Time</span>
+            <span class="stat-value" id="total-time">—</span>
+          </div>
+        </div>
+
+        <div class="profile-tags" id="strengths-section" style="display:none">
+          <h4 class="subsection-title">Strengths</h4>
+          <div class="tag-list" id="strengths"></div>
+        </div>
+
+        <div class="profile-tags" id="weaknesses-section" style="display:none">
+          <h4 class="subsection-title">Areas to Improve</h4>
+          <div class="tag-list" id="weaknesses"></div>
+        </div>
+      </div>
+
+      <SkillRadar client:load skills={{}} id="skill-radar" />
+    </section>
+
+    <section class="language-section">
+      <div class="card">
+        <h3 class="section-title">Language Skills</h3>
+        <div class="language-grid" id="language-grid">
+          <p class="empty-state">Loading...</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    async function loadProfile() {
+      try {
+        const res = await fetch('/v1/profile');
+        if (!res.ok) return;
+        const profile = await res.json();
+
+        const skillEl = document.getElementById('overall-skill');
+        if (skillEl) skillEl.textContent = (profile.overall_skill ?? 0).toFixed(1);
+
+        const sessionsEl = document.getElementById('total-sessions');
+        if (sessionsEl) sessionsEl.textContent = String(profile.total_sessions ?? 0);
+
+        const timeEl = document.getElementById('total-time');
+        if (timeEl) {
+          const min = Math.round((profile.total_time_seconds ?? 0) / 60);
+          timeEl.textContent = min > 60 ? `${Math.round(min / 60)}h ${min % 60}m` : `${min}m`;
+        }
+
+        // Strengths
+        const strengths = profile.strengths ?? [];
+        if (strengths.length > 0) {
+          const section = document.getElementById('strengths-section');
+          const container = document.getElementById('strengths');
+          if (section && container) {
+            section.style.display = 'block';
+            container.innerHTML = strengths.map((s: string) => `<span class="badge badge-success">${s}</span>`).join('');
+          }
+        }
+
+        // Weaknesses
+        const weaknesses = profile.weaknesses ?? [];
+        if (weaknesses.length > 0) {
+          const section = document.getElementById('weaknesses-section');
+          const container = document.getElementById('weaknesses');
+          if (section && container) {
+            section.style.display = 'block';
+            container.innerHTML = weaknesses.map((w: string) => `<span class="badge badge-warning">${w}</span>`).join('');
+          }
+        }
+
+        // Language grid
+        const langSkills = profile.language_skills ?? {};
+        const gridEl = document.getElementById('language-grid');
+        if (gridEl && Object.keys(langSkills).length > 0) {
+          gridEl.innerHTML = Object.entries(langSkills)
+            .map(([lang, skill]) => `
+              <div class="language-card">
+                <div class="lang-name">${lang}</div>
+                <div class="lang-bar">
+                  <div class="lang-fill" style="width: ${((skill as number) / 10) * 100}%"></div>
+                </div>
+                <div class="lang-level">${(skill as number).toFixed(1)}</div>
+              </div>
+            `).join('');
+        } else if (gridEl) {
+          gridEl.innerHTML = '<p class="empty-state">No language skills tracked yet.</p>';
+        }
+      } catch {
+        // Daemon not running
+      }
+    }
+
+    loadProfile();
+  </script>
+
+  <style>
+    .profile-page {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--color-text);
+    }
+
+    .subsection-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .profile-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .profile-stat:last-child {
+      border-bottom: none;
+    }
+
+    .profile-stat .stat-value {
+      font-size: 1.25rem;
+    }
+
+    .profile-tags {
+      margin-top: 1rem;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .language-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .language-card {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      background: var(--color-surface-raised);
+      border-radius: var(--radius-sm);
+    }
+
+    .lang-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      min-width: 60px;
+      text-transform: capitalize;
+    }
+
+    .lang-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--color-border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .lang-fill {
+      height: 100%;
+      background: var(--color-primary);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .lang-level {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--color-text-muted);
+      min-width: 24px;
+      text-align: right;
+    }
+
+    .empty-state {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</MainLayout>

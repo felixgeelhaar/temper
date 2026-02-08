@@ -1,0 +1,136 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Sessions">
+  <div class="sessions-page">
+    <section class="card">
+      <div class="sessions-header">
+        <h3 class="section-title">Active & Recent Sessions</h3>
+        <div class="sessions-filters">
+          <select id="language-filter" class="filter-select">
+            <option value="">All Languages</option>
+            <option value="go">Go</option>
+            <option value="python">Python</option>
+            <option value="typescript">TypeScript</option>
+            <option value="rust">Rust</option>
+            <option value="java">Java</option>
+            <option value="c">C</option>
+            <option value="cpp">C++</option>
+          </select>
+          <select id="status-filter" class="filter-select">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="abandoned">Abandoned</option>
+          </select>
+        </div>
+      </div>
+      <div class="sessions-list" id="sessions-list">
+        <p class="empty-state">
+          No sessions found. Start a session with <code>temper start</code> or your editor plugin.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Sessions list will be populated via the daemon API
+    // For now, display the empty state
+    // In production, this would call GET /v1/sessions (when a list endpoint is available)
+  </script>
+
+  <style>
+    .sessions-page {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .sessions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .sessions-filters {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .filter-select {
+      padding: 0.375rem 0.75rem;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .filter-select:hover {
+      border-color: var(--color-primary);
+    }
+
+    .sessions-list {
+      min-height: 200px;
+    }
+
+    .session-row {
+      display: grid;
+      grid-template-columns: 1fr 100px 80px 120px;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+      gap: 1rem;
+    }
+
+    .session-row:last-child {
+      border-bottom: none;
+    }
+
+    .session-exercise {
+      font-weight: 500;
+    }
+
+    .session-language {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    .session-duration {
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      color: var(--color-text-muted);
+    }
+
+    .session-date {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-align: right;
+    }
+
+    .empty-state {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      padding: 2rem 0;
+      text-align: center;
+    }
+
+    code {
+      padding: 0.15rem 0.4rem;
+      background: var(--color-surface-raised);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--color-primary);
+    }
+  </style>
+</MainLayout>

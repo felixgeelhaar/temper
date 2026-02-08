@@ -1,0 +1,92 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import ProgressCard from '../components/ProgressCard.vue';
+import SkillRadar from '../components/SkillRadar.vue';
+import HintTrend from '../components/HintTrend.vue';
+---
+
+<MainLayout title="Dashboard">
+  <div class="dashboard">
+    <section class="stats-row grid grid-4" id="stats-cards">
+      <ProgressCard client:load label="Total Sessions" value="—" />
+      <ProgressCard client:load label="This Week" value="—" />
+      <ProgressCard client:load label="Total Time" value="—" />
+      <ProgressCard client:load label="Avg. Level" value="—" />
+    </section>
+
+    <section class="charts-row grid grid-2">
+      <SkillRadar client:load skills={{}} />
+      <HintTrend client:load trend={[]} />
+    </section>
+
+    <section class="recent-section">
+      <div class="card">
+        <h3 class="section-title">Recent Activity</h3>
+        <div id="recent-activity" class="activity-list">
+          <p class="empty-state">Loading...</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    async function loadDashboard() {
+      try {
+        // Fetch overview
+        const overviewRes = await fetch('/v1/analytics/overview');
+        if (!overviewRes.ok) return;
+        const overview = await overviewRes.json();
+
+        // Update stat cards
+        const cards = document.querySelectorAll('#stats-cards .progress-card');
+        if (cards[0]) {
+          const val = cards[0].querySelector('.card-value');
+          if (val) val.textContent = String(overview.total_sessions ?? 0);
+        }
+        if (cards[1]) {
+          const val = cards[1].querySelector('.card-value');
+          if (val) val.textContent = String(overview.sessions_this_week ?? 0);
+        }
+        if (cards[2]) {
+          const totalMin = Math.round((overview.total_time_seconds ?? 0) / 60);
+          const val = cards[2].querySelector('.card-value');
+          if (val) val.textContent = totalMin > 60 ? `${Math.round(totalMin / 60)}h` : `${totalMin}m`;
+        }
+        if (cards[3]) {
+          const val = cards[3].querySelector('.card-value');
+          if (val) val.textContent = `L${(overview.average_intervention_level ?? 0).toFixed(1)}`;
+        }
+      } catch {
+        // Daemon not available — leave placeholders
+      }
+    }
+
+    loadDashboard();
+  </script>
+
+  <style>
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--color-text);
+    }
+
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .empty-state {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</MainLayout>

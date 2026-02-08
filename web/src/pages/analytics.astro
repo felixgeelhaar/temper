@@ -1,0 +1,218 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import HintTrend from '../components/HintTrend.vue';
+import ProgressCard from '../components/ProgressCard.vue';
+---
+
+<MainLayout title="Analytics">
+  <div class="analytics-page">
+    <section class="stats-row grid grid-4" id="analytics-stats">
+      <ProgressCard client:load label="Sessions" value="—" />
+      <ProgressCard client:load label="Avg. Duration" value="—" />
+      <ProgressCard client:load label="Most Used" value="—" />
+      <ProgressCard client:load label="Avg. Level" value="—" />
+    </section>
+
+    <section class="chart-section">
+      <HintTrend client:load trend={[]} />
+    </section>
+
+    <section class="grid grid-2">
+      <div class="card">
+        <h3 class="section-title">Skills by Language</h3>
+        <div id="skills-list" class="skills-list">
+          <p class="empty-state">Loading...</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title">Common Errors</h3>
+        <div id="errors-list" class="errors-list">
+          <p class="empty-state">Loading...</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    async function loadAnalytics() {
+      try {
+        // Overview stats
+        const overviewRes = await fetch('/v1/analytics/overview');
+        if (overviewRes.ok) {
+          const overview = await overviewRes.json();
+          const cards = document.querySelectorAll('#analytics-stats .progress-card');
+          if (cards[0]) {
+            const val = cards[0].querySelector('.card-value');
+            if (val) val.textContent = String(overview.total_sessions ?? 0);
+          }
+          if (cards[1]) {
+            const val = cards[1].querySelector('.card-value');
+            if (val) val.textContent = `${Math.round(overview.average_session_minutes ?? 0)}m`;
+          }
+          if (cards[2]) {
+            const val = cards[2].querySelector('.card-value');
+            if (val) val.textContent = overview.most_used_language ?? '—';
+          }
+          if (cards[3]) {
+            const val = cards[3].querySelector('.card-value');
+            if (val) val.textContent = `L${(overview.average_intervention_level ?? 0).toFixed(1)}`;
+          }
+        }
+
+        // Skills by language
+        const skillsRes = await fetch('/v1/analytics/skills');
+        if (skillsRes.ok) {
+          const data = await skillsRes.json();
+          const skills = data.skills ?? [];
+          const el = document.getElementById('skills-list');
+          if (el && skills.length > 0) {
+            el.innerHTML = skills.map((s: { language: string; skill_level: number; sessions_count: number; trend: number }) => `
+              <div class="skill-row">
+                <span class="skill-lang">${s.language}</span>
+                <div class="skill-bar-container">
+                  <div class="skill-bar" style="width: ${(s.skill_level / 10) * 100}%"></div>
+                </div>
+                <span class="skill-level">${s.skill_level.toFixed(1)}</span>
+                <span class="skill-sessions">${s.sessions_count} sessions</span>
+                <span class="skill-trend ${s.trend >= 0 ? 'trend-up' : 'trend-down'}">
+                  ${s.trend >= 0 ? '+' : ''}${s.trend.toFixed(1)}%
+                </span>
+              </div>
+            `).join('');
+          } else if (el) {
+            el.innerHTML = '<p class="empty-state">No skill data yet.</p>';
+          }
+        }
+
+        // Common errors
+        const errorsRes = await fetch('/v1/analytics/errors');
+        if (errorsRes.ok) {
+          const data = await errorsRes.json();
+          const errors = data.errors ?? [];
+          const el = document.getElementById('errors-list');
+          if (el && errors.length > 0) {
+            el.innerHTML = errors.map((e: { category: string; count: number }) => `
+              <div class="error-row">
+                <span class="error-category">${e.category}</span>
+                <span class="error-count">${e.count}</span>
+              </div>
+            `).join('');
+          } else if (el) {
+            el.innerHTML = '<p class="empty-state">No error data yet.</p>';
+          }
+        }
+      } catch {
+        // Daemon not running
+      }
+    }
+
+    loadAnalytics();
+  </script>
+
+  <style>
+    .analytics-page {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--color-text);
+    }
+
+    .skills-list,
+    .errors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .skill-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 40px 80px 60px;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.375rem 0;
+    }
+
+    .skill-lang {
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    .skill-bar-container {
+      height: 4px;
+      background: var(--color-border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .skill-bar {
+      height: 100%;
+      background: var(--color-primary);
+      border-radius: 2px;
+    }
+
+    .skill-level {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--color-text-muted);
+      text-align: right;
+    }
+
+    .skill-sessions {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+    }
+
+    .skill-trend {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .trend-up {
+      color: var(--color-success);
+    }
+
+    .trend-down {
+      color: var(--color-danger);
+    }
+
+    .error-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.375rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .error-row:last-child {
+      border-bottom: none;
+    }
+
+    .error-category {
+      font-size: 0.875rem;
+    }
+
+    .error-count {
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      color: var(--color-danger);
+      background: #ed879610;
+      padding: 0.125rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    .empty-state {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</MainLayout>

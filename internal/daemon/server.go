@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"path/filepath"
@@ -21,8 +22,10 @@ import (
 	"github.com/felixgeelhaar/temper/internal/patch"
 	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/felixgeelhaar/temper/internal/runner"
+	"github.com/felixgeelhaar/temper/internal/sandbox"
 	"github.com/felixgeelhaar/temper/internal/session"
 	"github.com/felixgeelhaar/temper/internal/spec"
+	sqlitestore "github.com/felixgeelhaar/temper/internal/storage/sqlite"
 	"github.com/google/uuid"
 )
 
@@ -47,6 +50,15 @@ type Server struct {
 	sessionServiceConcrete *session.Service
 	llmRegistryConcrete    *llm.Registry
 	specServiceConcrete    *spec.Service
+
+	// Track store for learning contract presets
+	trackStore *sqlitestore.TrackStore
+
+	// Sandbox manager for persistent containers
+	sandboxManager *sandbox.Manager
+
+	// Document index service for external context
+	docindexService *docindex.Service
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -105,25 +117,67 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		return nil, fmt.Errorf("get temper dir: %w", err)
 	}
 
-	// Initialize session service
-	sessionsPath := cfg.SessionsPath
-	if sessionsPath == "" {
-		sessionsPath = filepath.Join(temperDir, "sessions")
+	// Initialize storage backend based on config
+	var sessionStore session.SessionStore
+	var profileStore profile.ProfileStore
+
+	switch cfg.Config.Storage.Driver {
+	case "json":
+		// Legacy JSON file storage
+		sessionsPath := cfg.SessionsPath
+		if sessionsPath == "" {
+			sessionsPath = filepath.Join(temperDir, "sessions")
+		}
+		jsonSessionStore, err := session.NewStore(sessionsPath)
+		if err != nil {
+			return nil, fmt.Errorf("create json session store: %w", err)
+		}
+		sessionStore = jsonSessionStore
+
+		jsonProfileStore, err := profile.NewStore(filepath.Join(temperDir, "profiles"))
+		if err != nil {
+			return nil, fmt.Errorf("create json profile store: %w", err)
+		}
+		profileStore = jsonProfileStore
+
+	default: // "sqlite" (default)
+		dbPath := cfg.Config.Storage.Path
+		if dbPath == "" {
+			dbPath = filepath.Join(temperDir, "temper.db")
+		}
+		db, err := sqlitestore.Open(dbPath)
+		if err != nil {
+			return nil, fmt.Errorf("open sqlite: %w", err)
+		}
+		if err := db.Migrate(); err != nil {
+			return nil, fmt.Errorf("run migrations: %w", err)
+		}
+		slog.Info("sqlite storage initialized", "path", dbPath)
+
+		sessionStore = sqlitestore.NewSessionStore(db)
+		profileStore = sqlitestore.NewProfileStore(db)
+		s.trackStore = sqlitestore.NewTrackStore(db)
+
+		// Initialize sandbox manager (optional — requires Docker)
+		sandboxBackend, err := sandbox.NewDockerBackend()
+		if err != nil {
+			slog.Warn("sandbox support disabled: Docker not available", "error", err)
+		} else {
+			sandboxStore := sqlitestore.NewSandboxStore(db)
+			s.sandboxManager = sandbox.NewManager(sandboxStore, sandboxBackend)
+			s.sandboxManager.StartCleanupLoop(ctx, 5*time.Minute)
+			slog.Info("sandbox support enabled")
+		}
+
+		// Initialize document index service (keyword embedder as default)
+		s.docindexService = docindex.NewService(db.DB, nil)
+		slog.Info("document index service initialized")
 	}
 
-	sessionStore, err := session.NewStore(sessionsPath)
-	if err != nil {
-		return nil, fmt.Errorf("create session store: %w", err)
-	}
 	sessionSvc := session.NewService(sessionStore, s.exerciseLoader, s.runnerExecutor)
 	s.sessionService = sessionSvc
 	s.sessionServiceConcrete = sessionSvc
 
-	// Initialize profile service
-	profileStore, err := profile.NewStore(filepath.Join(temperDir, "profiles"))
-	if err != nil {
-		return nil, fmt.Errorf("create profile store: %w", err)
-	}
 	profileSvc := profile.NewService(profileStore)
 	s.profileService = profileSvc
 
@@ -162,10 +216,10 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	s.setupRoutes()
 
 	// Create HTTP server with middleware chain
-	// Order: correlationID -> recovery -> logging -> router
-	// This ensures correlation ID is available in all logs and error handling
+	// Order: cors -> correlationID -> recovery -> logging -> router
+	// CORS must be outermost to handle OPTIONS preflight before other middleware
 	addr := fmt.Sprintf("%s:%d", cfg.Config.Daemon.Bind, cfg.Config.Daemon.Port)
-	handler := correlationIDMiddleware(recoveryMiddleware(loggingMiddleware(s.router)))
+	handler := corsMiddleware(correlationIDMiddleware(recoveryMiddleware(loggingMiddleware(s.router))))
 	s.server = &http.Server{
 		Addr:         addr,
 		Handler:      handler,
@@ -287,6 +341,33 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/suggest", s.handleAuthoringSuggest)
 	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/apply", s.handleAuthoringApply)
 	s.router.HandleFunc("POST /v1/sessions/{id}/authoring/hint", s.handleAuthoringHint)
+
+	// Sandboxes
+	s.router.HandleFunc("POST /v1/sessions/{id}/sandbox", s.handleCreateSandbox)
+	s.router.HandleFunc("GET /v1/sessions/{id}/sandbox", s.handleGetSandbox)
+	s.router.HandleFunc("DELETE /v1/sessions/{id}/sandbox", s.handleDestroySandbox)
+	s.router.HandleFunc("POST /v1/sessions/{id}/sandbox/exec", s.handleSandboxExec)
+	s.router.HandleFunc("POST /v1/sessions/{id}/sandbox/pause", s.handlePauseSandbox)
+	s.router.HandleFunc("POST /v1/sessions/{id}/sandbox/resume", s.handleResumeSandbox)
+
+	// AI Spec Generation
+	s.router.HandleFunc("POST /v1/specs/generate", s.handleGenerateSpec)
+
+	// Document Index (External Context Providers)
+	s.router.HandleFunc("POST /v1/docindex/index", s.handleDocIndexIndex)
+	s.router.HandleFunc("GET /v1/docindex/status", s.handleDocIndexStatus)
+	s.router.HandleFunc("POST /v1/docindex/search", s.handleDocIndexSearch)
+	s.router.HandleFunc("GET /v1/docindex/documents", s.handleDocIndexListDocuments)
+	s.router.HandleFunc("POST /v1/docindex/reindex", s.handleDocIndexReindex)
+
+	// Tracks (Learning Contract Presets)
+	s.router.HandleFunc("GET /v1/tracks", s.handleListTracks)
+	s.router.HandleFunc("GET /v1/tracks/{id}", s.handleGetTrack)
+	s.router.HandleFunc("POST /v1/tracks", s.handleCreateTrack)
+	s.router.HandleFunc("PUT /v1/tracks/{id}", s.handleUpdateTrack)
+	s.router.HandleFunc("DELETE /v1/tracks/{id}", s.handleDeleteTrack)
+	s.router.HandleFunc("POST /v1/tracks/export", s.handleExportTrack)
+	s.router.HandleFunc("POST /v1/tracks/import", s.handleImportTrack)
 }
 
 // Start starts the HTTP server
@@ -306,6 +387,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if closer, ok := s.runnerExecutor.(interface{ Close() error }); ok {
 		if err := closer.Close(); err != nil {
 			slog.Warn("failed to close executor", "error", err)
+		}
+	}
+
+	// Close sandbox manager (destroys active sandboxes)
+	if s.sandboxManager != nil {
+		if err := s.sandboxManager.Close(ctx); err != nil {
+			slog.Warn("failed to close sandbox manager", "error", err)
 		}
 	}
 
@@ -509,14 +597,24 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get learning policy from config
+	// Get learning policy from track store (SQLite) or config fallback
 	var policy *domain.LearningPolicy
 	if req.Track != "" {
-		if track, ok := s.cfg.Learning.Tracks[req.Track]; ok {
-			policy = &domain.LearningPolicy{
-				MaxLevel:        domain.InterventionLevel(track.MaxLevel),
-				CooldownSeconds: track.CooldownSeconds,
-				Track:           req.Track,
+		// Try SQLite track store first
+		if s.trackStore != nil {
+			if track, err := s.trackStore.Get(req.Track); err == nil {
+				p := track.ToPolicy()
+				policy = &p
+			}
+		}
+		// Fallback to config tracks
+		if policy == nil {
+			if track, ok := s.cfg.Learning.Tracks[req.Track]; ok {
+				policy = &domain.LearningPolicy{
+					MaxLevel:        domain.InterventionLevel(track.MaxLevel),
+					CooldownSeconds: track.CooldownSeconds,
+					Track:           req.Track,
+				}
 			}
 		}
 	}
@@ -1928,4 +2026,701 @@ func (s *Server) handleAuthoringHint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, http.StatusOK, hint)
+}
+
+// Sandbox handlers
+
+func (s *Server) handleCreateSandbox(w http.ResponseWriter, r *http.Request) {
+	if s.sandboxManager == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available (Docker required)", nil)
+		return
+	}
+
+	sessionID := r.PathValue("id")
+
+	var req struct {
+		Language   string  `json:"language,omitempty"`
+		Image      string  `json:"image,omitempty"`
+		MemoryMB   int     `json:"memory_mb,omitempty"`
+		CPULimit   float64 `json:"cpu_limit,omitempty"`
+		NetworkOff *bool   `json:"network_off,omitempty"`
+	}
+
+	if r.Body != nil && r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+			return
+		}
+	}
+
+	cfg := sandbox.DefaultConfig()
+	if req.Language != "" {
+		cfg.Language = req.Language
+	}
+	if req.Image != "" {
+		cfg.Image = req.Image
+	}
+	if req.MemoryMB > 0 {
+		cfg.MemoryMB = req.MemoryMB
+	}
+	if req.CPULimit > 0 {
+		cfg.CPULimit = req.CPULimit
+	}
+	if req.NetworkOff != nil {
+		cfg.NetworkOff = *req.NetworkOff
+	}
+
+	sb, err := s.sandboxManager.Create(r.Context(), sessionID, cfg)
+	if err != nil {
+		switch err {
+		case sandbox.ErrSessionHasSandbox:
+			s.jsonError(w, http.StatusConflict, "session already has a sandbox", nil)
+		case sandbox.ErrMaxSandboxes:
+			s.jsonError(w, http.StatusTooManyRequests, "maximum concurrent sandboxes reached", nil)
+		default:
+			s.jsonError(w, http.StatusInternalServerError, "failed to create sandbox", err)
+		}
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, sb)
+}
+
+func (s *Server) handleGetSandbox(w http.ResponseWriter, r *http.Request) {
+	if s.sandboxManager == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		return
+	}
+
+	sessionID := r.PathValue("id")
+
+	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	if err != nil {
+		if err == sandbox.ErrSandboxNotFound {
+			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, sb)
+}
+
+func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
+	if s.sandboxManager == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		return
+	}
+
+	sessionID := r.PathValue("id")
+
+	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	if err != nil {
+		if err == sandbox.ErrSandboxNotFound {
+			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
+		return
+	}
+
+	if err := s.sandboxManager.Destroy(r.Context(), sb.ID); err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to destroy sandbox", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"destroyed": true,
+	})
+}
+
+func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
+	if s.sandboxManager == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		return
+	}
+
+	sessionID := r.PathValue("id")
+
+	var req struct {
+		Cmd     []string          `json:"cmd"`
+		Code    map[string]string `json:"code,omitempty"`
+		Timeout int               `json:"timeout,omitempty"` // seconds
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if len(req.Cmd) == 0 {
+		s.jsonError(w, http.StatusBadRequest, "cmd is required", nil)
+		return
+	}
+
+	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	if err != nil {
+		if err == sandbox.ErrSandboxNotFound {
+			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
+		return
+	}
+
+	// Copy code if provided
+	if len(req.Code) > 0 {
+		if err := s.sandboxManager.AttachCode(r.Context(), sb.ID, req.Code); err != nil {
+			s.jsonError(w, http.StatusInternalServerError, "failed to copy files to sandbox", err)
+			return
+		}
+	}
+
+	timeout := 120 * time.Second
+	if req.Timeout > 0 {
+		timeout = time.Duration(req.Timeout) * time.Second
+	}
+
+	result, err := s.sandboxManager.Execute(r.Context(), sb.ID, req.Cmd, timeout)
+	if err != nil {
+		switch err {
+		case sandbox.ErrSandboxExpired:
+			s.jsonError(w, http.StatusGone, "sandbox has expired", nil)
+		case sandbox.ErrSandboxNotReady:
+			s.jsonError(w, http.StatusConflict, "sandbox is not ready", nil)
+		default:
+			s.jsonError(w, http.StatusInternalServerError, "execution failed", err)
+		}
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, result)
+}
+
+func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
+	if s.sandboxManager == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		return
+	}
+
+	sessionID := r.PathValue("id")
+
+	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	if err != nil {
+		if err == sandbox.ErrSandboxNotFound {
+			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
+		return
+	}
+
+	if err := s.sandboxManager.Pause(r.Context(), sb.ID); err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to pause sandbox", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"paused": true,
+	})
+}
+
+func (s *Server) handleResumeSandbox(w http.ResponseWriter, r *http.Request) {
+	if s.sandboxManager == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		return
+	}
+
+	sessionID := r.PathValue("id")
+
+	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	if err != nil {
+		if err == sandbox.ErrSandboxNotFound {
+			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
+		return
+	}
+
+	if err := s.sandboxManager.Resume(r.Context(), sb.ID); err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to resume sandbox", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"resumed": true,
+	})
+}
+
+// AI Spec Generation handler
+
+func (s *Server) handleGenerateSpec(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name        string   `json:"name"`
+		Description string   `json:"description"`
+		Goals       []string `json:"goals,omitempty"`
+		Context     string   `json:"context,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.Name == "" {
+		s.jsonError(w, http.StatusBadRequest, "name is required", nil)
+		return
+	}
+	if req.Description == "" {
+		s.jsonError(w, http.StatusBadRequest, "description is required", nil)
+		return
+	}
+
+	// Get LLM provider
+	provider, err := s.llmRegistry.Default()
+	if err != nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "no LLM provider available", err)
+		return
+	}
+
+	// Build prompt for spec generation
+	goalsSection := ""
+	if len(req.Goals) > 0 {
+		goalsSection = "\n\nUser-provided goals:\n"
+		for _, g := range req.Goals {
+			goalsSection += "- " + g + "\n"
+		}
+	}
+	contextSection := ""
+	if req.Context != "" {
+		contextSection = "\n\nAdditional context:\n" + req.Context
+	}
+
+	prompt := fmt.Sprintf(`Generate a complete product specification in JSON format for the following project:
+
+Name: %s
+Description: %s%s%s
+
+Generate a JSON object with these exact fields:
+{
+  "name": "the project name",
+  "version": "0.1.0",
+  "goals": ["list of 3-5 clear project goals"],
+  "features": [
+    {
+      "id": "feature-slug",
+      "title": "Feature Title",
+      "description": "Detailed description",
+      "priority": "high|medium|low",
+      "success_criteria": ["measurable criteria"]
+    }
+  ],
+  "non_functional": {
+    "performance": ["performance requirements"],
+    "security": ["security requirements"],
+    "scalability": ["scalability requirements"]
+  },
+  "acceptance_criteria": [
+    {
+      "id": "ac-NNN",
+      "description": "Given/When/Then format acceptance criterion",
+      "satisfied": false
+    }
+  ],
+  "milestones": [
+    {
+      "id": "ms-NNN",
+      "name": "Milestone Name",
+      "features": ["feature-ids"],
+      "target": "relative timeline",
+      "description": "What this milestone delivers"
+    }
+  ]
+}
+
+Requirements:
+- Generate 3-8 features ordered by priority
+- Each feature should have 2-4 success criteria
+- Generate 5-15 acceptance criteria in Given/When/Then format
+- Generate 2-4 milestones
+- All IDs should be kebab-case slugs
+- Be specific and actionable, not generic
+- Output ONLY valid JSON, no markdown fences or explanation`, req.Name, req.Description, goalsSection, contextSection)
+
+	llmReq := &llm.Request{
+		System:      "You are a product specification generator. Output only valid JSON.",
+		Messages:    []llm.Message{{Role: llm.RoleUser, Content: prompt}},
+		MaxTokens:   4096,
+		Temperature: 0.7,
+	}
+
+	resp, err := provider.Generate(r.Context(), llmReq)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to generate spec", err)
+		return
+	}
+
+	// Parse the LLM response as a ProductSpec
+	var generatedSpec domain.ProductSpec
+	if err := json.Unmarshal([]byte(resp.Content), &generatedSpec); err != nil {
+		// If direct parse fails, try to extract JSON from the response
+		jsonStart := strings.Index(resp.Content, "{")
+		jsonEnd := strings.LastIndex(resp.Content, "}")
+		if jsonStart >= 0 && jsonEnd > jsonStart {
+			extracted := resp.Content[jsonStart : jsonEnd+1]
+			if err2 := json.Unmarshal([]byte(extracted), &generatedSpec); err2 != nil {
+				s.jsonError(w, http.StatusInternalServerError, "failed to parse generated spec", err2)
+				return
+			}
+		} else {
+			s.jsonError(w, http.StatusInternalServerError, "failed to parse generated spec", err)
+			return
+		}
+	}
+
+	// Ensure all acceptance criteria IDs are set
+	for i := range generatedSpec.AcceptanceCriteria {
+		if generatedSpec.AcceptanceCriteria[i].ID == "" {
+			generatedSpec.AcceptanceCriteria[i].ID = fmt.Sprintf("ac-%03d", i+1)
+		}
+	}
+
+	// Save the spec
+	if err := s.specService.Save(r.Context(), &generatedSpec); err != nil {
+		// If save fails (e.g. no .specs dir), still return the generated spec
+		slog.Warn("failed to save generated spec", "error", err)
+		s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+			"spec":    generatedSpec,
+			"saved":   false,
+			"message": "Spec generated but not saved: " + err.Error(),
+		})
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, map[string]interface{}{
+		"spec":  generatedSpec,
+		"saved": true,
+	})
+}
+
+// Track handlers (Learning Contract Presets)
+
+func (s *Server) handleListTracks(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	tracks, err := s.trackStore.List()
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to list tracks", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"tracks": tracks,
+		"count":  len(tracks),
+	})
+}
+
+func (s *Server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	id := r.PathValue("id")
+	track, err := s.trackStore.Get(id)
+	if err != nil {
+		if err == sqlitestore.ErrTrackNotFound {
+			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get track", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, track)
+}
+
+func (s *Server) handleCreateTrack(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	var track domain.Track
+	if err := json.NewDecoder(r.Body).Decode(&track); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if err := track.Validate(); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid track", err)
+		return
+	}
+
+	// Check for duplicate ID
+	if s.trackStore.Exists(track.ID) {
+		s.jsonError(w, http.StatusConflict, "track with this ID already exists", nil)
+		return
+	}
+
+	if track.Preset == "" {
+		track.Preset = "custom"
+	}
+
+	if err := s.trackStore.Save(&track); err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to create track", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, track)
+}
+
+func (s *Server) handleUpdateTrack(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	id := r.PathValue("id")
+
+	// Verify track exists
+	existing, err := s.trackStore.Get(id)
+	if err != nil {
+		if err == sqlitestore.ErrTrackNotFound {
+			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get track", err)
+		return
+	}
+
+	var update domain.Track
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	// Preserve ID and created_at
+	update.ID = id
+	update.CreatedAt = existing.CreatedAt
+
+	if err := update.Validate(); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid track", err)
+		return
+	}
+
+	if err := s.trackStore.Save(&update); err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to update track", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, update)
+}
+
+func (s *Server) handleDeleteTrack(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	id := r.PathValue("id")
+
+	if err := s.trackStore.Delete(id); err != nil {
+		if err == sqlitestore.ErrTrackNotFound {
+			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to delete track", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"deleted": true,
+	})
+}
+
+func (s *Server) handleExportTrack(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	track, err := s.trackStore.Get(req.ID)
+	if err != nil {
+		if err == sqlitestore.ErrTrackNotFound {
+			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			return
+		}
+		s.jsonError(w, http.StatusInternalServerError, "failed to get track", err)
+		return
+	}
+
+	yamlData, err := track.MarshalYAML()
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to export track", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/x-yaml")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.yaml", track.ID))
+	w.WriteHeader(http.StatusOK)
+	w.Write(yamlData)
+}
+
+func (s *Server) handleImportTrack(w http.ResponseWriter, r *http.Request) {
+	if s.trackStore == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "tracks require sqlite storage", nil)
+		return
+	}
+
+	// Read YAML body (limit to 64KB)
+	body := http.MaxBytesReader(w, r.Body, 64*1024)
+	data, err := io.ReadAll(body)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, "failed to read request body", err)
+		return
+	}
+
+	track, err := domain.UnmarshalTrackYAML(data)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid track YAML", err)
+		return
+	}
+
+	// Save imported track
+	if err := s.trackStore.Save(track); err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to import track", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusCreated, track)
+}
+
+// --- Document Index (External Context) Handlers ---
+
+func (s *Server) handleDocIndexIndex(w http.ResponseWriter, r *http.Request) {
+	if s.docindexService == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "document indexing requires sqlite storage", nil)
+		return
+	}
+
+	var req struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	basePath := req.Path
+	if basePath == "" {
+		basePath = s.specService.GetWorkspaceRoot()
+	}
+
+	result, err := s.docindexService.IndexDirectory(r.Context(), basePath)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "indexing failed", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, result)
+}
+
+func (s *Server) handleDocIndexStatus(w http.ResponseWriter, r *http.Request) {
+	if s.docindexService == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "document indexing requires sqlite storage", nil)
+		return
+	}
+
+	stats, err := s.docindexService.Stats()
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to get index stats", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, stats)
+}
+
+func (s *Server) handleDocIndexSearch(w http.ResponseWriter, r *http.Request) {
+	if s.docindexService == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "document indexing requires sqlite storage", nil)
+		return
+	}
+
+	var req struct {
+		Query string `json:"query"`
+		TopK  int    `json:"top_k,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if req.Query == "" {
+		s.jsonError(w, http.StatusBadRequest, "query is required", nil)
+		return
+	}
+
+	topK := req.TopK
+	if topK <= 0 {
+		topK = 5
+	}
+
+	results, err := s.docindexService.Search(r.Context(), req.Query, topK)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "search failed", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"query":   req.Query,
+		"results": results,
+		"count":   len(results),
+	})
+}
+
+func (s *Server) handleDocIndexListDocuments(w http.ResponseWriter, r *http.Request) {
+	if s.docindexService == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "document indexing requires sqlite storage", nil)
+		return
+	}
+
+	docs, err := s.docindexService.ListDocuments()
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "failed to list documents", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, map[string]interface{}{
+		"documents": docs,
+		"count":     len(docs),
+	})
+}
+
+func (s *Server) handleDocIndexReindex(w http.ResponseWriter, r *http.Request) {
+	if s.docindexService == nil {
+		s.jsonError(w, http.StatusServiceUnavailable, "document indexing requires sqlite storage", nil)
+		return
+	}
+
+	result, err := s.docindexService.ReindexAll(r.Context())
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "reindexing failed", err)
+		return
+	}
+
+	s.jsonResponse(w, http.StatusOK, result)
 }
