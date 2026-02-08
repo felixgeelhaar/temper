@@ -1,0 +1,151 @@
+id: interfaces
+title: Interfaces
+description: |
+  Learn about Java interfaces and implementing contracts.
+
+  ## Learning Objectives
+  - Define and implement interfaces
+  - Understand interface default methods
+  - Practice programming to interfaces
+
+  ## Instructions
+  Implement the Comparable-like Sortable interface and a collection sorter.
+
+difficulty: intermediate
+tags:
+  - oop
+  - interfaces
+  - contracts
+
+prerequisites:
+  - classes
+
+starter:
+  Sortable.java: |
+    public interface Sortable {
+        /** Returns negative if this < other, 0 if equal, positive if this > other. */
+        int compareTo(Sortable other);
+
+        /** Returns the value used for display. */
+        String display();
+    }
+  Student.java: |
+    public class Student implements Sortable {
+        private String name;
+        private double gpa;
+
+        public Student(String name, double gpa) {
+            this.name = name;
+            this.gpa = gpa;
+        }
+
+        public String getName() { return name; }
+        public double getGpa() { return gpa; }
+
+        @Override
+        public int compareTo(Sortable other) {
+            // TODO: Compare by GPA (higher GPA first)
+            return 0;
+        }
+
+        @Override
+        public String display() {
+            // TODO: Return "name (GPA: X.X)"
+            return "";
+        }
+    }
+
+tests:
+  StudentTest.java: |
+    public class StudentTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        static void assertTrue(boolean condition, String msg) {
+            if (condition) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg); }
+        }
+
+        public static void main(String[] args) {
+            Student alice = new Student("Alice", 3.8);
+            Student bob = new Student("Bob", 3.5);
+
+            assertTrue(alice.compareTo(bob) < 0, "higher GPA comes first");
+            assertTrue(bob.compareTo(alice) > 0, "lower GPA comes after");
+
+            Student carol = new Student("Carol", 3.8);
+            assertEquals(0, alice.compareTo(carol), "equal GPA");
+
+            assertEquals("Alice (GPA: 3.8)", alice.display(), "display format");
+            assertEquals("Bob (GPA: 3.5)", bob.display(), "display format bob");
+
+            Sortable s = alice;
+            assertEquals("Alice (GPA: 3.8)", s.display(), "polymorphic display");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: interface-impl
+      name: Interface Implementation
+      weight: 0.4
+      signals: [implements_interface]
+
+hints:
+  L0:
+    - "How should you compare two doubles?"
+  L1:
+    - "Cast the Sortable to Student to access GPA"
+    - "Use Double.compare() for comparing doubles"
+  L2:
+    - "Return -Double.compare(this.gpa, ((Student)other).getGpa()) for descending order"
+
+solution:
+  Sortable.java: |
+    public interface Sortable {
+        int compareTo(Sortable other);
+        String display();
+    }
+  Student.java: |
+    public class Student implements Sortable {
+        private String name;
+        private double gpa;
+
+        public Student(String name, double gpa) {
+            this.name = name;
+            this.gpa = gpa;
+        }
+
+        public String getName() { return name; }
+        public double getGpa() { return gpa; }
+
+        @Override
+        public int compareTo(Sortable other) {
+            Student s = (Student) other;
+            return -Double.compare(this.gpa, s.gpa);
+        }
+
+        @Override
+        public String display() {
+            return name + " (GPA: " + gpa + ")";
+        }
+    }

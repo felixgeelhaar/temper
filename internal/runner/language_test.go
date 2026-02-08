@@ -14,8 +14,11 @@ func TestLanguage_IsValid(t *testing.T) {
 		{"python is valid", LanguagePython, true},
 		{"typescript is valid", LanguageTypeScript, true},
 		{"rust is valid", LanguageRust, true},
+		{"java is valid", LanguageJava, true},
+		{"c is valid", LanguageC, true},
+		{"cpp is valid", LanguageCPP, true},
 		{"empty is invalid", Language(""), false},
-		{"unknown is invalid", Language("java"), false},
+		{"unknown is invalid", Language("cobol"), false},
 	}
 
 	for _, tc := range tests {
@@ -39,7 +42,10 @@ func TestParseLanguage(t *testing.T) {
 		{"parse python", "python", LanguagePython, false},
 		{"parse typescript", "typescript", LanguageTypeScript, false},
 		{"parse rust", "rust", LanguageRust, false},
-		{"parse invalid", "java", "", true},
+		{"parse java", "java", LanguageJava, false},
+		{"parse c", "c", LanguageC, false},
+		{"parse cpp", "cpp", LanguageCPP, false},
+		{"parse invalid", "cobol", "", true},
 		{"parse empty", "", "", true},
 	}
 
@@ -66,7 +72,7 @@ func TestParseLanguage(t *testing.T) {
 func TestDefaultLanguageConfigs(t *testing.T) {
 	configs := DefaultLanguageConfigs()
 
-	languages := []Language{LanguageGo, LanguagePython, LanguageTypeScript, LanguageRust}
+	languages := []Language{LanguageGo, LanguagePython, LanguageTypeScript, LanguageRust, LanguageJava, LanguageC, LanguageCPP}
 	for _, lang := range languages {
 		t.Run(string(lang), func(t *testing.T) {
 			cfg, ok := configs[lang]
@@ -156,5 +162,26 @@ func TestRustExecutor_Language(t *testing.T) {
 	exec := NewRustExecutor()
 	if exec.Language() != LanguageRust {
 		t.Errorf("expected Rust, got %s", exec.Language())
+	}
+}
+
+func TestJavaExecutor_Language(t *testing.T) {
+	exec := NewJavaExecutor()
+	if exec.Language() != LanguageJava {
+		t.Errorf("expected Java, got %s", exec.Language())
+	}
+}
+
+func TestCExecutor_Language(t *testing.T) {
+	exec := NewCExecutor()
+	if exec.Language() != LanguageC {
+		t.Errorf("expected C, got %s", exec.Language())
+	}
+}
+
+func TestCPPExecutor_Language(t *testing.T) {
+	exec := NewCPPExecutor()
+	if exec.Language() != LanguageCPP {
+		t.Errorf("expected C++, got %s", exec.Language())
 	}
 }

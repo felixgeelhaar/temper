@@ -13,12 +13,15 @@ const (
 	LanguagePython     Language = "python"
 	LanguageTypeScript Language = "typescript"
 	LanguageRust       Language = "rust"
+	LanguageJava       Language = "java"
+	LanguageC          Language = "c"
+	LanguageCPP        Language = "cpp"
 )
 
 // IsValid checks if the language is supported
 func (l Language) IsValid() bool {
 	switch l {
-	case LanguageGo, LanguagePython, LanguageTypeScript, LanguageRust:
+	case LanguageGo, LanguagePython, LanguageTypeScript, LanguageRust, LanguageJava, LanguageC, LanguageCPP:
 		return true
 	default:
 		return false
@@ -92,6 +95,30 @@ func DefaultLanguageConfigs() map[Language]LanguageConfig {
 			InitFiles: map[string]string{
 				"Cargo.toml": "[package]\nname = \"exercise\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
 			},
+		},
+		LanguageJava: {
+			DockerImage:    "eclipse-temurin:21-alpine",
+			FormatCommand:  []string{"google-java-format", "--dry-run", "--set-exit-if-changed"},
+			BuildCommand:   []string{"javac", "-d", "out"},
+			TestCommand:    []string{"java", "-jar", "junit-platform-console-standalone.jar", "--class-path", "out", "--scan-classpath"},
+			FileExtensions: []string{".java"},
+			InitFiles:      map[string]string{},
+		},
+		LanguageC: {
+			DockerImage:    "gcc:13-alpine",
+			FormatCommand:  []string{"clang-format", "--dry-run", "-Werror"},
+			BuildCommand:   []string{"gcc", "-Wall", "-Wextra", "-o", "exercise"},
+			TestCommand:    []string{"./exercise"},
+			FileExtensions: []string{".c", ".h"},
+			InitFiles:      map[string]string{},
+		},
+		LanguageCPP: {
+			DockerImage:    "gcc:13-alpine",
+			FormatCommand:  []string{"clang-format", "--dry-run", "-Werror"},
+			BuildCommand:   []string{"g++", "-std=c++17", "-Wall", "-Wextra", "-o", "exercise"},
+			TestCommand:    []string{"./exercise"},
+			FileExtensions: []string{".cpp", ".hpp", ".cc", ".h"},
+			InitFiles:      map[string]string{},
 		},
 	}
 }

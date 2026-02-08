@@ -1,0 +1,35 @@
+id: c-v1
+name: C Fundamentals
+version: 1.0.0
+description: |
+  Learn C through deliberate practice. This pack covers fundamentals
+  of the C programming language, from basic syntax to pointers and memory management.
+language: c
+difficulty_range:
+  - beginner
+  - intermediate
+  - advanced
+
+default_policy:
+  max_level: 3
+  patching_enabled: false
+  cooldown_seconds: 60
+  track: practice
+
+exercises:
+  # Basics
+  - basics/hello-world
+  - basics/variables
+  - basics/functions
+  - basics/arrays
+  - basics/strings
+  # Intermediate
+  - intermediate/pointers
+  - intermediate/structs
+  - intermediate/memory
+  - intermediate/file-io
+  # Testing
+  - testing/unit-tests
+  # Advanced
+  - advanced/linked-list
+  - advanced/function-pointers

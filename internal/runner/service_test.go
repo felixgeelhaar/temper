@@ -538,8 +538,8 @@ func TestNewMultiLanguageService(t *testing.T) {
 
 	// Check all language executors are registered
 	langs := svc.SupportedLanguages()
-	if len(langs) != 4 {
-		t.Errorf("expected 4 languages, got %d", len(langs))
+	if len(langs) != 7 {
+		t.Errorf("expected 7 languages, got %d", len(langs))
 	}
 }
 
@@ -657,6 +657,9 @@ func TestMultiLanguageService_SupportedLanguages(t *testing.T) {
 		LanguagePython:     true,
 		LanguageTypeScript: true,
 		LanguageRust:       true,
+		LanguageJava:       true,
+		LanguageC:          true,
+		LanguageCPP:        true,
 	}
 
 	for _, lang := range langs {

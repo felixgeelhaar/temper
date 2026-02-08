@@ -1,0 +1,138 @@
+id: exceptions
+title: Exception Handling
+description: |
+  Learn about Java exception handling.
+
+  ## Learning Objectives
+  - Use try-catch-finally blocks
+  - Create custom exceptions
+  - Understand checked vs unchecked exceptions
+
+  ## Instructions
+  Implement a safe division utility with custom exceptions.
+
+difficulty: intermediate
+tags:
+  - exceptions
+  - error-handling
+
+prerequisites:
+  - classes
+
+starter:
+  DivisionException.java: |
+    public class DivisionException extends Exception {
+        // TODO: Create a custom exception with a message
+        public DivisionException(String message) {
+            super(message);
+        }
+    }
+  SafeMath.java: |
+    public class SafeMath {
+        /**
+         * Divides a by b.
+         * Throws DivisionException if b is zero.
+         */
+        public static double divide(double a, double b) throws DivisionException {
+            // TODO: Implement
+            return 0.0;
+        }
+
+        /**
+         * Divides a by b, returning a default value if division fails.
+         */
+        public static double divideOrDefault(double a, double b, double defaultValue) {
+            // TODO: Implement using try-catch
+            return 0.0;
+        }
+    }
+
+tests:
+  SafeMathTest.java: |
+    public class SafeMathTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        static void assertThrows(String msg, Runnable fn) {
+            try {
+                fn.run();
+                failed++;
+                System.out.println("FAIL: " + msg + " (no exception thrown)");
+            } catch (Exception e) {
+                passed++;
+                System.out.println("PASS: " + msg);
+            }
+        }
+
+        public static void main(String[] args) throws Exception {
+            assertEquals(2.5, SafeMath.divide(5.0, 2.0), "normal division");
+
+            assertThrows("divide by zero throws", () -> {
+                try { SafeMath.divide(5.0, 0.0); }
+                catch (DivisionException e) { throw new RuntimeException(e); }
+            });
+
+            assertEquals(2.5, SafeMath.divideOrDefault(5.0, 2.0, -1.0), "divideOrDefault normal");
+            assertEquals(-1.0, SafeMath.divideOrDefault(5.0, 0.0, -1.0), "divideOrDefault zero");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: exception-handling
+      name: Exception Handling
+      weight: 0.4
+      signals: [uses_try_catch, custom_exception]
+
+hints:
+  L0:
+    - "When should the DivisionException be thrown?"
+  L1:
+    - "Check if b is zero before dividing"
+    - "Use try-catch in divideOrDefault to catch the exception"
+  L2:
+    - "throw new DivisionException(\"division by zero\") when b == 0"
+
+solution:
+  DivisionException.java: |
+    public class DivisionException extends Exception {
+        public DivisionException(String message) {
+            super(message);
+        }
+    }
+  SafeMath.java: |
+    public class SafeMath {
+        public static double divide(double a, double b) throws DivisionException {
+            if (b == 0.0) {
+                throw new DivisionException("division by zero");
+            }
+            return a / b;
+        }
+
+        public static double divideOrDefault(double a, double b, double defaultValue) {
+            try {
+                return divide(a, b);
+            } catch (DivisionException e) {
+                return defaultValue;
+            }
+        }
+    }

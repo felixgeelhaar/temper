@@ -1,0 +1,154 @@
+id: structs
+title: Structs
+description: |
+  Learn about C structs for grouping related data.
+
+  ## Learning Objectives
+  - Define and use structs
+  - Pass structs by pointer
+  - Understand struct initialization
+
+  ## Instructions
+  Implement a Point struct with geometric operations.
+
+difficulty: intermediate
+tags:
+  - structs
+  - data-types
+
+prerequisites:
+  - pointers
+
+starter:
+  point.c: |
+    #include <stdio.h>
+    #include <math.h>
+
+    typedef struct {
+        double x;
+        double y;
+    } Point;
+
+    /** Creates a new Point. */
+    Point point_new(double x, double y) {
+        /* TODO: Implement */
+        Point p = {0, 0};
+        return p;
+    }
+
+    /** Returns the distance between two points. */
+    double point_distance(const Point *a, const Point *b) {
+        /* TODO: Implement */
+        return 0.0;
+    }
+
+    /** Translates a point by dx, dy. */
+    void point_translate(Point *p, double dx, double dy) {
+        /* TODO: Implement */
+    }
+
+    /** Returns 1 if points are equal (within epsilon), 0 otherwise. */
+    int point_equals(const Point *a, const Point *b) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+tests:
+  test_point.c: |
+    #include <stdio.h>
+    #include <math.h>
+
+    typedef struct { double x; double y; } Point;
+    Point point_new(double x, double y);
+    double point_distance(const Point *a, const Point *b);
+    void point_translate(Point *p, double dx, double dy);
+    int point_equals(const Point *a, const Point *b);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_double_eq(double expected, double actual, const char *msg) {
+        if (fabs(expected - actual) < 0.001) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%f, actual=%f)\n", msg, expected, actual); }
+    }
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        Point p = point_new(3.0, 4.0);
+        assert_double_eq(3.0, p.x, "new point x");
+        assert_double_eq(4.0, p.y, "new point y");
+
+        Point origin = point_new(0.0, 0.0);
+        assert_double_eq(5.0, point_distance(&origin, &p), "distance to origin");
+
+        point_translate(&p, 1.0, -1.0);
+        assert_double_eq(4.0, p.x, "translated x");
+        assert_double_eq(3.0, p.y, "translated y");
+
+        Point a = point_new(1.0, 2.0);
+        Point b = point_new(1.0, 2.0);
+        Point c = point_new(3.0, 4.0);
+        assert_int_eq(1, point_equals(&a, &b), "equal points");
+        assert_int_eq(0, point_equals(&a, &c), "unequal points");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: structs
+      name: Struct Usage
+      weight: 0.4
+      signals: [uses_typedef, passes_by_pointer]
+
+hints:
+  L0:
+    - "What is the distance formula between two points?"
+  L1:
+    - "Use sqrt(dx*dx + dy*dy) for distance"
+    - "Access struct fields with -> for pointer, . for value"
+  L2:
+    - "sqrt(pow(b->x - a->x, 2) + pow(b->y - a->y, 2))"
+
+solution:
+  point.c: |
+    #include <stdio.h>
+    #include <math.h>
+
+    typedef struct { double x; double y; } Point;
+
+    Point point_new(double x, double y) {
+        Point p = {x, y};
+        return p;
+    }
+
+    double point_distance(const Point *a, const Point *b) {
+        double dx = b->x - a->x;
+        double dy = b->y - a->y;
+        return sqrt(dx * dx + dy * dy);
+    }
+
+    void point_translate(Point *p, double dx, double dy) {
+        p->x += dx;
+        p->y += dy;
+    }
+
+    int point_equals(const Point *a, const Point *b) {
+        return fabs(a->x - b->x) < 1e-9 && fabs(a->y - b->y) < 1e-9;
+    }

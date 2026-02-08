@@ -1,0 +1,162 @@
+id: pointers
+title: Pointers
+description: |
+  Master C pointers and pointer arithmetic.
+
+  ## Learning Objectives
+  - Understand pointer declaration and dereferencing
+  - Practice pointer arithmetic
+  - Learn about pointer to pointer
+
+  ## Instructions
+  Implement functions that demonstrate pointer mastery.
+
+difficulty: intermediate
+tags:
+  - pointers
+  - memory
+
+prerequisites:
+  - functions
+
+starter:
+  pointers.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    /** Sets value through a pointer. */
+    void set_value(int *ptr, int value) {
+        /* TODO: Implement */
+    }
+
+    /** Allocates an array of n integers, all initialized to value. Returns NULL on failure. */
+    int *create_filled_array(int n, int value) {
+        /* TODO: Implement using malloc */
+        return NULL;
+    }
+
+    /** Returns the sum of elements using pointer arithmetic (no [] operator). */
+    int sum_with_pointers(const int *arr, int len) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Frees the array and sets the pointer to NULL. */
+    void safe_free(int **ptr) {
+        /* TODO: Implement */
+    }
+
+tests:
+  test_pointers.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    void set_value(int *ptr, int value);
+    int *create_filled_array(int n, int value);
+    int sum_with_pointers(const int *arr, int len);
+    void safe_free(int **ptr);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    void assert_null(void *ptr, const char *msg) {
+        if (ptr == NULL) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected NULL)\n", msg); }
+    }
+
+    int main(void) {
+        int x = 0;
+        set_value(&x, 42);
+        assert_int_eq(42, x, "set_value");
+
+        int *arr = create_filled_array(5, 7);
+        if (arr != NULL) {
+            assert_int_eq(7, arr[0], "filled [0]");
+            assert_int_eq(7, arr[4], "filled [4]");
+
+            assert_int_eq(35, sum_with_pointers(arr, 5), "sum with pointers");
+
+            safe_free(&arr);
+            assert_null(arr, "safe_free nulls pointer");
+        } else {
+            printf("FAIL: create_filled_array returned NULL\n");
+            failed++;
+        }
+
+        int b[] = {1, 2, 3};
+        assert_int_eq(6, sum_with_pointers(b, 3), "sum of 1,2,3");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: pointers
+      name: Pointer Usage
+      weight: 0.3
+      signals: [uses_pointer_arithmetic]
+    - id: memory
+      name: Memory Safety
+      weight: 0.2
+      signals: [frees_memory, nulls_after_free]
+
+hints:
+  L0:
+    - "What does the * operator do on a pointer?"
+  L1:
+    - "Use malloc(n * sizeof(int)) to allocate an array"
+    - "Pointer arithmetic: *(arr + i) is the same as arr[i]"
+  L2:
+    - "safe_free: free(*ptr); *ptr = NULL;"
+
+solution:
+  pointers.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    void set_value(int *ptr, int value) {
+        *ptr = value;
+    }
+
+    int *create_filled_array(int n, int value) {
+        int *arr = malloc(n * sizeof(int));
+        if (arr == NULL) return NULL;
+        for (int i = 0; i < n; i++) {
+            arr[i] = value;
+        }
+        return arr;
+    }
+
+    int sum_with_pointers(const int *arr, int len) {
+        int sum = 0;
+        const int *end = arr + len;
+        while (arr < end) {
+            sum += *arr;
+            arr++;
+        }
+        return sum;
+    }
+
+    void safe_free(int **ptr) {
+        if (ptr != NULL && *ptr != NULL) {
+            free(*ptr);
+            *ptr = NULL;
+        }
+    }

@@ -1,0 +1,226 @@
+id: unit-tests
+title: Writing Unit Tests in C
+description: |
+  Learn to write effective unit tests in C using a minimal test framework.
+
+  ## Learning Objectives
+  - Write assertion macros
+  - Organize test suites
+  - Test edge cases
+
+  ## Instructions
+  Write tests for the provided stack implementation.
+
+difficulty: intermediate
+tags:
+  - testing
+  - assertions
+
+prerequisites:
+  - structs
+  - memory
+
+starter:
+  stack.h: |
+    #ifndef STACK_H
+    #define STACK_H
+
+    typedef struct {
+        int *data;
+        int top;
+        int capacity;
+    } Stack;
+
+    Stack *stack_new(int capacity);
+    void stack_free(Stack *s);
+    int stack_push(Stack *s, int value);
+    int stack_pop(Stack *s, int *out);
+    int stack_peek(const Stack *s, int *out);
+    int stack_is_empty(const Stack *s);
+    int stack_size(const Stack *s);
+
+    #endif
+  stack.c: |
+    #include <stdlib.h>
+    #include "stack.h"
+
+    Stack *stack_new(int capacity) {
+        Stack *s = malloc(sizeof(Stack));
+        if (!s) return NULL;
+        s->data = malloc(capacity * sizeof(int));
+        if (!s->data) { free(s); return NULL; }
+        s->top = -1;
+        s->capacity = capacity;
+        return s;
+    }
+
+    void stack_free(Stack *s) {
+        if (s) { free(s->data); free(s); }
+    }
+
+    int stack_push(Stack *s, int value) {
+        if (s->top >= s->capacity - 1) return -1;
+        s->data[++s->top] = value;
+        return 0;
+    }
+
+    int stack_pop(Stack *s, int *out) {
+        if (s->top < 0) return -1;
+        *out = s->data[s->top--];
+        return 0;
+    }
+
+    int stack_peek(const Stack *s, int *out) {
+        if (s->top < 0) return -1;
+        *out = s->data[s->top];
+        return 0;
+    }
+
+    int stack_is_empty(const Stack *s) { return s->top < 0; }
+    int stack_size(const Stack *s) { return s->top + 1; }
+  test_stack.c: |
+    #include <stdio.h>
+    #include "stack.h"
+
+    static int passed = 0;
+    static int failed = 0;
+
+    #define ASSERT_INT_EQ(exp, act, msg) do { \
+        if ((exp) == (act)) { passed++; printf("PASS: %s\n", msg); } \
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, (exp), (act)); } \
+    } while(0)
+
+    #define ASSERT_TRUE(cond, msg) ASSERT_INT_EQ(1, !!(cond), msg)
+
+    /* TODO: Write tests that cover:
+     * 1. New stack is empty
+     * 2. Push and pop single element
+     * 3. LIFO ordering
+     * 4. Peek doesn't remove
+     * 5. Pop on empty returns error
+     * 6. Push to full stack returns error
+     * 7. Size tracking
+     */
+
+    int main(void) {
+        /* TODO: Call your tests here */
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: coverage
+      name: Test Coverage
+      weight: 0.5
+      signals: [tests_basic_ops, tests_edge_cases]
+    - id: organization
+      name: Test Organization
+      weight: 0.3
+      signals: [clear_test_names]
+    - id: cleanup
+      name: Resource Cleanup
+      weight: 0.2
+      signals: [frees_stack]
+
+hints:
+  L0:
+    - "What operations should you test first on a stack?"
+  L1:
+    - "Test push/pop cycle first, then edge cases like empty pop and full push"
+  L2:
+    - "Remember to call stack_free at the end of your tests"
+
+solution:
+  stack.h: |
+    #ifndef STACK_H
+    #define STACK_H
+    typedef struct { int *data; int top; int capacity; } Stack;
+    Stack *stack_new(int capacity);
+    void stack_free(Stack *s);
+    int stack_push(Stack *s, int value);
+    int stack_pop(Stack *s, int *out);
+    int stack_peek(const Stack *s, int *out);
+    int stack_is_empty(const Stack *s);
+    int stack_size(const Stack *s);
+    #endif
+  stack.c: |
+    #include <stdlib.h>
+    #include "stack.h"
+    Stack *stack_new(int capacity) {
+        Stack *s = malloc(sizeof(Stack));
+        if (!s) return NULL;
+        s->data = malloc(capacity * sizeof(int));
+        if (!s->data) { free(s); return NULL; }
+        s->top = -1; s->capacity = capacity;
+        return s;
+    }
+    void stack_free(Stack *s) { if (s) { free(s->data); free(s); } }
+    int stack_push(Stack *s, int value) {
+        if (s->top >= s->capacity - 1) return -1;
+        s->data[++s->top] = value; return 0;
+    }
+    int stack_pop(Stack *s, int *out) {
+        if (s->top < 0) return -1;
+        *out = s->data[s->top--]; return 0;
+    }
+    int stack_peek(const Stack *s, int *out) {
+        if (s->top < 0) return -1;
+        *out = s->data[s->top]; return 0;
+    }
+    int stack_is_empty(const Stack *s) { return s->top < 0; }
+    int stack_size(const Stack *s) { return s->top + 1; }
+  test_stack.c: |
+    #include <stdio.h>
+    #include "stack.h"
+
+    static int passed = 0;
+    static int failed = 0;
+
+    #define ASSERT_INT_EQ(exp, act, msg) do { \
+        if ((exp) == (act)) { passed++; printf("PASS: %s\n", msg); } \
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, (exp), (act)); } \
+    } while(0)
+
+    #define ASSERT_TRUE(cond, msg) ASSERT_INT_EQ(1, !!(cond), msg)
+
+    int main(void) {
+        Stack *s = stack_new(3);
+        ASSERT_TRUE(stack_is_empty(s), "new stack is empty");
+        ASSERT_INT_EQ(0, stack_size(s), "new stack size is 0");
+
+        int val;
+        ASSERT_INT_EQ(-1, stack_pop(s, &val), "pop empty fails");
+        ASSERT_INT_EQ(-1, stack_peek(s, &val), "peek empty fails");
+
+        ASSERT_INT_EQ(0, stack_push(s, 10), "push 10");
+        ASSERT_INT_EQ(1, stack_size(s), "size after push");
+        ASSERT_INT_EQ(0, stack_peek(s, &val), "peek succeeds");
+        ASSERT_INT_EQ(10, val, "peek value");
+        ASSERT_INT_EQ(1, stack_size(s), "peek doesn't remove");
+
+        ASSERT_INT_EQ(0, stack_push(s, 20), "push 20");
+        ASSERT_INT_EQ(0, stack_push(s, 30), "push 30");
+        ASSERT_INT_EQ(-1, stack_push(s, 40), "push full fails");
+
+        ASSERT_INT_EQ(0, stack_pop(s, &val), "pop 30");
+        ASSERT_INT_EQ(30, val, "LIFO: 30 first");
+        ASSERT_INT_EQ(0, stack_pop(s, &val), "pop 20");
+        ASSERT_INT_EQ(20, val, "LIFO: 20 second");
+        ASSERT_INT_EQ(0, stack_pop(s, &val), "pop 10");
+        ASSERT_INT_EQ(10, val, "LIFO: 10 last");
+        ASSERT_TRUE(stack_is_empty(s), "empty after all pops");
+
+        stack_free(s);
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }

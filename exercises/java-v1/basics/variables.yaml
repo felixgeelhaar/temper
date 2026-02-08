@@ -1,0 +1,149 @@
+id: variables
+title: Variables and Types
+description: |
+  Learn about Java's type system and variable declarations.
+
+  ## Learning Objectives
+  - Understand primitive types vs reference types
+  - Learn about type casting and autoboxing
+  - Use final for immutability
+
+  ## Instructions
+  Implement the methods in the Calculator class that demonstrate
+  understanding of Java's type system.
+
+difficulty: beginner
+tags:
+  - basics
+  - types
+  - primitives
+
+prerequisites:
+  - hello-world
+
+starter:
+  Calculator.java: |
+    public class Calculator {
+        /** Add two integers and return the result. */
+        public static int add(int a, int b) {
+            // TODO: Implement
+            return 0;
+        }
+
+        /** Divide two doubles and return the result. Return 0.0 if divisor is zero. */
+        public static double divide(double a, double b) {
+            // TODO: Implement
+            return 0.0;
+        }
+
+        /** Convert an integer to its string representation. */
+        public static String intToString(int n) {
+            // TODO: Implement
+            return "";
+        }
+
+        /** Parse a string to an integer. Return -1 if parsing fails. */
+        public static int parseIntSafe(String s) {
+            // TODO: Implement
+            return -1;
+        }
+    }
+
+tests:
+  CalculatorTest.java: |
+    public class CalculatorTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String message) {
+            if (expected.equals(actual)) {
+                passed++;
+                System.out.println("PASS: " + message);
+            } else {
+                failed++;
+                System.out.println("FAIL: " + message + " (expected=" + expected + ", actual=" + actual + ")");
+            }
+        }
+
+        public static void main(String[] args) {
+            assertEquals(5, Calculator.add(2, 3), "add positive numbers");
+            assertEquals(-1, Calculator.add(2, -3), "add with negatives");
+            assertEquals(0, Calculator.add(0, 0), "add zeros");
+
+            assertEquals(2.5, Calculator.divide(5.0, 2.0), "divide normal");
+            assertEquals(0.0, Calculator.divide(5.0, 0.0), "divide by zero");
+
+            assertEquals("42", Calculator.intToString(42), "int to string");
+            assertEquals("-7", Calculator.intToString(-7), "negative int to string");
+
+            assertEquals(42, Calculator.parseIntSafe("42"), "parse valid int");
+            assertEquals(-1, Calculator.parseIntSafe("abc"), "parse invalid returns -1");
+            assertEquals(-1, Calculator.parseIntSafe(null), "parse null returns -1");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.6
+      signals:
+        - all_tests_pass
+    - id: error-handling
+      name: Error Handling
+      description: Handles edge cases properly
+      weight: 0.4
+      signals:
+        - handles_null
+        - handles_division_by_zero
+
+hints:
+  L0:
+    - "What happens when you divide by zero in Java?"
+  L1:
+    - "Use Integer.parseInt() for string to int conversion"
+    - "Wrap parsing in a try-catch for NumberFormatException"
+  L2:
+    - "String.valueOf(n) converts an int to a String"
+    - "Check for null before calling parseInt"
+
+solution:
+  Calculator.java: |
+    public class Calculator {
+        public static int add(int a, int b) {
+            return a + b;
+        }
+
+        public static double divide(double a, double b) {
+            if (b == 0.0) {
+                return 0.0;
+            }
+            return a / b;
+        }
+
+        public static String intToString(int n) {
+            return String.valueOf(n);
+        }
+
+        public static int parseIntSafe(String s) {
+            if (s == null) {
+                return -1;
+            }
+            try {
+                return Integer.parseInt(s);
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
+    }

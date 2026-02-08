@@ -1,0 +1,131 @@
+id: collections
+title: Collections Framework
+description: |
+  Learn about Java's Collections Framework.
+
+  ## Learning Objectives
+  - Use List, Set, and Map
+  - Understand ArrayList, HashSet, HashMap
+  - Practice common collection operations
+
+  ## Instructions
+  Implement utility methods that work with Java collections.
+
+difficulty: intermediate
+tags:
+  - collections
+  - data-structures
+
+prerequisites:
+  - arrays
+
+starter:
+  CollectionUtils.java: |
+    import java.util.*;
+
+    public class CollectionUtils {
+        /** Returns a list of unique elements, preserving order. */
+        public static List<Integer> unique(List<Integer> list) {
+            // TODO: Implement
+            return new ArrayList<>();
+        }
+
+        /** Counts the frequency of each string in the list. */
+        public static Map<String, Integer> frequency(List<String> list) {
+            // TODO: Implement
+            return new HashMap<>();
+        }
+
+        /** Returns elements that appear in both lists. */
+        public static List<Integer> intersection(List<Integer> a, List<Integer> b) {
+            // TODO: Implement
+            return new ArrayList<>();
+        }
+    }
+
+tests:
+  CollectionUtilsTest.java: |
+    import java.util.*;
+
+    public class CollectionUtilsTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            assertEquals(Arrays.asList(1, 2, 3), CollectionUtils.unique(Arrays.asList(1, 2, 2, 3, 1)), "unique preserves order");
+            assertEquals(Collections.emptyList(), CollectionUtils.unique(Collections.emptyList()), "unique empty");
+
+            Map<String, Integer> freq = CollectionUtils.frequency(Arrays.asList("a", "b", "a", "c", "b", "a"));
+            assertEquals(3, freq.get("a"), "frequency of a");
+            assertEquals(2, freq.get("b"), "frequency of b");
+            assertEquals(1, freq.get("c"), "frequency of c");
+
+            List<Integer> inter = CollectionUtils.intersection(Arrays.asList(1, 2, 3, 4), Arrays.asList(3, 4, 5, 6));
+            Collections.sort(inter);
+            assertEquals(Arrays.asList(3, 4), inter, "intersection");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: collections
+      name: Collections Usage
+      weight: 0.4
+      signals: [uses_set, uses_map]
+
+hints:
+  L0:
+    - "What data structure preserves insertion order and has no duplicates?"
+  L1:
+    - "LinkedHashSet preserves insertion order and removes duplicates"
+    - "Use getOrDefault() on a HashMap for frequency counting"
+  L2:
+    - "For intersection, convert one list to a HashSet, then filter the other"
+
+solution:
+  CollectionUtils.java: |
+    import java.util.*;
+
+    public class CollectionUtils {
+        public static List<Integer> unique(List<Integer> list) {
+            return new ArrayList<>(new LinkedHashSet<>(list));
+        }
+
+        public static Map<String, Integer> frequency(List<String> list) {
+            Map<String, Integer> freq = new HashMap<>();
+            for (String s : list) {
+                freq.put(s, freq.getOrDefault(s, 0) + 1);
+            }
+            return freq;
+        }
+
+        public static List<Integer> intersection(List<Integer> a, List<Integer> b) {
+            Set<Integer> setB = new HashSet<>(b);
+            List<Integer> result = new ArrayList<>();
+            for (int n : a) {
+                if (setB.contains(n)) {
+                    result.add(n);
+                }
+            }
+            return result;
+        }
+    }

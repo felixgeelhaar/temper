@@ -1,0 +1,204 @@
+id: linked-list
+title: Linked List
+description: |
+  Implement a singly linked list from scratch.
+
+  ## Learning Objectives
+  - Build a linked data structure
+  - Manage node allocation and deallocation
+  - Practice pointer manipulation
+
+  ## Instructions
+  Implement a singly linked list with push, pop, and search operations.
+
+difficulty: advanced
+tags:
+  - data-structures
+  - linked-list
+  - pointers
+
+prerequisites:
+  - pointers
+  - memory
+
+starter:
+  linked_list.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    typedef struct Node {
+        int value;
+        struct Node *next;
+    } Node;
+
+    typedef struct {
+        Node *head;
+        int len;
+    } LinkedList;
+
+    /** Creates a new empty linked list. */
+    LinkedList *list_new(void) {
+        /* TODO: Implement */
+        return NULL;
+    }
+
+    /** Prepends a value to the front. Returns 0 on success, -1 on failure. */
+    int list_push_front(LinkedList *list, int value) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Removes and returns the front value. Returns -1 if empty. */
+    int list_pop_front(LinkedList *list, int *out) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Returns 1 if value is in the list, 0 otherwise. */
+    int list_contains(const LinkedList *list, int value) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Frees the entire list and all nodes. */
+    void list_free(LinkedList *list) {
+        /* TODO: Implement */
+    }
+
+tests:
+  test_linked_list.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    typedef struct Node { int value; struct Node *next; } Node;
+    typedef struct { Node *head; int len; } LinkedList;
+
+    LinkedList *list_new(void);
+    int list_push_front(LinkedList *list, int value);
+    int list_pop_front(LinkedList *list, int *out);
+    int list_contains(const LinkedList *list, int value);
+    void list_free(LinkedList *list);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        LinkedList *list = list_new();
+        assert_int_eq(0, list->len, "new list is empty");
+
+        int val;
+        assert_int_eq(-1, list_pop_front(list, &val), "pop empty fails");
+
+        assert_int_eq(0, list_push_front(list, 10), "push 10");
+        assert_int_eq(0, list_push_front(list, 20), "push 20");
+        assert_int_eq(0, list_push_front(list, 30), "push 30");
+        assert_int_eq(3, list->len, "len is 3");
+
+        assert_int_eq(1, list_contains(list, 20), "contains 20");
+        assert_int_eq(0, list_contains(list, 99), "not contains 99");
+
+        assert_int_eq(0, list_pop_front(list, &val), "pop front");
+        assert_int_eq(30, val, "popped 30 (LIFO)");
+        assert_int_eq(2, list->len, "len is 2 after pop");
+
+        assert_int_eq(0, list_pop_front(list, &val), "pop 20");
+        assert_int_eq(20, val, "popped 20");
+
+        assert_int_eq(0, list_pop_front(list, &val), "pop 10");
+        assert_int_eq(10, val, "popped 10");
+
+        assert_int_eq(-1, list_pop_front(list, &val), "pop empty again");
+        assert_int_eq(0, list->len, "len is 0");
+
+        list_free(list);
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.4
+      signals: [all_tests_pass]
+    - id: memory
+      name: Memory Management
+      weight: 0.4
+      signals: [no_leaks, frees_nodes]
+    - id: structure
+      name: Data Structure Design
+      weight: 0.2
+      signals: [proper_linking]
+
+hints:
+  L0:
+    - "How do you insert a node at the front of a linked list?"
+  L1:
+    - "Allocate a new node, set its next to the current head, update head"
+    - "For pop, save head->value, update head to head->next, free old head"
+  L2:
+    - "Node *n = malloc(sizeof(Node)); n->value = value; n->next = list->head; list->head = n;"
+
+solution:
+  linked_list.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    typedef struct Node { int value; struct Node *next; } Node;
+    typedef struct { Node *head; int len; } LinkedList;
+
+    LinkedList *list_new(void) {
+        LinkedList *list = calloc(1, sizeof(LinkedList));
+        return list;
+    }
+
+    int list_push_front(LinkedList *list, int value) {
+        Node *n = malloc(sizeof(Node));
+        if (!n) return -1;
+        n->value = value;
+        n->next = list->head;
+        list->head = n;
+        list->len++;
+        return 0;
+    }
+
+    int list_pop_front(LinkedList *list, int *out) {
+        if (!list->head) return -1;
+        Node *old = list->head;
+        *out = old->value;
+        list->head = old->next;
+        free(old);
+        list->len--;
+        return 0;
+    }
+
+    int list_contains(const LinkedList *list, int value) {
+        for (Node *n = list->head; n; n = n->next) {
+            if (n->value == value) return 1;
+        }
+        return 0;
+    }
+
+    void list_free(LinkedList *list) {
+        if (!list) return;
+        Node *n = list->head;
+        while (n) {
+            Node *next = n->next;
+            free(n);
+            n = next;
+        }
+        free(list);
+    }

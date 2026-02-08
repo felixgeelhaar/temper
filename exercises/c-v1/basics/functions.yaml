@@ -1,0 +1,153 @@
+id: functions
+title: Functions
+description: |
+  Learn about C functions, parameters, and return values.
+
+  ## Learning Objectives
+  - Understand function declarations and definitions
+  - Learn about pass-by-value vs pass-by-pointer
+  - Practice with function prototypes
+
+  ## Instructions
+  Implement the mathematical utility functions.
+
+difficulty: beginner
+tags:
+  - basics
+  - functions
+  - parameters
+
+prerequisites:
+  - variables
+
+starter:
+  math_utils.c: |
+    #include <stdio.h>
+
+    /** Returns the greater of two integers. */
+    int max(int a, int b) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Swaps two integers via pointers. */
+    void swap(int *a, int *b) {
+        /* TODO: Implement */
+    }
+
+    /** Returns n factorial. Returns 1 for n <= 1. */
+    long factorial(int n) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Returns 1 if n is prime, 0 otherwise. */
+    int is_prime(int n) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+tests:
+  test_math.c: |
+    #include <stdio.h>
+
+    int max(int a, int b);
+    void swap(int *a, int *b);
+    long factorial(int n);
+    int is_prime(int n);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    void assert_long_eq(long expected, long actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%ld, actual=%ld)\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        assert_int_eq(5, max(3, 5), "max of 3 and 5");
+        assert_int_eq(5, max(5, 3), "max of 5 and 3");
+        assert_int_eq(3, max(3, 3), "max of equal");
+
+        int a = 10, b = 20;
+        swap(&a, &b);
+        assert_int_eq(20, a, "swap a becomes 20");
+        assert_int_eq(10, b, "swap b becomes 10");
+
+        assert_long_eq(1, factorial(0), "factorial 0");
+        assert_long_eq(1, factorial(1), "factorial 1");
+        assert_long_eq(120, factorial(5), "factorial 5");
+        assert_long_eq(3628800, factorial(10), "factorial 10");
+
+        assert_int_eq(1, is_prime(2), "2 is prime");
+        assert_int_eq(1, is_prime(7), "7 is prime");
+        assert_int_eq(0, is_prime(4), "4 is not prime");
+        assert_int_eq(0, is_prime(1), "1 is not prime");
+        assert_int_eq(0, is_prime(0), "0 is not prime");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: pointers
+      name: Pointer Usage
+      weight: 0.4
+      signals: [uses_pointers_for_swap]
+
+hints:
+  L0:
+    - "How do you swap two values using a temporary variable?"
+  L1:
+    - "Dereference the pointers to access and modify the values"
+    - "For factorial, use a loop or recursion"
+  L2:
+    - "int temp = *a; *a = *b; *b = temp;"
+
+solution:
+  math_utils.c: |
+    #include <stdio.h>
+
+    int max(int a, int b) {
+        return a > b ? a : b;
+    }
+
+    void swap(int *a, int *b) {
+        int temp = *a;
+        *a = *b;
+        *b = temp;
+    }
+
+    long factorial(int n) {
+        if (n <= 1) return 1;
+        long result = 1;
+        for (int i = 2; i <= n; i++) {
+            result *= i;
+        }
+        return result;
+    }
+
+    int is_prime(int n) {
+        if (n < 2) return 0;
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) return 0;
+        }
+        return 1;
+    }

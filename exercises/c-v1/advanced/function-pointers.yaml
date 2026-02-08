@@ -1,0 +1,163 @@
+id: function-pointers
+title: Function Pointers
+description: |
+  Learn about function pointers for callbacks and generic algorithms.
+
+  ## Learning Objectives
+  - Declare and use function pointers
+  - Implement generic algorithms with callbacks
+  - Understand typedef for function pointer types
+
+  ## Instructions
+  Implement generic array operations using function pointers.
+
+difficulty: advanced
+tags:
+  - function-pointers
+  - callbacks
+  - generic
+
+prerequisites:
+  - pointers
+  - arrays
+
+starter:
+  generic.c: |
+    #include <stdio.h>
+
+    /** Applies fn to each element, storing results in out. */
+    void array_map(const int *arr, int len, int (*fn)(int), int *out) {
+        /* TODO: Implement */
+    }
+
+    /** Returns the result of reducing arr with fn, starting from initial. */
+    int array_reduce(const int *arr, int len, int (*fn)(int, int), int initial) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Filters arr, copying elements where pred returns true into out. Returns count. */
+    int array_filter(const int *arr, int len, int (*pred)(int), int *out) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Sorts arr in place using comparison function (like qsort). */
+    void array_sort(int *arr, int len, int (*cmp)(int, int)) {
+        /* TODO: Implement (bubble sort is fine) */
+    }
+
+tests:
+  test_generic.c: |
+    #include <stdio.h>
+
+    void array_map(const int *arr, int len, int (*fn)(int), int *out);
+    int array_reduce(const int *arr, int len, int (*fn)(int, int), int initial);
+    int array_filter(const int *arr, int len, int (*pred)(int), int *out);
+    void array_sort(int *arr, int len, int (*cmp)(int, int));
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    int double_it(int x) { return x * 2; }
+    int add(int a, int b) { return a + b; }
+    int is_even(int x) { return x % 2 == 0; }
+    int ascending(int a, int b) { return a - b; }
+
+    int main(void) {
+        int arr[] = {1, 2, 3, 4, 5};
+        int out[5];
+
+        array_map(arr, 5, double_it, out);
+        assert_int_eq(2, out[0], "map [0]");
+        assert_int_eq(10, out[4], "map [4]");
+
+        int sum = array_reduce(arr, 5, add, 0);
+        assert_int_eq(15, sum, "reduce sum");
+
+        int filtered[5];
+        int count = array_filter(arr, 5, is_even, filtered);
+        assert_int_eq(2, count, "filter count");
+        assert_int_eq(2, filtered[0], "filter [0]");
+        assert_int_eq(4, filtered[1], "filter [1]");
+
+        int unsorted[] = {5, 3, 1, 4, 2};
+        array_sort(unsorted, 5, ascending);
+        assert_int_eq(1, unsorted[0], "sorted [0]");
+        assert_int_eq(5, unsorted[4], "sorted [4]");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: function-pointers
+      name: Function Pointer Usage
+      weight: 0.5
+      signals: [uses_callbacks]
+
+hints:
+  L0:
+    - "How do you call a function through a function pointer?"
+  L1:
+    - "Call the function pointer like a regular function: fn(arg)"
+    - "For reduce, apply fn(accumulator, arr[i]) in a loop"
+  L2:
+    - "out[i] = fn(arr[i]) for map"
+
+solution:
+  generic.c: |
+    #include <stdio.h>
+
+    void array_map(const int *arr, int len, int (*fn)(int), int *out) {
+        for (int i = 0; i < len; i++) {
+            out[i] = fn(arr[i]);
+        }
+    }
+
+    int array_reduce(const int *arr, int len, int (*fn)(int, int), int initial) {
+        int acc = initial;
+        for (int i = 0; i < len; i++) {
+            acc = fn(acc, arr[i]);
+        }
+        return acc;
+    }
+
+    int array_filter(const int *arr, int len, int (*pred)(int), int *out) {
+        int count = 0;
+        for (int i = 0; i < len; i++) {
+            if (pred(arr[i])) {
+                out[count++] = arr[i];
+            }
+        }
+        return count;
+    }
+
+    void array_sort(int *arr, int len, int (*cmp)(int, int)) {
+        for (int i = 0; i < len - 1; i++) {
+            for (int j = 0; j < len - 1 - i; j++) {
+                if (cmp(arr[j], arr[j+1]) > 0) {
+                    int temp = arr[j];
+                    arr[j] = arr[j+1];
+                    arr[j+1] = temp;
+                }
+            }
+        }
+    }

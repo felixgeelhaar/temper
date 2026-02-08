@@ -1,0 +1,130 @@
+id: generics
+title: Generics
+description: |
+  Learn about Java generics for type-safe, reusable code.
+
+  ## Learning Objectives
+  - Create generic classes and methods
+  - Understand bounded type parameters
+  - Use wildcards
+
+  ## Instructions
+  Implement a generic Pair class and a utility method.
+
+difficulty: advanced
+tags:
+  - generics
+  - type-safety
+
+prerequisites:
+  - interfaces
+
+starter:
+  Pair.java: |
+    public class Pair<A, B> {
+        // TODO: Add fields, constructor, getters, and toString
+
+        public Pair(A first, B second) {
+            // TODO: Implement
+        }
+
+        public A getFirst() {
+            // TODO: Implement
+            return null;
+        }
+
+        public B getSecond() {
+            // TODO: Implement
+            return null;
+        }
+
+        /** Swaps the pair elements, returning a new Pair<B, A>. */
+        public Pair<B, A> swap() {
+            // TODO: Implement
+            return null;
+        }
+
+        /** Creates a Pair from two values (type inference helper). */
+        public static <X, Y> Pair<X, Y> of(X first, Y second) {
+            // TODO: Implement
+            return null;
+        }
+    }
+
+tests:
+  PairTest.java: |
+    public class PairTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            Pair<String, Integer> p = new Pair<>("hello", 42);
+            assertEquals("hello", p.getFirst(), "get first");
+            assertEquals(42, p.getSecond(), "get second");
+
+            Pair<Integer, String> swapped = p.swap();
+            assertEquals(42, swapped.getFirst(), "swapped first");
+            assertEquals("hello", swapped.getSecond(), "swapped second");
+
+            Pair<String, Double> p2 = Pair.of("pi", 3.14);
+            assertEquals("pi", p2.getFirst(), "factory first");
+            assertEquals(3.14, p2.getSecond(), "factory second");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: generics
+      name: Generics Usage
+      weight: 0.5
+      signals: [uses_type_parameters]
+
+hints:
+  L0:
+    - "How do you declare a class with two type parameters?"
+  L1:
+    - "Store the values as private final fields of their generic types"
+  L2:
+    - "return new Pair<>(second, first) for swap()"
+
+solution:
+  Pair.java: |
+    public class Pair<A, B> {
+        private final A first;
+        private final B second;
+
+        public Pair(A first, B second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        public A getFirst() { return first; }
+        public B getSecond() { return second; }
+
+        public Pair<B, A> swap() {
+            return new Pair<>(second, first);
+        }
+
+        public static <X, Y> Pair<X, Y> of(X first, Y second) {
+            return new Pair<>(first, second);
+        }
+    }

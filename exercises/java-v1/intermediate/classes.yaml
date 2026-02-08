@@ -1,0 +1,149 @@
+id: classes
+title: Classes and Objects
+description: |
+  Learn about Java classes, constructors, and encapsulation.
+
+  ## Learning Objectives
+  - Create classes with fields and methods
+  - Use constructors and access modifiers
+  - Practice encapsulation with getters
+
+  ## Instructions
+  Implement the BankAccount class with deposit, withdraw, and balance tracking.
+
+difficulty: intermediate
+tags:
+  - oop
+  - classes
+  - encapsulation
+
+prerequisites:
+  - functions
+
+starter:
+  BankAccount.java: |
+    public class BankAccount {
+        // TODO: Add fields for owner and balance
+
+        /** Creates an account with the given owner and initial balance. */
+        public BankAccount(String owner, double initialBalance) {
+            // TODO: Implement
+        }
+
+        /** Returns the account owner. */
+        public String getOwner() {
+            // TODO: Implement
+            return "";
+        }
+
+        /** Returns the current balance. */
+        public double getBalance() {
+            // TODO: Implement
+            return 0.0;
+        }
+
+        /** Deposits amount. Returns true if successful (amount > 0). */
+        public boolean deposit(double amount) {
+            // TODO: Implement
+            return false;
+        }
+
+        /** Withdraws amount. Returns true if sufficient funds and amount > 0. */
+        public boolean withdraw(double amount) {
+            // TODO: Implement
+            return false;
+        }
+    }
+
+tests:
+  BankAccountTest.java: |
+    public class BankAccountTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            BankAccount acc = new BankAccount("Alice", 100.0);
+            assertEquals("Alice", acc.getOwner(), "owner set correctly");
+            assertEquals(100.0, acc.getBalance(), "initial balance");
+
+            assertEquals(true, acc.deposit(50.0), "deposit succeeds");
+            assertEquals(150.0, acc.getBalance(), "balance after deposit");
+
+            assertEquals(false, acc.deposit(-10.0), "negative deposit fails");
+            assertEquals(150.0, acc.getBalance(), "balance unchanged after bad deposit");
+
+            assertEquals(true, acc.withdraw(30.0), "withdraw succeeds");
+            assertEquals(120.0, acc.getBalance(), "balance after withdraw");
+
+            assertEquals(false, acc.withdraw(200.0), "insufficient funds");
+            assertEquals(120.0, acc.getBalance(), "balance unchanged after bad withdraw");
+
+            assertEquals(false, acc.withdraw(-5.0), "negative withdraw fails");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: encapsulation
+      name: Encapsulation
+      weight: 0.3
+      signals: [private_fields]
+    - id: validation
+      name: Input Validation
+      weight: 0.2
+      signals: [validates_amounts]
+
+hints:
+  L0:
+    - "What access modifier should the fields use?"
+  L1:
+    - "Use private fields with public getter methods"
+    - "Validate that amounts are positive before processing"
+  L2:
+    - "Check amount > 0 before deposit, and amount > 0 && amount <= balance before withdraw"
+
+solution:
+  BankAccount.java: |
+    public class BankAccount {
+        private String owner;
+        private double balance;
+
+        public BankAccount(String owner, double initialBalance) {
+            this.owner = owner;
+            this.balance = initialBalance;
+        }
+
+        public String getOwner() { return owner; }
+        public double getBalance() { return balance; }
+
+        public boolean deposit(double amount) {
+            if (amount <= 0) return false;
+            balance += amount;
+            return true;
+        }
+
+        public boolean withdraw(double amount) {
+            if (amount <= 0 || amount > balance) return false;
+            balance -= amount;
+            return true;
+        }
+    }

@@ -1,0 +1,124 @@
+id: arrays
+title: Arrays
+description: |
+  Learn about Java arrays and common array operations.
+
+  ## Learning Objectives
+  - Understand array declaration and initialization
+  - Practice array traversal and manipulation
+  - Learn about Arrays utility class
+
+  ## Instructions
+  Implement the array utility methods.
+
+difficulty: beginner
+tags:
+  - basics
+  - arrays
+
+prerequisites:
+  - functions
+
+starter:
+  ArrayUtils.java: |
+    public class ArrayUtils {
+        /** Returns the sum of all elements. */
+        public static int sum(int[] arr) {
+            // TODO: Implement
+            return 0;
+        }
+
+        /** Returns a new array with elements in reverse order. */
+        public static int[] reverse(int[] arr) {
+            // TODO: Implement
+            return new int[0];
+        }
+
+        /** Returns true if the array contains the target value. */
+        public static boolean contains(int[] arr, int target) {
+            // TODO: Implement
+            return false;
+        }
+    }
+
+tests:
+  ArrayUtilsTest.java: |
+    import java.util.Arrays;
+
+    public class ArrayUtilsTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            assertEquals(10, ArrayUtils.sum(new int[]{1, 2, 3, 4}), "sum of array");
+            assertEquals(0, ArrayUtils.sum(new int[]{}), "sum of empty array");
+
+            int[] reversed = ArrayUtils.reverse(new int[]{1, 2, 3});
+            assertEquals("[3, 2, 1]", Arrays.toString(reversed), "reverse array");
+            assertEquals("[]", Arrays.toString(ArrayUtils.reverse(new int[]{})), "reverse empty");
+
+            assertEquals(true, ArrayUtils.contains(new int[]{1, 2, 3}, 2), "contains existing");
+            assertEquals(false, ArrayUtils.contains(new int[]{1, 2, 3}, 5), "contains missing");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: idioms
+      name: Java Idioms
+      weight: 0.4
+      signals: [uses_enhanced_for]
+
+hints:
+  L0:
+    - "How do you iterate over an array in Java?"
+  L1:
+    - "For reverse, create a new array of the same length and fill from both ends"
+  L2:
+    - "Use an enhanced for loop: for (int element : arr)"
+
+solution:
+  ArrayUtils.java: |
+    public class ArrayUtils {
+        public static int sum(int[] arr) {
+            int total = 0;
+            for (int n : arr) {
+                total += n;
+            }
+            return total;
+        }
+
+        public static int[] reverse(int[] arr) {
+            int[] result = new int[arr.length];
+            for (int i = 0; i < arr.length; i++) {
+                result[arr.length - 1 - i] = arr[i];
+            }
+            return result;
+        }
+
+        public static boolean contains(int[] arr, int target) {
+            for (int n : arr) {
+                if (n == target) return true;
+            }
+            return false;
+        }
+    }

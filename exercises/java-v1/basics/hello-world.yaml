@@ -1,0 +1,136 @@
+id: hello-world
+title: Hello World
+description: |
+  Write a method that returns a greeting message.
+
+  ## Learning Objectives
+  - Understand basic Java syntax
+  - Learn to create a class with a static method
+  - Write a simple method with a return value
+
+  ## Instructions
+  Implement the `greet` method that takes a name and returns a greeting.
+  If the name is empty, greet "World" instead.
+
+difficulty: beginner
+tags:
+  - basics
+  - strings
+  - methods
+
+prerequisites: []
+
+starter:
+  Hello.java: |
+    public class Hello {
+        /**
+         * Returns a greeting message for the given name.
+         * If name is null or empty, greet "World".
+         */
+        public static String greet(String name) {
+            // TODO: Implement this method
+            return "";
+        }
+
+        public static void main(String[] args) {
+            System.out.println(greet(""));
+            System.out.println(greet("Java"));
+        }
+    }
+
+tests:
+  HelloTest.java: |
+    public class HelloTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(String expected, String actual, String message) {
+            if (expected.equals(actual)) {
+                passed++;
+                System.out.println("PASS: " + message);
+            } else {
+                failed++;
+                System.out.println("FAIL: " + message);
+                System.out.println("  expected: " + expected);
+                System.out.println("  actual:   " + actual);
+            }
+        }
+
+        public static void main(String[] args) {
+            assertEquals("Hello, World!", Hello.greet(""), "empty name greets World");
+            assertEquals("Hello, World!", Hello.greet(null), "null name greets World");
+            assertEquals("Hello, Java!", Hello.greet("Java"), "greets by name");
+            assertEquals("Hello, Developer!", Hello.greet("Developer"), "greets another name");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      description: All tests pass
+      weight: 0.5
+      signals:
+        - all_tests_pass
+
+    - id: null-handling
+      name: Null Handling
+      description: Handles null input properly
+      weight: 0.3
+      signals:
+        - handles_null
+
+    - id: idioms
+      name: Java Idioms
+      description: Uses idiomatic Java patterns
+      weight: 0.2
+      signals:
+        - uses_string_format
+
+hints:
+  L0:
+    - "What should happen when the name is null or empty?"
+    - "How do you check for null in Java?"
+  L1:
+    - "You need to handle two special cases: null and empty string"
+    - "String concatenation or String.format can build the greeting"
+  L2:
+    - "Check if name is null first, then if it's empty"
+    - "Use String.format(\"Hello, %s!\", name) for formatting"
+  L3:
+    - |
+      Structure your solution like this:
+      ```java
+      public static String greet(String name) {
+          if (name == null || name.isEmpty()) {
+              name = "World";
+          }
+          return String.format("Hello, %s!", name);
+      }
+      ```
+
+solution:
+  Hello.java: |
+    public class Hello {
+        public static String greet(String name) {
+            if (name == null || name.isEmpty()) {
+                name = "World";
+            }
+            return String.format("Hello, %s!", name);
+        }
+
+        public static void main(String[] args) {
+            System.out.println(greet(""));
+            System.out.println(greet("Java"));
+        }
+    }

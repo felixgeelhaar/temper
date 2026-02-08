@@ -1,0 +1,131 @@
+id: streams
+title: Streams API
+description: |
+  Learn about Java Streams for functional-style data processing.
+
+  ## Learning Objectives
+  - Use stream operations (map, filter, reduce, collect)
+  - Chain stream operations
+  - Understand lazy evaluation
+
+  ## Instructions
+  Implement data processing methods using the Streams API.
+
+difficulty: advanced
+tags:
+  - streams
+  - functional
+  - collections
+
+prerequisites:
+  - collections
+
+starter:
+  StreamUtils.java: |
+    import java.util.*;
+    import java.util.stream.*;
+
+    public class StreamUtils {
+        /** Returns the sum of squares of all positive numbers. */
+        public static int sumOfSquaresPositive(List<Integer> numbers) {
+            // TODO: Use streams
+            return 0;
+        }
+
+        /** Returns strings longer than minLength, uppercased, sorted alphabetically. */
+        public static List<String> filterAndTransform(List<String> strings, int minLength) {
+            // TODO: Use streams
+            return new ArrayList<>();
+        }
+
+        /** Groups strings by their first character. */
+        public static Map<Character, List<String>> groupByFirstChar(List<String> strings) {
+            // TODO: Use streams with Collectors.groupingBy
+            return new HashMap<>();
+        }
+    }
+
+tests:
+  StreamUtilsTest.java: |
+    import java.util.*;
+
+    public class StreamUtilsTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            assertEquals(14, StreamUtils.sumOfSquaresPositive(Arrays.asList(1, -2, 3, -4)), "sum of squares positive");
+            assertEquals(0, StreamUtils.sumOfSquaresPositive(Arrays.asList(-1, -2)), "no positives");
+
+            List<String> transformed = StreamUtils.filterAndTransform(
+                Arrays.asList("hi", "hello", "hey", "world"), 2);
+            assertEquals(Arrays.asList("HELLO", "HEY", "WORLD"), transformed, "filter and transform");
+
+            Map<Character, List<String>> grouped = StreamUtils.groupByFirstChar(
+                Arrays.asList("apple", "banana", "avocado", "blueberry"));
+            assertEquals(Arrays.asList("apple", "avocado"), grouped.get('a'), "grouped a");
+            assertEquals(Arrays.asList("banana", "blueberry"), grouped.get('b'), "grouped b");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: streams
+      name: Streams Usage
+      weight: 0.5
+      signals: [uses_streams, uses_collectors]
+
+hints:
+  L0:
+    - "How do you create a stream from a List?"
+  L1:
+    - "Chain filter(), map(), and collect() for declarative processing"
+    - "Use Collectors.groupingBy() for grouping"
+  L2:
+    - "list.stream().filter(n -> n > 0).map(n -> n * n).reduce(0, Integer::sum)"
+
+solution:
+  StreamUtils.java: |
+    import java.util.*;
+    import java.util.stream.*;
+
+    public class StreamUtils {
+        public static int sumOfSquaresPositive(List<Integer> numbers) {
+            return numbers.stream()
+                .filter(n -> n > 0)
+                .map(n -> n * n)
+                .reduce(0, Integer::sum);
+        }
+
+        public static List<String> filterAndTransform(List<String> strings, int minLength) {
+            return strings.stream()
+                .filter(s -> s.length() > minLength)
+                .map(String::toUpperCase)
+                .sorted()
+                .collect(Collectors.toList());
+        }
+
+        public static Map<Character, List<String>> groupByFirstChar(List<String> strings) {
+            return strings.stream()
+                .collect(Collectors.groupingBy(s -> s.charAt(0)));
+        }
+    }

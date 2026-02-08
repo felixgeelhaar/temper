@@ -1,0 +1,134 @@
+id: functions
+title: Methods and Parameters
+description: |
+  Learn about Java methods, parameters, and return types.
+
+  ## Learning Objectives
+  - Understand method signatures and overloading
+  - Learn about varargs
+  - Practice with different return types
+
+  ## Instructions
+  Implement the methods in the MathUtils class.
+
+difficulty: beginner
+tags:
+  - basics
+  - methods
+  - overloading
+
+prerequisites:
+  - variables
+
+starter:
+  MathUtils.java: |
+    public class MathUtils {
+        /** Returns the maximum of two integers. */
+        public static int max(int a, int b) {
+            // TODO: Implement
+            return 0;
+        }
+
+        /** Returns the maximum of three integers. */
+        public static int max(int a, int b, int c) {
+            // TODO: Implement
+            return 0;
+        }
+
+        /** Returns the sum of all provided integers. */
+        public static int sum(int... numbers) {
+            // TODO: Implement
+            return 0;
+        }
+
+        /** Returns true if n is a prime number. */
+        public static boolean isPrime(int n) {
+            // TODO: Implement
+            return false;
+        }
+    }
+
+tests:
+  MathUtilsTest.java: |
+    public class MathUtilsTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            assertEquals(5, MathUtils.max(3, 5), "max of two");
+            assertEquals(7, MathUtils.max(7, 2, 5), "max of three");
+            assertEquals(10, MathUtils.sum(1, 2, 3, 4), "sum of varargs");
+            assertEquals(0, MathUtils.sum(), "sum of nothing");
+            assertEquals(true, MathUtils.isPrime(7), "7 is prime");
+            assertEquals(false, MathUtils.isPrime(4), "4 is not prime");
+            assertEquals(false, MathUtils.isPrime(1), "1 is not prime");
+            assertEquals(true, MathUtils.isPrime(2), "2 is prime");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: overloading
+      name: Method Overloading
+      weight: 0.3
+      signals: [uses_overloading]
+    - id: varargs
+      name: Varargs Usage
+      weight: 0.2
+      signals: [uses_varargs]
+
+hints:
+  L0:
+    - "How can you reuse max(int, int) inside max(int, int, int)?"
+  L1:
+    - "For isPrime, you only need to check divisors up to sqrt(n)"
+    - "Varargs behave like an array inside the method"
+  L2:
+    - "Use a for-each loop to iterate over the varargs parameter"
+
+solution:
+  MathUtils.java: |
+    public class MathUtils {
+        public static int max(int a, int b) {
+            return a > b ? a : b;
+        }
+
+        public static int max(int a, int b, int c) {
+            return max(max(a, b), c);
+        }
+
+        public static int sum(int... numbers) {
+            int total = 0;
+            for (int n : numbers) {
+                total += n;
+            }
+            return total;
+        }
+
+        public static boolean isPrime(int n) {
+            if (n < 2) return false;
+            for (int i = 2; i * i <= n; i++) {
+                if (n % i == 0) return false;
+            }
+            return true;
+        }
+    }

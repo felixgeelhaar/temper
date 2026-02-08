@@ -1,0 +1,149 @@
+id: arrays
+title: Arrays
+description: |
+  Learn about C arrays and common operations.
+
+  ## Learning Objectives
+  - Understand array declaration and access
+  - Practice array traversal
+  - Learn about array size tracking
+
+  ## Instructions
+  Implement array utility functions.
+
+difficulty: beginner
+tags:
+  - basics
+  - arrays
+
+prerequisites:
+  - functions
+
+starter:
+  array_utils.c: |
+    #include <stdio.h>
+
+    /** Returns the sum of all elements in the array. */
+    int array_sum(const int *arr, int len) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Returns the index of the maximum element. Returns -1 if empty. */
+    int array_max_index(const int *arr, int len) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Reverses the array in place. */
+    void array_reverse(int *arr, int len) {
+        /* TODO: Implement */
+    }
+
+    /** Returns 1 if target is in the array, 0 otherwise. */
+    int array_contains(const int *arr, int len, int target) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+tests:
+  test_arrays.c: |
+    #include <stdio.h>
+
+    int array_sum(const int *arr, int len);
+    int array_max_index(const int *arr, int len);
+    void array_reverse(int *arr, int len);
+    int array_contains(const int *arr, int len, int target);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        int a[] = {1, 2, 3, 4, 5};
+        assert_int_eq(15, array_sum(a, 5), "sum of 1..5");
+        assert_int_eq(0, array_sum(NULL, 0), "sum of empty");
+
+        assert_int_eq(4, array_max_index(a, 5), "max index");
+        int b[] = {5, 1, 3};
+        assert_int_eq(0, array_max_index(b, 3), "max at start");
+        assert_int_eq(-1, array_max_index(NULL, 0), "max of empty");
+
+        int c[] = {1, 2, 3, 4, 5};
+        array_reverse(c, 5);
+        assert_int_eq(5, c[0], "reversed [0]");
+        assert_int_eq(4, c[1], "reversed [1]");
+        assert_int_eq(1, c[4], "reversed [4]");
+
+        assert_int_eq(1, array_contains(a, 5, 3), "contains 3");
+        assert_int_eq(0, array_contains(a, 5, 9), "not contains 9");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: null-safety
+      name: Null Safety
+      weight: 0.4
+      signals: [checks_null_ptr]
+
+hints:
+  L0:
+    - "How do you iterate through an array in C?"
+  L1:
+    - "Always check if arr is NULL or len is 0 before accessing"
+    - "For reverse, swap elements from both ends toward the middle"
+  L2:
+    - "Use a for loop: for (int i = 0; i < len; i++)"
+
+solution:
+  array_utils.c: |
+    #include <stdio.h>
+
+    int array_sum(const int *arr, int len) {
+        if (arr == NULL || len <= 0) return 0;
+        int sum = 0;
+        for (int i = 0; i < len; i++) sum += arr[i];
+        return sum;
+    }
+
+    int array_max_index(const int *arr, int len) {
+        if (arr == NULL || len <= 0) return -1;
+        int max_idx = 0;
+        for (int i = 1; i < len; i++) {
+            if (arr[i] > arr[max_idx]) max_idx = i;
+        }
+        return max_idx;
+    }
+
+    void array_reverse(int *arr, int len) {
+        for (int i = 0; i < len / 2; i++) {
+            int temp = arr[i];
+            arr[i] = arr[len - 1 - i];
+            arr[len - 1 - i] = temp;
+        }
+    }
+
+    int array_contains(const int *arr, int len, int target) {
+        for (int i = 0; i < len; i++) {
+            if (arr[i] == target) return 1;
+        }
+        return 0;
+    }

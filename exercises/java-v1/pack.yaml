@@ -1,0 +1,36 @@
+id: java-v1
+name: Java Fundamentals
+version: 1.0.0
+description: |
+  Learn Java through deliberate practice. This pack covers fundamentals
+  of the Java programming language, from basic syntax to OOP and collections.
+language: java
+difficulty_range:
+  - beginner
+  - intermediate
+  - advanced
+
+default_policy:
+  max_level: 3
+  patching_enabled: false
+  cooldown_seconds: 60
+  track: practice
+
+exercises:
+  # Basics
+  - basics/hello-world
+  - basics/variables
+  - basics/functions
+  - basics/arrays
+  - basics/strings
+  # Intermediate
+  - intermediate/classes
+  - intermediate/inheritance
+  - intermediate/interfaces
+  - intermediate/exceptions
+  - intermediate/collections
+  # Testing
+  - testing/unit-tests
+  # Advanced
+  - advanced/generics
+  - advanced/streams

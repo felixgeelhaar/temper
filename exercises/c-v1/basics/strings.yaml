@@ -1,0 +1,160 @@
+id: strings
+title: String Operations
+description: |
+  Learn about C string manipulation.
+
+  ## Learning Objectives
+  - Understand null-terminated strings
+  - Practice common string operations
+  - Learn safe string handling
+
+  ## Instructions
+  Implement string utility functions using only standard library.
+
+difficulty: beginner
+tags:
+  - basics
+  - strings
+  - null-terminated
+
+prerequisites:
+  - variables
+
+starter:
+  str_utils.c: |
+    #include <stdio.h>
+    #include <string.h>
+    #include <ctype.h>
+
+    /** Returns the length of the string (without using strlen). */
+    int str_len(const char *s) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Reverses the string in place. */
+    void str_reverse(char *s) {
+        /* TODO: Implement */
+    }
+
+    /** Converts string to uppercase in place. */
+    void str_to_upper(char *s) {
+        /* TODO: Implement */
+    }
+
+    /** Returns 1 if s is a palindrome (case-insensitive), 0 otherwise. */
+    int str_is_palindrome(const char *s) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+tests:
+  test_strings.c: |
+    #include <stdio.h>
+    #include <string.h>
+
+    int str_len(const char *s);
+    void str_reverse(char *s);
+    void str_to_upper(char *s);
+    int str_is_palindrome(const char *s);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    void assert_str_eq(const char *expected, const char *actual, const char *msg) {
+        if (strcmp(expected, actual) == 0) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=\"%s\", actual=\"%s\")\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        assert_int_eq(5, str_len("hello"), "length of hello");
+        assert_int_eq(0, str_len(""), "length of empty");
+
+        char s1[] = "hello";
+        str_reverse(s1);
+        assert_str_eq("olleh", s1, "reverse hello");
+
+        char s2[] = "";
+        str_reverse(s2);
+        assert_str_eq("", s2, "reverse empty");
+
+        char s3[] = "hello world";
+        str_to_upper(s3);
+        assert_str_eq("HELLO WORLD", s3, "to upper");
+
+        assert_int_eq(1, str_is_palindrome("racecar"), "racecar is palindrome");
+        assert_int_eq(1, str_is_palindrome("Madam"), "Madam is palindrome");
+        assert_int_eq(0, str_is_palindrome("hello"), "hello is not palindrome");
+        assert_int_eq(1, str_is_palindrome(""), "empty is palindrome");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: null-terminated
+      name: Null Termination
+      weight: 0.4
+      signals: [respects_null_terminator]
+
+hints:
+  L0:
+    - "How are strings terminated in C?"
+  L1:
+    - "Loop until you find '\\0' to get the length"
+    - "Use toupper() from ctype.h for case conversion"
+  L2:
+    - "while (s[len] != '\\0') len++;"
+    - "For palindrome, compare from both ends using tolower()"
+
+solution:
+  str_utils.c: |
+    #include <stdio.h>
+    #include <string.h>
+    #include <ctype.h>
+
+    int str_len(const char *s) {
+        int len = 0;
+        while (s[len] != '\0') len++;
+        return len;
+    }
+
+    void str_reverse(char *s) {
+        int len = str_len(s);
+        for (int i = 0; i < len / 2; i++) {
+            char temp = s[i];
+            s[i] = s[len - 1 - i];
+            s[len - 1 - i] = temp;
+        }
+    }
+
+    void str_to_upper(char *s) {
+        for (int i = 0; s[i] != '\0'; i++) {
+            s[i] = toupper(s[i]);
+        }
+    }
+
+    int str_is_palindrome(const char *s) {
+        int len = str_len(s);
+        for (int i = 0; i < len / 2; i++) {
+            if (tolower(s[i]) != tolower(s[len - 1 - i])) return 0;
+        }
+        return 1;
+    }

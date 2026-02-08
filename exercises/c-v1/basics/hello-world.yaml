@@ -1,0 +1,139 @@
+id: hello-world
+title: Hello World
+description: |
+  Write a function that returns a greeting message.
+
+  ## Learning Objectives
+  - Understand basic C syntax
+  - Learn to use stdio.h
+  - Write a simple function with string operations
+
+  ## Instructions
+  Implement the `greet` function that writes a greeting to the provided buffer.
+  If the name is NULL or empty, greet "World" instead.
+
+difficulty: beginner
+tags:
+  - basics
+  - stdio
+  - strings
+
+prerequisites: []
+
+starter:
+  main.c: |
+    #include <stdio.h>
+    #include <string.h>
+
+    /**
+     * Writes a greeting message to the buffer.
+     * If name is NULL or empty, greets "World".
+     * Returns the number of characters written.
+     */
+    int greet(const char *name, char *buf, int buf_size) {
+        /* TODO: Implement this function */
+        return 0;
+    }
+
+    int main(void) {
+        char buf[64];
+        greet("", buf, sizeof(buf));
+        printf("%s\n", buf);
+        greet("C", buf, sizeof(buf));
+        printf("%s\n", buf);
+        return 0;
+    }
+
+tests:
+  test_main.c: |
+    #include <stdio.h>
+    #include <string.h>
+    #include <stdlib.h>
+
+    /* Forward declaration */
+    int greet(const char *name, char *buf, int buf_size);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_str_eq(const char *expected, const char *actual, const char *msg) {
+        if (strcmp(expected, actual) == 0) {
+            passed++;
+            printf("PASS: %s\n", msg);
+        } else {
+            failed++;
+            printf("FAIL: %s (expected=\"%s\", actual=\"%s\")\n", msg, expected, actual);
+        }
+    }
+
+    int main(void) {
+        char buf[64];
+
+        greet("", buf, sizeof(buf));
+        assert_str_eq("Hello, World!", buf, "empty name greets World");
+
+        greet(NULL, buf, sizeof(buf));
+        assert_str_eq("Hello, World!", buf, "NULL name greets World");
+
+        greet("C", buf, sizeof(buf));
+        assert_str_eq("Hello, C!", buf, "greets by name");
+
+        greet("Programmer", buf, sizeof(buf));
+        assert_str_eq("Hello, Programmer!", buf, "greets another name");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: null-safety
+      name: Null Safety
+      weight: 0.3
+      signals: [handles_null]
+    - id: buffer-safety
+      name: Buffer Safety
+      weight: 0.2
+      signals: [uses_snprintf]
+
+hints:
+  L0:
+    - "What should happen when the name pointer is NULL?"
+  L1:
+    - "Use snprintf to safely write to the buffer with size limits"
+    - "Check for NULL before checking for empty string"
+  L2:
+    - "snprintf(buf, buf_size, \"Hello, %s!\", name) formats the greeting"
+    - "Check: if (name == NULL || name[0] == '\\0') name = \"World\";"
+
+solution:
+  main.c: |
+    #include <stdio.h>
+    #include <string.h>
+
+    int greet(const char *name, char *buf, int buf_size) {
+        if (name == NULL || name[0] == '\0') {
+            name = "World";
+        }
+        return snprintf(buf, buf_size, "Hello, %s!", name);
+    }
+
+    int main(void) {
+        char buf[64];
+        greet("", buf, sizeof(buf));
+        printf("%s\n", buf);
+        greet("C", buf, sizeof(buf));
+        printf("%s\n", buf);
+        return 0;
+    }

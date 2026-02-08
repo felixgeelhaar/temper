@@ -1,0 +1,162 @@
+id: file-io
+title: File I/O
+description: |
+  Learn about file operations in C.
+
+  ## Learning Objectives
+  - Open, read, and write files
+  - Handle file errors
+  - Use proper cleanup patterns
+
+  ## Instructions
+  Implement file utility functions.
+
+difficulty: intermediate
+tags:
+  - file-io
+  - stdio
+
+prerequisites:
+  - strings
+
+starter:
+  file_utils.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    /** Counts the number of lines in a file. Returns -1 on error. */
+    int count_lines(const char *filename) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Writes the given text to a file. Returns 0 on success, -1 on error. */
+    int write_file(const char *filename, const char *content) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Reads entire file into a dynamically allocated buffer. Caller must free. Returns NULL on error. */
+    char *read_file(const char *filename) {
+        /* TODO: Implement */
+        return NULL;
+    }
+
+tests:
+  test_file_io.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    int count_lines(const char *filename);
+    int write_file(const char *filename, const char *content);
+    char *read_file(const char *filename);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    void assert_str_eq(const char *expected, const char *actual, const char *msg) {
+        if (actual != NULL && strcmp(expected, actual) == 0) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=\"%s\", actual=\"%s\")\n", msg, expected, actual ? actual : "NULL"); }
+    }
+
+    int main(void) {
+        const char *testfile = "/tmp/temper_test_file.txt";
+        const char *content = "hello\nworld\nfoo\n";
+
+        assert_int_eq(0, write_file(testfile, content), "write file");
+
+        assert_int_eq(3, count_lines(testfile), "count lines");
+        assert_int_eq(-1, count_lines("/nonexistent/file.txt"), "count lines nonexistent");
+
+        char *data = read_file(testfile);
+        assert_str_eq(content, data, "read file");
+        free(data);
+
+        char *bad = read_file("/nonexistent/file.txt");
+        if (bad == NULL) { passed++; printf("PASS: read nonexistent returns NULL\n"); }
+        else { failed++; printf("FAIL: read nonexistent should return NULL\n"); free(bad); }
+
+        remove(testfile);
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: error-handling
+      name: Error Handling
+      weight: 0.3
+      signals: [checks_fopen]
+    - id: cleanup
+      name: Resource Cleanup
+      weight: 0.2
+      signals: [closes_files]
+
+hints:
+  L0:
+    - "What function opens a file in C?"
+  L1:
+    - "Always check if fopen returns NULL"
+    - "Always fclose when done, even on error paths"
+  L2:
+    - "Use fgetc to count newlines for count_lines"
+    - "Use fseek/ftell to get file size, then malloc + fread"
+
+solution:
+  file_utils.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    int count_lines(const char *filename) {
+        FILE *f = fopen(filename, "r");
+        if (f == NULL) return -1;
+        int count = 0;
+        int c;
+        while ((c = fgetc(f)) != EOF) {
+            if (c == '\n') count++;
+        }
+        fclose(f);
+        return count;
+    }
+
+    int write_file(const char *filename, const char *content) {
+        FILE *f = fopen(filename, "w");
+        if (f == NULL) return -1;
+        if (fputs(content, f) == EOF) { fclose(f); return -1; }
+        fclose(f);
+        return 0;
+    }
+
+    char *read_file(const char *filename) {
+        FILE *f = fopen(filename, "r");
+        if (f == NULL) return NULL;
+        fseek(f, 0, SEEK_END);
+        long size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        char *buf = malloc(size + 1);
+        if (buf == NULL) { fclose(f); return NULL; }
+        fread(buf, 1, size, f);
+        buf[size] = '\0';
+        fclose(f);
+        return buf;
+    }

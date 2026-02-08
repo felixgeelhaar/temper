@@ -31,6 +31,9 @@ func NewMultiLanguageService(cfg Config) *MultiLanguageService {
 	registry.Register(NewPythonExecutor())
 	registry.Register(NewTypeScriptExecutor())
 	registry.Register(NewRustExecutor())
+	registry.Register(NewJavaExecutor())
+	registry.Register(NewCExecutor())
+	registry.Register(NewCPPExecutor())
 
 	return &MultiLanguageService{
 		config:       cfg,
@@ -153,6 +156,10 @@ func (s *MultiLanguageService) parseBuildErrors(lang Language, output string) []
 		return s.parseTypeScriptBuildErrors(output)
 	case LanguageRust:
 		return s.parseRustBuildErrors(output)
+	case LanguageJava:
+		return s.parseJavaBuildErrors(output)
+	case LanguageC, LanguageCPP:
+		return s.parseCBuildErrors(output)
 	default:
 		return nil
 	}
@@ -169,6 +176,10 @@ func (s *MultiLanguageService) parseTestOutput(lang Language, output string) []d
 		return s.parseTypeScriptTestOutput(output)
 	case LanguageRust:
 		return s.parseRustTestOutput(output)
+	case LanguageJava:
+		return s.parseJavaTestOutput(output)
+	case LanguageC, LanguageCPP:
+		return s.parseCTestOutput(output)
 	default:
 		return nil
 	}
@@ -232,6 +243,44 @@ func (s *MultiLanguageService) parseRustBuildErrors(output string) []domain.Diag
 
 func (s *MultiLanguageService) parseRustTestOutput(output string) []domain.TestResult {
 	// Parse cargo test output - simplified
+	var results []domain.TestResult
+	return results
+}
+
+func (s *MultiLanguageService) parseJavaBuildErrors(output string) []domain.Diagnostic {
+	// Parse javac errors: filename.java:line: error: message
+	var errors []domain.Diagnostic
+	if output != "" {
+		errors = append(errors, domain.Diagnostic{
+			File:     "unknown",
+			Severity: "error",
+			Message:  output,
+		})
+	}
+	return errors
+}
+
+func (s *MultiLanguageService) parseJavaTestOutput(output string) []domain.TestResult {
+	// Parse JUnit test output - simplified
+	var results []domain.TestResult
+	return results
+}
+
+func (s *MultiLanguageService) parseCBuildErrors(output string) []domain.Diagnostic {
+	// Parse gcc/g++ errors: filename.c:line:col: error: message
+	var errors []domain.Diagnostic
+	if output != "" {
+		errors = append(errors, domain.Diagnostic{
+			File:     "unknown",
+			Severity: "error",
+			Message:  output,
+		})
+	}
+	return errors
+}
+
+func (s *MultiLanguageService) parseCTestOutput(output string) []domain.TestResult {
+	// Parse C/C++ test output - simplified
 	var results []domain.TestResult
 	return results
 }

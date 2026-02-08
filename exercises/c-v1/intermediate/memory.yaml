@@ -1,0 +1,168 @@
+id: memory
+title: Dynamic Memory
+description: |
+  Learn about dynamic memory allocation in C.
+
+  ## Learning Objectives
+  - Use malloc, calloc, realloc, and free
+  - Avoid memory leaks
+  - Understand ownership semantics
+
+  ## Instructions
+  Implement a dynamic integer array (vector).
+
+difficulty: intermediate
+tags:
+  - memory
+  - malloc
+  - data-structures
+
+prerequisites:
+  - pointers
+
+starter:
+  dynarray.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    typedef struct {
+        int *data;
+        int len;
+        int cap;
+    } DynArray;
+
+    /** Creates a new dynamic array with the given capacity. */
+    DynArray *dynarray_new(int initial_cap) {
+        /* TODO: Implement */
+        return NULL;
+    }
+
+    /** Appends a value to the array, growing if needed. Returns 0 on success, -1 on failure. */
+    int dynarray_push(DynArray *da, int value) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Returns the value at index, or -1 if out of bounds. */
+    int dynarray_get(const DynArray *da, int index) {
+        /* TODO: Implement */
+        return -1;
+    }
+
+    /** Frees the dynamic array and all its memory. */
+    void dynarray_free(DynArray *da) {
+        /* TODO: Implement */
+    }
+
+tests:
+  test_dynarray.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    typedef struct { int *data; int len; int cap; } DynArray;
+    DynArray *dynarray_new(int initial_cap);
+    int dynarray_push(DynArray *da, int value);
+    int dynarray_get(const DynArray *da, int index);
+    void dynarray_free(DynArray *da);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        DynArray *da = dynarray_new(2);
+        assert_int_eq(0, da->len, "initial len is 0");
+        assert_int_eq(2, da->cap, "initial cap is 2");
+
+        assert_int_eq(0, dynarray_push(da, 10), "push 10");
+        assert_int_eq(0, dynarray_push(da, 20), "push 20");
+        assert_int_eq(2, da->len, "len is 2");
+
+        assert_int_eq(10, dynarray_get(da, 0), "get [0]");
+        assert_int_eq(20, dynarray_get(da, 1), "get [1]");
+        assert_int_eq(-1, dynarray_get(da, 5), "get out of bounds");
+
+        /* Push beyond initial capacity */
+        assert_int_eq(0, dynarray_push(da, 30), "push 30 (triggers grow)");
+        assert_int_eq(3, da->len, "len is 3");
+        assert_int_eq(30, dynarray_get(da, 2), "get [2] after grow");
+
+        dynarray_free(da);
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.5
+      signals: [all_tests_pass]
+    - id: memory
+      name: Memory Management
+      weight: 0.5
+      signals: [frees_all_memory, handles_realloc]
+
+hints:
+  L0:
+    - "What function allocates memory in C?"
+  L1:
+    - "Use malloc for initial allocation, realloc to grow"
+    - "Double the capacity when the array is full"
+  L2:
+    - "realloc(da->data, new_cap * sizeof(int)) to grow"
+
+solution:
+  dynarray.c: |
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    typedef struct { int *data; int len; int cap; } DynArray;
+
+    DynArray *dynarray_new(int initial_cap) {
+        DynArray *da = malloc(sizeof(DynArray));
+        if (da == NULL) return NULL;
+        da->data = malloc(initial_cap * sizeof(int));
+        if (da->data == NULL) { free(da); return NULL; }
+        da->len = 0;
+        da->cap = initial_cap;
+        return da;
+    }
+
+    int dynarray_push(DynArray *da, int value) {
+        if (da->len >= da->cap) {
+            int new_cap = da->cap * 2;
+            int *new_data = realloc(da->data, new_cap * sizeof(int));
+            if (new_data == NULL) return -1;
+            da->data = new_data;
+            da->cap = new_cap;
+        }
+        da->data[da->len++] = value;
+        return 0;
+    }
+
+    int dynarray_get(const DynArray *da, int index) {
+        if (index < 0 || index >= da->len) return -1;
+        return da->data[index];
+    }
+
+    void dynarray_free(DynArray *da) {
+        if (da != NULL) {
+            free(da->data);
+            free(da);
+        }
+    }

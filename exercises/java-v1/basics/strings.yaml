@@ -1,0 +1,121 @@
+id: strings
+title: String Operations
+description: |
+  Learn about Java String manipulation.
+
+  ## Learning Objectives
+  - Understand String immutability
+  - Practice common String methods
+  - Learn about StringBuilder
+
+  ## Instructions
+  Implement the string utility methods.
+
+difficulty: beginner
+tags:
+  - basics
+  - strings
+
+prerequisites:
+  - variables
+
+starter:
+  StringUtils.java: |
+    public class StringUtils {
+        /** Reverses the given string. */
+        public static String reverse(String s) {
+            // TODO: Implement
+            return "";
+        }
+
+        /** Returns true if the string is a palindrome (case-insensitive). */
+        public static boolean isPalindrome(String s) {
+            // TODO: Implement
+            return false;
+        }
+
+        /** Counts the number of vowels in the string. */
+        public static int countVowels(String s) {
+            // TODO: Implement
+            return 0;
+        }
+    }
+
+tests:
+  StringUtilsTest.java: |
+    public class StringUtilsTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        public static void main(String[] args) {
+            assertEquals("olleh", StringUtils.reverse("hello"), "reverse string");
+            assertEquals("", StringUtils.reverse(""), "reverse empty");
+
+            assertEquals(true, StringUtils.isPalindrome("racecar"), "palindrome lowercase");
+            assertEquals(true, StringUtils.isPalindrome("Madam"), "palindrome mixed case");
+            assertEquals(false, StringUtils.isPalindrome("hello"), "not palindrome");
+
+            assertEquals(2, StringUtils.countVowels("hello"), "count vowels");
+            assertEquals(5, StringUtils.countVowels("aeiou"), "all vowels");
+            assertEquals(0, StringUtils.countVowels("rhythm"), "no vowels");
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.6
+      signals: [all_tests_pass]
+    - id: efficiency
+      name: Efficiency
+      weight: 0.4
+      signals: [uses_string_builder]
+
+hints:
+  L0:
+    - "How can you iterate through characters of a String?"
+  L1:
+    - "StringBuilder has a reverse() method"
+    - "Use toLowerCase() for case-insensitive comparison"
+  L2:
+    - "new StringBuilder(s).reverse().toString() reverses a string"
+
+solution:
+  StringUtils.java: |
+    public class StringUtils {
+        public static String reverse(String s) {
+            return new StringBuilder(s).reverse().toString();
+        }
+
+        public static boolean isPalindrome(String s) {
+            String lower = s.toLowerCase();
+            String reversed = new StringBuilder(lower).reverse().toString();
+            return lower.equals(reversed);
+        }
+
+        public static int countVowels(String s) {
+            int count = 0;
+            for (char c : s.toLowerCase().toCharArray()) {
+                if ("aeiou".indexOf(c) >= 0) {
+                    count++;
+                }
+            }
+            return count;
+        }
+    }

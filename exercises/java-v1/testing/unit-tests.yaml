@@ -1,0 +1,182 @@
+id: unit-tests
+title: Writing Unit Tests
+description: |
+  Learn to write effective unit tests in Java.
+
+  ## Learning Objectives
+  - Write test methods that verify behavior
+  - Test edge cases and error conditions
+  - Organize tests clearly
+
+  ## Instructions
+  Write tests for the provided Stack implementation.
+
+difficulty: intermediate
+tags:
+  - testing
+  - unit-tests
+
+prerequisites:
+  - classes
+
+starter:
+  Stack.java: |
+    import java.util.ArrayList;
+    import java.util.List;
+
+    public class Stack<T> {
+        private List<T> items = new ArrayList<>();
+
+        public void push(T item) {
+            items.add(item);
+        }
+
+        public T pop() {
+            if (items.isEmpty()) {
+                throw new IllegalStateException("stack is empty");
+            }
+            return items.remove(items.size() - 1);
+        }
+
+        public T peek() {
+            if (items.isEmpty()) {
+                throw new IllegalStateException("stack is empty");
+            }
+            return items.get(items.size() - 1);
+        }
+
+        public int size() { return items.size(); }
+        public boolean isEmpty() { return items.isEmpty(); }
+    }
+  StackTest.java: |
+    public class StackTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        static void assertTrue(boolean condition, String msg) {
+            if (condition) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg); }
+        }
+
+        static void assertThrows(String msg, Runnable fn) {
+            try { fn.run(); failed++; System.out.println("FAIL: " + msg + " (no exception)"); }
+            catch (Exception e) { passed++; System.out.println("PASS: " + msg); }
+        }
+
+        // TODO: Write tests that cover:
+        // 1. Push and pop single element
+        // 2. LIFO ordering (push A, B, C → pop C, B, A)
+        // 3. Peek doesn't remove element
+        // 4. Size tracking
+        // 5. isEmpty on new stack
+        // 6. Pop on empty stack throws
+        // 7. Peek on empty stack throws
+
+        public static void main(String[] args) {
+            // TODO: Call your test methods here
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: coverage
+      name: Test Coverage
+      weight: 0.5
+      signals: [tests_basic_ops, tests_edge_cases]
+    - id: assertions
+      name: Meaningful Assertions
+      weight: 0.3
+      signals: [clear_assertions]
+    - id: organization
+      name: Test Organization
+      weight: 0.2
+      signals: [organized_tests]
+
+hints:
+  L0:
+    - "What operations should you test on a stack?"
+  L1:
+    - "Test the basic push/pop cycle first, then edge cases"
+    - "Don't forget to test that pop on empty throws"
+  L2:
+    - "Use assertThrows to verify that exceptions are thrown correctly"
+
+solution:
+  Stack.java: |
+    import java.util.ArrayList;
+    import java.util.List;
+
+    public class Stack<T> {
+        private List<T> items = new ArrayList<>();
+        public void push(T item) { items.add(item); }
+        public T pop() {
+            if (items.isEmpty()) throw new IllegalStateException("stack is empty");
+            return items.remove(items.size() - 1);
+        }
+        public T peek() {
+            if (items.isEmpty()) throw new IllegalStateException("stack is empty");
+            return items.get(items.size() - 1);
+        }
+        public int size() { return items.size(); }
+        public boolean isEmpty() { return items.isEmpty(); }
+    }
+  StackTest.java: |
+    public class StackTest {
+        static int passed = 0;
+        static int failed = 0;
+
+        static void assertEquals(Object expected, Object actual, String msg) {
+            if (expected.equals(actual)) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg + " (expected=" + expected + ", actual=" + actual + ")"); }
+        }
+
+        static void assertTrue(boolean condition, String msg) {
+            if (condition) { passed++; System.out.println("PASS: " + msg); }
+            else { failed++; System.out.println("FAIL: " + msg); }
+        }
+
+        static void assertThrows(String msg, Runnable fn) {
+            try { fn.run(); failed++; System.out.println("FAIL: " + msg + " (no exception)"); }
+            catch (Exception e) { passed++; System.out.println("PASS: " + msg); }
+        }
+
+        public static void main(String[] args) {
+            Stack<Integer> s = new Stack<>();
+            assertTrue(s.isEmpty(), "new stack is empty");
+            assertEquals(0, s.size(), "new stack size is 0");
+
+            s.push(1);
+            assertEquals(1, s.size(), "size after push");
+            assertEquals(1, s.peek(), "peek returns top");
+            assertEquals(1, s.size(), "peek doesn't remove");
+
+            assertEquals(1, s.pop(), "pop returns pushed");
+            assertTrue(s.isEmpty(), "empty after pop");
+
+            s.push(1); s.push(2); s.push(3);
+            assertEquals(3, s.pop(), "LIFO: pop 3");
+            assertEquals(2, s.pop(), "LIFO: pop 2");
+            assertEquals(1, s.pop(), "LIFO: pop 1");
+
+            assertThrows("pop empty throws", () -> new Stack<>().pop());
+            assertThrows("peek empty throws", () -> new Stack<>().peek());
+
+            System.out.println("\n" + passed + " passed, " + failed + " failed");
+            if (failed > 0) System.exit(1);
+        }
+    }

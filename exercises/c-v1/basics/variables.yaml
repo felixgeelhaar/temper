@@ -1,0 +1,150 @@
+id: variables
+title: Variables and Types
+description: |
+  Learn about C's type system and variable declarations.
+
+  ## Learning Objectives
+  - Understand integer types, floats, and chars
+  - Learn about type sizes with sizeof
+  - Practice type casting
+
+  ## Instructions
+  Implement the utility functions that demonstrate C types.
+
+difficulty: beginner
+tags:
+  - basics
+  - types
+  - casting
+
+prerequisites:
+  - hello-world
+
+starter:
+  types.c: |
+    #include <stdio.h>
+
+    /** Returns the absolute value of an integer. */
+    int abs_val(int n) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+    /** Safely divides a by b. Returns 0 if b is zero. */
+    double safe_divide(double a, double b) {
+        /* TODO: Implement */
+        return 0.0;
+    }
+
+    /** Converts a character to uppercase. Returns unchanged if not lowercase. */
+    char to_upper(char c) {
+        /* TODO: Implement */
+        return c;
+    }
+
+    /** Clamps value to be within [min, max]. */
+    int clamp(int value, int min, int max) {
+        /* TODO: Implement */
+        return 0;
+    }
+
+tests:
+  test_types.c: |
+    #include <stdio.h>
+    #include <math.h>
+
+    int abs_val(int n);
+    double safe_divide(double a, double b);
+    char to_upper(char c);
+    int clamp(int value, int min, int max);
+
+    static int passed = 0;
+    static int failed = 0;
+
+    void assert_int_eq(int expected, int actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%d, actual=%d)\n", msg, expected, actual); }
+    }
+
+    void assert_double_eq(double expected, double actual, const char *msg) {
+        if (fabs(expected - actual) < 0.001) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected=%f, actual=%f)\n", msg, expected, actual); }
+    }
+
+    void assert_char_eq(char expected, char actual, const char *msg) {
+        if (expected == actual) { passed++; printf("PASS: %s\n", msg); }
+        else { failed++; printf("FAIL: %s (expected='%c', actual='%c')\n", msg, expected, actual); }
+    }
+
+    int main(void) {
+        assert_int_eq(5, abs_val(5), "abs of positive");
+        assert_int_eq(5, abs_val(-5), "abs of negative");
+        assert_int_eq(0, abs_val(0), "abs of zero");
+
+        assert_double_eq(2.5, safe_divide(5.0, 2.0), "normal division");
+        assert_double_eq(0.0, safe_divide(5.0, 0.0), "divide by zero");
+
+        assert_char_eq('A', to_upper('a'), "lowercase to upper");
+        assert_char_eq('Z', to_upper('z'), "z to upper");
+        assert_char_eq('A', to_upper('A'), "already upper");
+        assert_char_eq('5', to_upper('5'), "digit unchanged");
+
+        assert_int_eq(5, clamp(5, 0, 10), "within range");
+        assert_int_eq(0, clamp(-3, 0, 10), "below min");
+        assert_int_eq(10, clamp(15, 0, 10), "above max");
+
+        printf("\n%d passed, %d failed\n", passed, failed);
+        return failed > 0 ? 1 : 0;
+    }
+
+check_recipe:
+  format: false
+  build: true
+  test: true
+  test_flags: []
+  timeout: 30
+
+rubric:
+  criteria:
+    - id: correctness
+      name: Correctness
+      weight: 0.7
+      signals: [all_tests_pass]
+    - id: types
+      name: Type Understanding
+      weight: 0.3
+      signals: [correct_casting]
+
+hints:
+  L0:
+    - "How do you check if a character is lowercase in C?"
+  L1:
+    - "Lowercase letters are in range 'a' to 'z'"
+    - "The difference between 'a' and 'A' is 32"
+  L2:
+    - "if (c >= 'a' && c <= 'z') return c - 32;"
+    - "For clamp: if (value < min) return min; if (value > max) return max;"
+
+solution:
+  types.c: |
+    #include <stdio.h>
+
+    int abs_val(int n) {
+        return n < 0 ? -n : n;
+    }
+
+    double safe_divide(double a, double b) {
+        if (b == 0.0) return 0.0;
+        return a / b;
+    }
+
+    char to_upper(char c) {
+        if (c >= 'a' && c <= 'z') return c - 32;
+        return c;
+    }
+
+    int clamp(int value, int min, int max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
