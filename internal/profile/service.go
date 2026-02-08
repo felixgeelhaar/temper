@@ -8,11 +8,11 @@ import (
 
 // Service handles profile business logic
 type Service struct {
-	store *Store
+	store ProfileStore
 }
 
 // NewService creates a new profile service
-func NewService(store *Store) *Service {
+func NewService(store ProfileStore) *Service {
 	return &Service{store: store}
 }
 

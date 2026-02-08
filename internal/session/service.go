@@ -28,7 +28,7 @@ var (
 
 // Service manages pairing sessions
 type Service struct {
-	store          *Store
+	store          SessionStore
 	loader         *exercise.Loader
 	executor       runner.Executor
 	riskDetector   *risk.Detector
@@ -37,7 +37,7 @@ type Service struct {
 }
 
 // NewService creates a new session service
-func NewService(store *Store, loader *exercise.Loader, executor runner.Executor) *Service {
+func NewService(store SessionStore, loader *exercise.Loader, executor runner.Executor) *Service {
 	return &Service{
 		store:        store,
 		loader:       loader,
@@ -230,6 +230,12 @@ func (s *Service) createAuthoringSession(ctx context.Context, specPath string, d
 	authoringPolicy.CooldownSeconds = 30 // Faster iteration for authoring
 
 	return NewAuthoringSession(specPath, docsPaths, authoringPolicy), nil
+}
+
+// SaveSession persists a session directly. Used for administrative updates
+// (e.g., modifying HintCount, Status) outside the normal session lifecycle.
+func (s *Service) SaveSession(sess *Session) error {
+	return s.store.Save(sess)
 }
 
 // Get retrieves a session by ID

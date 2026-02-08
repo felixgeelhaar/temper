@@ -28,3 +28,25 @@ type SessionService interface {
 
 // Ensure Service implements SessionService
 var _ SessionService = (*Service)(nil)
+
+// SessionStore defines the persistence interface for sessions.
+// Both the JSON file store and SQLite store implement this.
+type SessionStore interface {
+	Save(session *Session) error
+	Get(id string) (*Session, error)
+	Delete(id string) error
+	List() ([]string, error)
+	ListActive() ([]*Session, error)
+	Exists(id string) bool
+
+	SaveRun(run *Run) error
+	GetRun(sessionID, runID string) (*Run, error)
+	ListRuns(sessionID string) ([]string, error)
+
+	SaveIntervention(intervention *Intervention) error
+	GetIntervention(sessionID, interventionID string) (*Intervention, error)
+	ListInterventions(sessionID string) ([]string, error)
+}
+
+// Ensure Store (JSON) implements SessionStore
+var _ SessionStore = (*Store)(nil)

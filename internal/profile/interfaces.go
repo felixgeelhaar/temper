@@ -37,3 +37,17 @@ type ProfileService interface {
 
 // Ensure Service implements ProfileService
 var _ ProfileService = (*Service)(nil)
+
+// ProfileStore defines the persistence interface for profiles.
+// Both the JSON file store and SQLite store implement this.
+type ProfileStore interface {
+	Save(profile *StoredProfile) error
+	Get(id string) (*StoredProfile, error)
+	GetDefault() (*StoredProfile, error)
+	Delete(id string) error
+	List() ([]string, error)
+	Exists(id string) bool
+}
+
+// Ensure Store (JSON) implements ProfileStore
+var _ ProfileStore = (*Store)(nil)

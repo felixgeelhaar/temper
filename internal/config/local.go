@@ -11,9 +11,16 @@ import (
 // LocalConfig holds configuration for local daemon mode
 type LocalConfig struct {
 	Daemon   DaemonConfig   `yaml:"daemon"`
+	Storage  StorageConfig  `yaml:"storage"`
 	LLM      LLMConfig      `yaml:"llm"`
 	Learning LearningConfig `yaml:"learning_contract"`
 	Runner   RunnerConfig   `yaml:"runner"`
+}
+
+// StorageConfig holds storage backend settings
+type StorageConfig struct {
+	Driver string `yaml:"driver"` // "sqlite" or "json" (default: "sqlite")
+	Path   string `yaml:"path"`   // Database file path (for sqlite); empty = ~/.temper/temper.db
 }
 
 // DaemonConfig holds daemon server settings
@@ -114,6 +121,9 @@ func DefaultLocalConfig() *LocalConfig {
 			Port:     7432,
 			Bind:     "127.0.0.1",
 			LogLevel: "info",
+		},
+		Storage: StorageConfig{
+			Driver: "sqlite",
 		},
 		LLM: LLMConfig{
 			DefaultProvider: "auto",

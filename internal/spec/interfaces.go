@@ -33,6 +33,9 @@ type SpecService interface {
 	// GetDrift returns detailed drift information
 	GetDrift(ctx context.Context, path string) (*DriftReport, error)
 
+	// Save persists changes to a spec
+	Save(ctx context.Context, spec *domain.ProductSpec) error
+
 	// GetWorkspaceRoot returns the workspace root path
 	GetWorkspaceRoot() string
 }

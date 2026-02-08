@@ -174,6 +174,7 @@ type mockSpecService struct {
 	lockFn                   func(ctx context.Context, path string) (*domain.SpecLock, error)
 	getProgressFn            func(ctx context.Context, path string) (*domain.SpecProgress, error)
 	getDriftFn               func(ctx context.Context, path string) (*spec.DriftReport, error)
+	saveFn                   func(ctx context.Context, spec *domain.ProductSpec) error
 	getWorkspaceRootFn       func() string
 }
 
@@ -231,6 +232,13 @@ func (m *mockSpecService) GetDrift(ctx context.Context, path string) (*spec.Drif
 		return m.getDriftFn(ctx, path)
 	}
 	return nil, errNotImplemented
+}
+
+func (m *mockSpecService) Save(ctx context.Context, spec *domain.ProductSpec) error {
+	if m.saveFn != nil {
+		return m.saveFn(ctx, spec)
+	}
+	return errNotImplemented
 }
 
 func (m *mockSpecService) GetWorkspaceRoot() string {

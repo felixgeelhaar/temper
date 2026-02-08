@@ -13,7 +13,6 @@ import (
 	"github.com/felixgeelhaar/temper/internal/config"
 	"github.com/felixgeelhaar/temper/internal/llm"
 	"github.com/felixgeelhaar/temper/internal/pairing"
-	"github.com/felixgeelhaar/temper/internal/session"
 	"github.com/google/uuid"
 )
 
@@ -9742,67 +9741,37 @@ tests:
 	return sessionID
 }
 
-// prepareSessionForEscalation sets HintCount >= 2 on a session without triggering cooldown
-// This bypasses the need for working LLM and avoids cooldown checks by directly modifying the session file
+// prepareSessionForEscalation sets HintCount >= 2 on a session without triggering cooldown.
+// Uses the session service API so it works with any storage backend.
 func prepareSessionForEscalation(t *testing.T, ctx *testServerContext, sessionID string) {
 	t.Helper()
 
-	// Read the session file directly
-	sessionFile := filepath.Join(ctx.SessionsPath, "sessions", sessionID+".json")
-	data, err := os.ReadFile(sessionFile)
+	sess, err := ctx.Server.sessionService.Get(context.Background(), sessionID)
 	if err != nil {
-		t.Fatalf("read session file: %v", err)
+		t.Fatalf("get session for escalation prep: %v", err)
 	}
 
-	// Parse the session
-	var sess session.Session
-	if err := json.Unmarshal(data, &sess); err != nil {
-		t.Fatalf("parse session: %v", err)
-	}
-
-	// Modify HintCount and clear LastInterventionAt to avoid cooldown
 	sess.HintCount = 3
-	sess.LastInterventionAt = nil // Clear to avoid cooldown check
+	sess.LastInterventionAt = nil
 
-	// Write back
-	data, err = json.MarshalIndent(sess, "", "  ")
-	if err != nil {
-		t.Fatalf("marshal session: %v", err)
-	}
-
-	if err := os.WriteFile(sessionFile, data, 0644); err != nil {
-		t.Fatalf("write session file: %v", err)
+	if err := ctx.Server.sessionServiceConcrete.SaveSession(sess); err != nil {
+		t.Fatalf("save session for escalation prep: %v", err)
 	}
 }
 
-// markSessionCompleted directly modifies a session file to set status to completed
+// markSessionCompleted sets a session's status to completed via the session service.
 func markSessionCompleted(t *testing.T, ctx *testServerContext, sessionID string) {
 	t.Helper()
 
-	// Read the session file directly
-	sessionFile := filepath.Join(ctx.SessionsPath, "sessions", sessionID+".json")
-	data, err := os.ReadFile(sessionFile)
+	sess, err := ctx.Server.sessionService.Get(context.Background(), sessionID)
 	if err != nil {
-		t.Fatalf("read session file: %v", err)
+		t.Fatalf("get session for completion: %v", err)
 	}
 
-	// Parse the session
-	var sess session.Session
-	if err := json.Unmarshal(data, &sess); err != nil {
-		t.Fatalf("parse session: %v", err)
-	}
+	sess.Complete()
 
-	// Set status to completed
-	sess.Status = session.StatusCompleted
-
-	// Write back
-	data, err = json.MarshalIndent(sess, "", "  ")
-	if err != nil {
-		t.Fatalf("marshal session: %v", err)
-	}
-
-	if err := os.WriteFile(sessionFile, data, 0644); err != nil {
-		t.Fatalf("write session file: %v", err)
+	if err := ctx.Server.sessionServiceConcrete.SaveSession(sess); err != nil {
+		t.Fatalf("save completed session: %v", err)
 	}
 }
 
