@@ -258,4 +258,3 @@ func extractStatusCode(err error) int {
 
 	return 0
 }
-

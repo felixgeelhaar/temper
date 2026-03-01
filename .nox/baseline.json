@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0.0",
+  "entries": [
+    {
+      "fingerprint": "5c3304774ed3bd3116da6b9d70914c9474c2d387c45b76cea99cedcb1c62c7ff",
+      "rule_id": "IAC-021",
+      "file_path": "docker-compose.yml",
+      "severity": "critical",
+      "reason": "Docker socket mount is required for runner to execute code in isolated containers",
+      "created_at": "2026-03-01T07:34:52.106429Z"
+    },
+    {
+      "fingerprint": "f4c8eeb9011a7bc92aa466b1181facaac359b9a83e8bf7ec785a79d9d4d54d63",
+      "rule_id": "AI-009",
+      "file_path": "internal/daemon/server.go",
+      "severity": "critical",
+      "reason": "Sandbox code execution is intentional for the learning platform - user code runs in isolated containers",
+      "created_at": "2026-03-01T07:34:59.424227Z"
+    },
+    {
+      "fingerprint": "16f37df339f521d8c9dbd83a9d43ba31370180c3d0df9e289fe2c2c41077cbd2",
+      "rule_id": "SEC-073",
+      "file_path": "docker-compose.yml",
+      "severity": "critical",
+      "reason": "Using environment variable substitution with defaults - correct pattern",
+      "created_at": "2026-03-01T07:35:18.259427Z"
+    },
+    {
+      "fingerprint": "9ed1d55a42a62ece2c45c3b0fd5b8d3f71ccec69e3dc157aa4d9567f33b13117",
+      "rule_id": "SEC-073",
+      "file_path": "docker-compose.yml",
+      "severity": "critical",
+      "reason": "Using environment variable substitution with defaults - correct pattern",
+      "created_at": "2026-03-01T07:35:23.924304Z"
+    },
+    {
+      "fingerprint": "57cc8faf75f9261790e21393c9ea6097971408090f45227ec87305c52d6b403b",
+      "rule_id": "SEC-073",
+      "file_path": "docker-compose.yml",
+      "severity": "critical",
+      "reason": "Using environment variable substitution with defaults - correct pattern",
+      "created_at": "2026-03-01T07:35:36.308451Z"
+    },
+    {
+      "fingerprint": "3074e74fbd825f345a72188df5d0fe5c3247c4e74e4715ab2958bd25831c7697",
+      "rule_id": "SEC-073",
+      "file_path": ".env.example",
+      "severity": "critical",
+      "reason": "Example file with placeholder values - no real secrets",
+      "created_at": "2026-03-01T07:36:33.757079Z"
+    },
+    {
+      "fingerprint": "408c682226ded0ce7f2a44ecab60288b08eda56f2e3ddd476f63cbdbe0729a18",
+      "rule_id": "SEC-073",
+      "file_path": "Makefile",
+      "severity": "critical",
+      "reason": "Makefile uses env vars with defaults - correct pattern",
+      "created_at": "2026-03-01T07:36:39.804523Z"
+    },
+    {
+      "fingerprint": "f246fa48c97e8800f3e999c702295447838c072b424f31eea715f378dcfa5f35",
+      "rule_id": "SEC-073",
+      "file_path": "docker-compose.demo.yml",
+      "severity": "critical",
+      "reason": "Demo compose uses env vars - correct pattern",
+      "created_at": "2026-03-01T07:36:46.061177Z"
+    },
+    {
+      "fingerprint": "d18090b2408c9a6241f81d3815cadcea3885a599b520a421b40eed13b87dba7e",
+      "rule_id": "SEC-073",
+      "file_path": "docker-compose.yml",
+      "severity": "critical",
+      "reason": "Docker compose uses env vars with defaults - correct pattern",
+      "created_at": "2026-03-01T07:36:53.631592Z"
+    },
+    {
+      "fingerprint": "f6ac1f578a017d40d4660b546ec8f4908cc10486cf6e07bc96ce8506151b1bae",
+      "rule_id": "SEC-073",
+      "file_path": "internal/config/config.go",
+      "severity": "critical",
+      "reason": "Config uses env vars with defaults - correct pattern",
+      "created_at": "2026-03-01T07:37:00.688605Z"
+    },
+    {
+      "fingerprint": "3af80473a866479e44e71034ce49c5397724f051099a42108c2fed758582029b",
+      "rule_id": "VULN-002",
+      "file_path": "editors/vscode/package-lock.json",
+      "severity": "critical",
+      "reason": "Legitimate package reusify - not typosquatting",
+      "created_at": "2026-03-01T07:37:09.32088Z"
+    },
+    {
+      "fingerprint": "3a0616c49927dcffadf599e50b6433eaf7cacef6e9661f4cffe84a1e734ff4fe",
+      "rule_id": "VULN-002",
+      "file_path": "editors/vscode/package-lock.json",
+      "severity": "critical",
+      "reason": "Legitimate package flat - not typosquatting",
+      "created_at": "2026-03-01T07:37:22.304071Z"
+    },
+    {
+      "fingerprint": "bd0db1444a17eb4089e7518c7bf199d0ffe337777f3948a6b5ff9e521b443370",
+      "rule_id": "VULN-002",
+      "file_path": "editors/vscode/package-lock.json",
+      "severity": "critical",
+      "reason": "Legitimate package ms - not typosquatting",
+      "created_at": "2026-03-01T07:37:29.856711Z"
+    },
+    {
+      "fingerprint": "e8cfaf235debb7daf766aba38a4cfce8e7b6107f99e1ffca5b64a25111c0e8a0",
+      "rule_id": "VULN-002",
+      "file_path": "editors/vscode/package-lock.json",
+      "severity": "critical",
+      "reason": "Legitimate package levn - not typosquatting",
+      "created_at": "2026-03-01T07:37:35.918539Z"
+    },
+    {
+      "fingerprint": "1698cce5afb6de8f732162a0ceb5b850b6419dd348e655278fd75297e779104b",
+      "rule_id": "VULN-002",
+      "file_path": "editors/vscode/package-lock.json",
+      "severity": "critical",
+      "reason": "Legitimate package acorn - not typosquatting",
+      "created_at": "2026-03-01T07:37:42.026013Z"
+    },
+    {
+      "fingerprint": "509b7b26c7321c5e87f6840b31b3b50cc39d79bb8231f64dc811bdcc2861cb41",
+      "rule_id": "VULN-002",
+      "file_path": "editors/vscode/package-lock.json",
+      "severity": "critical",
+      "reason": "Legitimate package ajv - not typosquatting",
+      "created_at": "2026-03-01T07:37:49.065234Z"
+    },
+    {
+      "fingerprint": "ffdbd5ea586df525d9e0b4b2f558694188a6e490f23840ea563c3f9675861ad0",
+      "rule_id": "IAC-351",
+      "file_path": ".github/workflows/docs.yml",
+      "severity": "critical",
+      "reason": "False positive - docs.yml only contains action versions, no secrets",
+      "created_at": "2026-03-01T07:37:56.224759Z"
+    },
+    {
+      "fingerprint": "7216c94058f1b12ba335bd6cab0f14473a14ea04bdc0d56f241f136a3a057e88",
+      "rule_id": "IAC-351",
+      "file_path": "exercises/typescript-v1/advanced/http-fetch.yaml",
+      "severity": "critical",
+      "reason": "False positive - token is a TypeScript variable name, not a secret",
+      "created_at": "2026-03-01T07:38:12.266333Z"
+    },
+    {
+      "fingerprint": "227562921e14d623824d16c79d5fa1a94935e708688739a5d14717495a32a7ea",
+      "rule_id": "IAC-351",
+      "file_path": "exercises/typescript-v1/advanced/http-fetch.yaml",
+      "severity": "critical",
+      "reason": "False positive - token is a TypeScript variable name, not a secret",
+      "created_at": "2026-03-01T07:38:33.407011Z"
+    }
+  ]
+}

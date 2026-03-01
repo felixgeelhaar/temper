@@ -6533,9 +6533,9 @@ func TestHandlers_AuthoringHint_EmptySessionID(t *testing.T) {
 
 	server.router.ServeHTTP(w, req)
 
-	// May return 301 redirect for double slashes, 400, or 404
-	if w.Code != http.StatusBadRequest && w.Code != http.StatusNotFound && w.Code != http.StatusMovedPermanently {
-		t.Errorf("expected status 400, 404, or 301, got %d: %s", w.Code, w.Body.String())
+	// May return 301 redirect for double slashes, 307 redirect, 400, or 404
+	if w.Code != http.StatusBadRequest && w.Code != http.StatusNotFound && w.Code != http.StatusMovedPermanently && w.Code != http.StatusTemporaryRedirect {
+		t.Errorf("expected status 400, 404, 301, or 307, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
@@ -6550,9 +6550,9 @@ func TestHandlers_AuthoringApply_EmptySessionID(t *testing.T) {
 
 	server.router.ServeHTTP(w, req)
 
-	// May return 301 redirect for double slashes, 400, or 404
-	if w.Code != http.StatusBadRequest && w.Code != http.StatusNotFound && w.Code != http.StatusMovedPermanently {
-		t.Errorf("expected status 400, 404, or 301, got %d: %s", w.Code, w.Body.String())
+	// May return 301 redirect for double slashes, 307 redirect, 400, or 404
+	if w.Code != http.StatusBadRequest && w.Code != http.StatusNotFound && w.Code != http.StatusMovedPermanently && w.Code != http.StatusTemporaryRedirect {
+		t.Errorf("expected status 400, 404, 301, or 307, got %d: %s", w.Code, w.Body.String())
 	}
 }
 

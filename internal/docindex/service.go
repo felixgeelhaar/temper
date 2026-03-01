@@ -34,11 +34,11 @@ func NewService(db *sql.DB, embedder Embedder) *Service {
 
 // IndexResult holds the result of an indexing operation
 type IndexResult struct {
-	DocumentsFound    int `json:"documents_found"`
-	DocumentsIndexed  int `json:"documents_indexed"`
-	DocumentsSkipped  int `json:"documents_skipped"`
-	SectionsEmbedded  int `json:"sections_embedded"`
-	Errors            int `json:"errors"`
+	DocumentsFound   int `json:"documents_found"`
+	DocumentsIndexed int `json:"documents_indexed"`
+	DocumentsSkipped int `json:"documents_skipped"`
+	SectionsEmbedded int `json:"sections_embedded"`
+	Errors           int `json:"errors"`
 }
 
 // IndexDirectory discovers and indexes documents in the given directory

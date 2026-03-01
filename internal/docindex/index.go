@@ -213,10 +213,10 @@ func (idx *Index) DocumentExists(hash string) bool {
 
 // Stats returns index statistics
 type IndexStats struct {
-	TotalDocuments    int `json:"total_documents"`
-	IndexedDocuments  int `json:"indexed_documents"`
-	TotalSections     int `json:"total_sections"`
-	EmbeddedSections  int `json:"embedded_sections"`
+	TotalDocuments   int `json:"total_documents"`
+	IndexedDocuments int `json:"indexed_documents"`
+	TotalSections    int `json:"total_sections"`
+	EmbeddedSections int `json:"embedded_sections"`
 }
 
 // Stats returns statistics about the index

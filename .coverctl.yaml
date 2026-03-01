@@ -1,0 +1,86 @@
+version: 1
+language: go
+policy:
+  default:
+    min: 80
+  domains:
+    - name: cmd
+      match:
+        - ./cmd/...
+      min: 0
+    - name: appreciation
+      match:
+        - ./internal/appreciation/...
+      min: null
+    - name: config
+      match:
+        - ./internal/config/...
+      min: null
+    - name: daemon
+      match:
+        - ./internal/daemon/...
+      min: 55
+    - name: docindex
+      match:
+        - ./internal/docindex/...
+      min: 55
+    - name: domain
+      match:
+        - ./internal/domain/...
+      min: 55
+    - name: exercise
+      match:
+        - ./internal/exercise/...
+      min: 75
+    - name: llm
+      match:
+        - ./internal/llm/...
+      min: null
+    - name: mcp
+      match:
+        - ./internal/mcp/...
+      min: 10
+    - name: pairing
+      match:
+        - ./internal/pairing/...
+      min: null
+    - name: patch
+      match:
+        - ./internal/patch/...
+      min: null
+    - name: profile
+      match:
+        - ./internal/profile/...
+      min: 55
+    - name: queue
+      match:
+        - ./internal/queue/...
+      min: 5
+    - name: risk
+      match:
+        - ./internal/risk/...
+      min: null
+    - name: runner
+      match:
+        - ./internal/runner/...
+      min: 30
+    - name: sandbox
+      match:
+        - ./internal/sandbox/...
+      min: 0
+    - name: session
+      match:
+        - ./internal/session/...
+      min: 70
+    - name: spec
+      match:
+        - ./internal/spec/...
+      min: null
+    - name: storage
+      match:
+        - ./internal/storage/...
+      min: 30
+    - name: workspace
+      match:
+        - ./internal/workspace/...
+      min: 30

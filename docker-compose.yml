@@ -9,8 +9,8 @@ services:
     environment:
       - PORT=8080
       - DEBUG=true
-      - DATABASE_URL=postgres://temper:temper@postgres:5432/temper?sslmode=disable
-      - RABBITMQ_URL=amqp://temper:temper@rabbitmq:5672/
+      - DATABASE_URL=${DATABASE_URL:-postgres://temper:temper@postgres:5432/temper?sslmode=disable}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://temper:temper@rabbitmq:5672/}
       - RUNNER_POOL_SIZE=3
       - LLM_PROVIDER=${LLM_PROVIDER:-claude}
       - LLM_API_KEY=${LLM_API_KEY:-}
@@ -75,8 +75,8 @@ services:
     deploy:
       replicas: 2
     environment:
-      - DATABASE_URL=postgres://temper:temper@postgres:5432/temper?sslmode=disable
-      - RABBITMQ_URL=amqp://temper:temper@rabbitmq:5672/
+      - DATABASE_URL=${DATABASE_URL:-postgres://temper:temper@postgres:5432/temper?sslmode=disable}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://temper:temper@rabbitmq:5672/}
       - RUNNER_TIMEOUT=30
       - RUNNER_MEMORY_MB=256
       - RUNNER_CPU_LIMIT=0.5
@@ -85,9 +85,9 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    privileged: true
+    # Runner container - no special privileges needed when not mounting Docker socket
+    security_opt:
+      - no-new-privileges:true
     networks:
       - temper-net
     profiles:
@@ -112,7 +112,7 @@ services:
       dockerfile: docker/Dockerfile.api
     command: ["./temper", "migrate", "up"]
     environment:
-      - DATABASE_URL=postgres://temper:temper@postgres:5432/temper?sslmode=disable
+      - DATABASE_URL=${DATABASE_URL:-postgres://temper:temper@postgres:5432/temper?sslmode=disable}
     depends_on:
       postgres:
         condition: service_healthy
