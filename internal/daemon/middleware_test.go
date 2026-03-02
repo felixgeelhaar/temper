@@ -287,6 +287,47 @@ func TestMiddlewareChain_WithPanic(t *testing.T) {
 	}
 }
 
+func TestCorsMiddleware_AllowsOrigin(t *testing.T) {
+	called := false
+	handler := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if !called {
+		t.Error("handler should be called for non-OPTIONS requests")
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Error("Access-Control-Allow-Origin header should be set")
+	}
+}
+
+func TestCorsMiddleware_Options(t *testing.T) {
+	called := false
+	handler := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+
+	req := httptest.NewRequest(http.MethodOptions, "/test", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if called {
+		t.Error("handler should not be called for OPTIONS requests")
+	}
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("status = %d; want %d", rec.Code, http.StatusNoContent)
+	}
+}
+
 func TestCorrelationIDHeader_Constant(t *testing.T) {
 	if CorrelationIDHeader != "X-Request-ID" {
 		t.Errorf("CorrelationIDHeader = %q, want %q", CorrelationIDHeader, "X-Request-ID")

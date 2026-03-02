@@ -211,3 +211,50 @@ func TestRegistry_Stats(t *testing.T) {
 		t.Error("ByDifficulty should not be empty")
 	}
 }
+
+func TestRegistry_ListExercises(t *testing.T) {
+	registry := setupRegistry(t)
+
+	exercises := registry.ListExercises()
+	if len(exercises) == 0 {
+		t.Fatal("ListExercises() returned no exercises")
+	}
+}
+
+func TestRegistry_ListPackExercises_NotFound(t *testing.T) {
+	registry := setupRegistry(t)
+
+	_, err := registry.ListPackExercises("missing-pack")
+	if err == nil {
+		t.Error("ListPackExercises() should fail for missing pack")
+	}
+}
+
+func TestRegistry_GetNextExercise(t *testing.T) {
+	registry := setupRegistry(t)
+
+	next, err := registry.GetNextExercise("go-v1/basics/hello-world")
+	if err != nil {
+		t.Fatalf("GetNextExercise() error = %v", err)
+	}
+	if next == nil || next.ID != "go-v1/basics/variables" {
+		t.Fatalf("GetNextExercise() = %v; want go-v1/basics/variables", next)
+	}
+
+	last, err := registry.GetNextExercise("go-v1/advanced/channels")
+	if err != nil {
+		t.Fatalf("GetNextExercise() last error = %v", err)
+	}
+	if last != nil {
+		t.Errorf("GetNextExercise() last = %v; want nil", last)
+	}
+}
+
+func TestRegistry_GetNextExercise_NotFound(t *testing.T) {
+	registry := setupRegistry(t)
+
+	_, err := registry.GetNextExercise("missing-exercise")
+	if err == nil {
+		t.Error("GetNextExercise() should fail when exercise is missing")
+	}
+}

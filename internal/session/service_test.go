@@ -553,6 +553,53 @@ func TestService_Create_FeatureGuidance_NoSpec(t *testing.T) {
 	}
 }
 
+func TestService_Create_FeatureGuidance_WithSpec(t *testing.T) {
+	service, _, _ := setupTestService(t)
+	ctx := context.Background()
+
+	session, err := service.Create(ctx, CreateRequest{
+		Intent:   IntentFeatureGuidance,
+		SpecPath: "spec.yaml",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if session.Intent != IntentFeatureGuidance {
+		t.Errorf("Intent = %q; want %q", session.Intent, IntentFeatureGuidance)
+	}
+	if session.SpecPath != "spec.yaml" {
+		t.Errorf("SpecPath = %q; want %q", session.SpecPath, "spec.yaml")
+	}
+	if session.Code == nil {
+		t.Error("Code should be initialized")
+	}
+}
+
+func TestService_Create_SpecAuthoring_DefaultDocs(t *testing.T) {
+	service, _, _ := setupTestService(t)
+	ctx := context.Background()
+
+	session, err := service.Create(ctx, CreateRequest{
+		Intent:   IntentSpecAuthoring,
+		SpecPath: "spec.yaml",
+	})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if session.Intent != IntentSpecAuthoring {
+		t.Errorf("Intent = %q; want %q", session.Intent, IntentSpecAuthoring)
+	}
+	if len(session.AuthoringDocs) != 2 {
+		t.Errorf("AuthoringDocs length = %d; want 2", len(session.AuthoringDocs))
+	}
+	if session.Policy.MaxLevel < domain.L4PartialSolution {
+		t.Errorf("Policy.MaxLevel = %v; want >= %v", session.Policy.MaxLevel, domain.L4PartialSolution)
+	}
+	if session.Policy.CooldownSeconds != 30 {
+		t.Errorf("Policy.CooldownSeconds = %d; want 30", session.Policy.CooldownSeconds)
+	}
+}
+
 func TestService_Create_InferGreenfield(t *testing.T) {
 	service, _, _ := setupTestService(t)
 	ctx := context.Background()

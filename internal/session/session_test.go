@@ -61,6 +61,23 @@ func TestNewGreenfieldSession(t *testing.T) {
 	}
 }
 
+func TestNewAuthoringSession(t *testing.T) {
+	policy := domain.DefaultPolicy()
+	paths := []string{"docs/", "README.md"}
+
+	s := NewAuthoringSession("spec.yaml", paths, policy)
+
+	if s.Intent != IntentSpecAuthoring {
+		t.Errorf("Intent = %q; want %q", s.Intent, IntentSpecAuthoring)
+	}
+	if s.SpecPath != "spec.yaml" {
+		t.Errorf("SpecPath = %q; want %q", s.SpecPath, "spec.yaml")
+	}
+	if len(s.AuthoringDocs) != 2 {
+		t.Errorf("AuthoringDocs length = %d; want 2", len(s.AuthoringDocs))
+	}
+}
+
 func TestSession_UpdateCode(t *testing.T) {
 	s := NewSession("test", map[string]string{"a.go": "old"}, domain.DefaultPolicy())
 	originalUpdated := s.UpdatedAt
@@ -73,6 +90,18 @@ func TestSession_UpdateCode(t *testing.T) {
 	}
 	if !s.UpdatedAt.After(originalUpdated) {
 		t.Error("UpdatedAt should be updated")
+	}
+}
+
+func TestSession_AuthoringHelpers(t *testing.T) {
+	s := NewAuthoringSession("spec.yaml", []string{}, domain.DefaultPolicy())
+	if !s.IsAuthoring() {
+		t.Error("IsAuthoring() should return true")
+	}
+
+	s.SetAuthoringSection("goals")
+	if s.AuthoringSection != "goals" {
+		t.Errorf("AuthoringSection = %q; want %q", s.AuthoringSection, "goals")
 	}
 }
 
@@ -181,5 +210,19 @@ func TestSession_CooldownRemaining(t *testing.T) {
 	remaining := s.CooldownRemaining()
 	if remaining <= 0 || remaining > 60*time.Second {
 		t.Errorf("CooldownRemaining = %v; want between 0 and 60s", remaining)
+	}
+}
+
+func TestSession_CooldownRemaining_Expired(t *testing.T) {
+	policy := domain.LearningPolicy{
+		CooldownSeconds: 1,
+	}
+	s := NewSession("test", map[string]string{}, policy)
+
+	past := time.Now().Add(-5 * time.Second)
+	s.LastInterventionAt = &past
+
+	if s.CooldownRemaining() != 0 {
+		t.Error("CooldownRemaining() should return 0 when cooldown expired")
 	}
 }
