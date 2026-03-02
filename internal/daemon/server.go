@@ -54,11 +54,31 @@ type Server struct {
 	// Track store for learning contract presets
 	trackStore *sqlitestore.TrackStore
 
-	// Sandbox manager for persistent containers
-	sandboxManager *sandbox.Manager
+	// Sandbox manager for persistent containers (using interface for testability)
+	SandboxManager SandboxManager
 
 	// Document index service for external context
 	docindexService *docindex.Service
+}
+
+// SandboxManager defines the interface for sandbox operations
+type SandboxManager interface {
+	Create(ctx context.Context, sessionID string, cfg sandbox.Config) (*sandbox.Sandbox, error)
+	Get(ctx context.Context, id string) (*sandbox.Sandbox, error)
+	GetBySession(ctx context.Context, sessionID string) (*sandbox.Sandbox, error)
+	AttachCode(ctx context.Context, sandboxID string, code map[string]string) error
+	Execute(ctx context.Context, sandboxID string, cmd []string, timeout time.Duration) (*sandbox.ExecResult, error)
+	Pause(ctx context.Context, id string) error
+	Resume(ctx context.Context, id string) error
+	Destroy(ctx context.Context, id string) error
+	Cleanup(ctx context.Context) (int, error)
+	StartCleanupLoop(ctx context.Context, interval time.Duration)
+	Close(ctx context.Context) error
+}
+
+// GetSandboxManager returns the sandbox manager (for testing)
+func (s *Server) GetSandboxManager() SandboxManager {
+	return s.SandboxManager
 }
 
 // ServerConfig holds configuration for creating a new server
@@ -164,8 +184,8 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 			slog.Warn("sandbox support disabled: Docker not available", "error", err)
 		} else {
 			sandboxStore := sqlitestore.NewSandboxStore(db)
-			s.sandboxManager = sandbox.NewManager(sandboxStore, sandboxBackend)
-			s.sandboxManager.StartCleanupLoop(ctx, 5*time.Minute)
+			s.SandboxManager = sandbox.NewManager(sandboxStore, sandboxBackend)
+			s.SandboxManager.StartCleanupLoop(ctx, 5*time.Minute)
 			slog.Info("sandbox support enabled")
 		}
 
@@ -391,8 +411,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 
 	// Close sandbox manager (destroys active sandboxes)
-	if s.sandboxManager != nil {
-		if err := s.sandboxManager.Close(ctx); err != nil {
+	if s.SandboxManager != nil {
+		if err := s.SandboxManager.Close(ctx); err != nil {
 			slog.Warn("failed to close sandbox manager", "error", err)
 		}
 	}
@@ -2031,7 +2051,7 @@ func (s *Server) handleAuthoringHint(w http.ResponseWriter, r *http.Request) {
 // Sandbox handlers
 
 func (s *Server) handleCreateSandbox(w http.ResponseWriter, r *http.Request) {
-	if s.sandboxManager == nil {
+	if s.SandboxManager == nil {
 		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available (Docker required)", nil)
 		return
 	}
@@ -2070,7 +2090,7 @@ func (s *Server) handleCreateSandbox(w http.ResponseWriter, r *http.Request) {
 		cfg.NetworkOff = *req.NetworkOff
 	}
 
-	sb, err := s.sandboxManager.Create(r.Context(), sessionID, cfg)
+	sb, err := s.SandboxManager.Create(r.Context(), sessionID, cfg)
 	if err != nil {
 		switch err {
 		case sandbox.ErrSessionHasSandbox:
@@ -2087,14 +2107,14 @@ func (s *Server) handleCreateSandbox(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetSandbox(w http.ResponseWriter, r *http.Request) {
-	if s.sandboxManager == nil {
+	if s.SandboxManager == nil {
 		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
 	sessionID := r.PathValue("id")
 
-	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
 			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
@@ -2108,14 +2128,14 @@ func (s *Server) handleGetSandbox(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
-	if s.sandboxManager == nil {
+	if s.SandboxManager == nil {
 		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
 	sessionID := r.PathValue("id")
 
-	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
 			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
@@ -2125,7 +2145,7 @@ func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.sandboxManager.Destroy(r.Context(), sb.ID); err != nil {
+	if err := s.SandboxManager.Destroy(r.Context(), sb.ID); err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "failed to destroy sandbox", err)
 		return
 	}
@@ -2136,7 +2156,7 @@ func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
-	if s.sandboxManager == nil {
+	if s.SandboxManager == nil {
 		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
@@ -2159,7 +2179,7 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
 			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
@@ -2171,7 +2191,7 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 
 	// Copy code if provided
 	if len(req.Code) > 0 {
-		if err := s.sandboxManager.AttachCode(r.Context(), sb.ID, req.Code); err != nil {
+		if err := s.SandboxManager.AttachCode(r.Context(), sb.ID, req.Code); err != nil {
 			s.jsonError(w, http.StatusInternalServerError, "failed to copy files to sandbox", err)
 			return
 		}
@@ -2182,7 +2202,7 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 		timeout = time.Duration(req.Timeout) * time.Second
 	}
 
-	result, err := s.sandboxManager.Execute(r.Context(), sb.ID, req.Cmd, timeout)
+	result, err := s.SandboxManager.Execute(r.Context(), sb.ID, req.Cmd, timeout)
 	if err != nil {
 		switch err {
 		case sandbox.ErrSandboxExpired:
@@ -2199,14 +2219,14 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
-	if s.sandboxManager == nil {
+	if s.SandboxManager == nil {
 		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
 	sessionID := r.PathValue("id")
 
-	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
 			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
@@ -2216,7 +2236,7 @@ func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.sandboxManager.Pause(r.Context(), sb.ID); err != nil {
+	if err := s.SandboxManager.Pause(r.Context(), sb.ID); err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "failed to pause sandbox", err)
 		return
 	}
@@ -2227,14 +2247,14 @@ func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleResumeSandbox(w http.ResponseWriter, r *http.Request) {
-	if s.sandboxManager == nil {
+	if s.SandboxManager == nil {
 		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
 	sessionID := r.PathValue("id")
 
-	sb, err := s.sandboxManager.GetBySession(r.Context(), sessionID)
+	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
 			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
@@ -2244,7 +2264,7 @@ func (s *Server) handleResumeSandbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.sandboxManager.Resume(r.Context(), sb.ID); err != nil {
+	if err := s.SandboxManager.Resume(r.Context(), sb.ID); err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "failed to resume sandbox", err)
 		return
 	}

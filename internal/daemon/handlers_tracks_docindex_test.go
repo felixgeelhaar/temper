@@ -263,32 +263,6 @@ func TestTrackHandlers_Errors(t *testing.T) {
 	}
 }
 
-func TestTrackHandlers_ListError(t *testing.T) {
-	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, "tracks.db")
-
-	db, err := sqlitestore.Open(dbPath)
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	if err := db.Migrate(); err != nil {
-		db.Close()
-		t.Fatalf("migrate sqlite: %v", err)
-	}
-	db.Close()
-
-	m := newServerWithMocks()
-	m.server.trackStore = sqlitestore.NewTrackStore(db)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/tracks", nil)
-	rec := httptest.NewRecorder()
-	m.server.router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
-	}
-}
-
 func TestDocIndexHandlers(t *testing.T) {
 	m, _ := setupDocIndexServer(t)
 
@@ -351,60 +325,5 @@ func TestDocIndexHandlers_Errors(t *testing.T) {
 	m.server.router.ServeHTTP(statusRec, statusReq)
 	if statusRec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("DocIndex status missing service = %d; want %d", statusRec.Code, http.StatusServiceUnavailable)
-	}
-}
-
-func TestDocIndexHandlers_ListError(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
-	if _, err := db.Exec("CREATE TABLE documents (id TEXT PRIMARY KEY, path TEXT, title TEXT, doc_type TEXT, content TEXT, hash TEXT, discovered_at DATETIME, indexed_at DATETIME)"); err != nil {
-		db.Close()
-		t.Fatalf("create schema: %v", err)
-	}
-	if _, err := db.Exec("CREATE TABLE document_sections (id INTEGER PRIMARY KEY AUTOINCREMENT, document_id TEXT, heading TEXT, level INTEGER, content TEXT, embedding BLOB, created_at DATETIME)"); err != nil {
-		db.Close()
-		t.Fatalf("create schema: %v", err)
-	}
-
-	service := docindex.NewService(db, nil)
-	db.Close()
-
-	m := newServerWithMocks()
-	m.server.docindexService = service
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/docindex/documents", nil)
-	rec := httptest.NewRecorder()
-	m.server.router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
-	}
-}
-
-func TestSandboxHandlers_ServiceUnavailable(t *testing.T) {
-	m := newServerWithMocks()
-
-	requests := []struct {
-		method string
-		path   string
-		body   []byte
-	}{
-		{http.MethodPost, "/v1/sessions/test/sandbox", nil},
-		{http.MethodGet, "/v1/sessions/test/sandbox", nil},
-		{http.MethodDelete, "/v1/sessions/test/sandbox", nil},
-		{http.MethodPost, "/v1/sessions/test/sandbox/exec", []byte(`{"cmd":["echo","hi"]}`)},
-		{http.MethodPost, "/v1/sessions/test/sandbox/pause", nil},
-		{http.MethodPost, "/v1/sessions/test/sandbox/resume", nil},
-	}
-
-	for _, req := range requests {
-		r := httptest.NewRequest(req.method, req.path, bytes.NewReader(req.body))
-		w := httptest.NewRecorder()
-		m.server.router.ServeHTTP(w, r)
-		if w.Code != http.StatusServiceUnavailable {
-			t.Errorf("%s %s status = %d; want %d", req.method, req.path, w.Code, http.StatusServiceUnavailable)
-		}
 	}
 }

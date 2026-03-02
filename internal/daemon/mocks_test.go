@@ -415,16 +415,17 @@ var _ runner.Executor = (*mockExecutor)(nil)
 
 // mockSandboxManager implements a minimal sandbox manager mock for testing
 type mockSandboxManager struct {
-	createFn       func(ctx context.Context, sessionID string, cfg sandbox.Config) (*sandbox.Sandbox, error)
-	getFn          func(ctx context.Context, id string) (*sandbox.Sandbox, error)
-	getBySessionFn func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error)
-	destroyFn      func(ctx context.Context, id string) error
-	pauseFn        func(ctx context.Context, id string) error
-	resumeFn       func(ctx context.Context, id string) error
-	execFn         func(ctx context.Context, id string, cmd []string, timeout time.Duration) (*sandbox.ExecResult, error)
-	attachCodeFn   func(ctx context.Context, sandboxID string, code map[string]string) error
-	cleanupFn      func(ctx context.Context) (int, error)
-	closeFn        func(ctx context.Context) error
+	createFn           func(ctx context.Context, sessionID string, cfg sandbox.Config) (*sandbox.Sandbox, error)
+	getFn              func(ctx context.Context, id string) (*sandbox.Sandbox, error)
+	getBySessionFn     func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error)
+	destroyFn          func(ctx context.Context, id string) error
+	pauseFn            func(ctx context.Context, id string) error
+	resumeFn           func(ctx context.Context, id string) error
+	execFn             func(ctx context.Context, id string, cmd []string, timeout time.Duration) (*sandbox.ExecResult, error)
+	attachCodeFn       func(ctx context.Context, sandboxID string, code map[string]string) error
+	cleanupFn          func(ctx context.Context) (int, error)
+	closeFn            func(ctx context.Context) error
+	startCleanupLoopFn func(ctx context.Context, interval time.Duration)
 }
 
 func (m *mockSandboxManager) Create(ctx context.Context, sessionID string, cfg sandbox.Config) (*sandbox.Sandbox, error) {
@@ -497,6 +498,12 @@ func (m *mockSandboxManager) Close(ctx context.Context) error {
 	return errNotImplemented
 }
 
+func (m *mockSandboxManager) StartCleanupLoop(ctx context.Context, interval time.Duration) {
+	if m.startCleanupLoopFn != nil {
+		m.startCleanupLoopFn(ctx, interval)
+	}
+}
+
 // serverWithMocks holds a server configured with mock dependencies
 type serverWithMocks struct {
 	server   *Server
@@ -533,25 +540,14 @@ func newServerWithMocks() *serverWithMocks {
 		profileService: profiles,
 		llmRegistry:    registry,
 		runnerExecutor: executor,
+		SandboxManager: sandboxMock,
 	}
 
 	// Register routes (need to set up routes manually for isolated testing)
 	srv.setupRoutes()
 
-	// Assign sandbox manager after setup - use type assertion trick
-	type managerInterface interface {
-		Create(ctx context.Context, sessionID string, cfg sandbox.Config) (*sandbox.Sandbox, error)
-		Get(ctx context.Context, id string) (*sandbox.Sandbox, error)
-		GetBySession(ctx context.Context, sessionID string) (*sandbox.Sandbox, error)
-		Destroy(ctx context.Context, id string) error
-		Pause(ctx context.Context, id string) error
-		Resume(ctx context.Context, id string) error
-		Execute(ctx context.Context, sandboxID string, cmd []string, timeout time.Duration) (*sandbox.ExecResult, error)
-		AttachCode(ctx context.Context, sandboxID string, code map[string]string) error
-		Cleanup(ctx context.Context) (int, error)
-		Close(ctx context.Context) error
-	}
-	var _ managerInterface = (*mockSandboxManager)(nil)
+	// Assign sandbox manager after setup
+	srv.SandboxManager = sandboxMock
 
 	return &serverWithMocks{
 		server:   srv,
