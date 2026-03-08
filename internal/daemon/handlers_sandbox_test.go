@@ -221,3 +221,265 @@ func TestHandleSandboxExec_NotFound(t *testing.T) {
 		t.Fatalf("status = %d; want %d", rec.Code, http.StatusNotFound)
 	}
 }
+
+func TestHandleSandboxExec_InvalidBody(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{ID: "sb-1", SessionID: sessionID, Status: sandbox.StatusReady}, nil
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/exec", bytes.NewReader([]byte("{invalid")))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleSandboxExec_ExecError(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{ID: "sb-1", SessionID: sessionID, Status: sandbox.StatusReady}, nil
+	}
+	m.sandbox.execFn = func(ctx context.Context, id string, cmd []string, timeout time.Duration) (*sandbox.ExecResult, error) {
+		return nil, errors.New("exec error")
+	}
+
+	body := []byte(`{"cmd":["echo","hello"]}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/exec", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandlePauseSandbox_Error(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{ID: "sb-1", SessionID: sessionID}, nil
+	}
+	m.sandbox.pauseFn = func(ctx context.Context, id string) error {
+		return errors.New("pause error")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/pause", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleResumeSandbox_Error(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{ID: "sb-1", SessionID: sessionID}, nil
+	}
+	m.sandbox.resumeFn = func(ctx context.Context, id string) error {
+		return errors.New("resume error")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/resume", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleGetSandbox_NotRunning(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{
+			ID:        "sb-1",
+			SessionID: sessionID,
+			Status:    sandbox.StatusRunning,
+		}, nil
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions/s1/sandbox", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestHandleCreateSandbox_Error(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.createFn = func(ctx context.Context, sessionID string, cfg sandbox.Config) (*sandbox.Sandbox, error) {
+		return nil, errors.New("create error")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox", bytes.NewReader([]byte(`{}`)))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleDestroySandbox_NotFound(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, sandbox.ErrSandboxNotFound
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/v1/sessions/s1/sandbox", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleDestroySandbox_GetError(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, errors.New("get error")
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/v1/sessions/s1/sandbox", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleSandboxExec_InvalidSession(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{ID: "sb-1", SessionID: sessionID, Status: sandbox.StatusRunning}, nil
+	}
+	m.sandbox.execFn = func(ctx context.Context, id string, cmd []string, timeout time.Duration) (*sandbox.ExecResult, error) {
+		return &sandbox.ExecResult{ExitCode: 0, Stdout: "ok"}, nil
+	}
+
+	body := []byte(`{"cmd":["echo","hello"],"timeout":5}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/exec", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestHandlePauseSandbox_GetError(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, errors.New("get error")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/pause", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleResumeSandbox_GetError(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, errors.New("get error")
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/resume", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandlePauseSandbox_NotFound(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, sandbox.ErrSandboxNotFound
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/pause", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleResumeSandbox_NotFound(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, sandbox.ErrSandboxNotFound
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/resume", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleGetSandbox_Running(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{
+			ID:        "sb-1",
+			SessionID: sessionID,
+			Status:    sandbox.StatusRunning,
+		}, nil
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions/s1/sandbox", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestHandleGetSandbox_Error(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return nil, errors.New("get error")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions/s1/sandbox", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusInternalServerError)
+	}
+}

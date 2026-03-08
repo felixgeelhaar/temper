@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -74,6 +75,97 @@ func TestSetupLLMProviders(t *testing.T) {
 	}
 }
 
+func TestSetupLLMProviders_ClaudeDisabled(t *testing.T) {
+	cfg := config.DefaultLocalConfig()
+	cfg.LLM.Providers = map[string]*config.ProviderConfig{
+		"claude": {Enabled: false, APIKey: "key"},
+		"ollama": {Enabled: true, URL: "http://localhost:11434", Model: "llama"},
+	}
+
+	s := &Server{cfg: cfg}
+	reg := llm.NewRegistry()
+
+	if err := s.setupLLMProviders(reg); err != nil {
+		t.Fatalf("setupLLMProviders() error = %v", err)
+	}
+
+	found := false
+	for _, name := range reg.List() {
+		if name == "ollama" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("setupLLMProviders() should register ollama when claude is disabled")
+	}
+}
+
+func TestSetupLLMProviders_OpenAI(t *testing.T) {
+	cfg := config.DefaultLocalConfig()
+	cfg.LLM.Providers = map[string]*config.ProviderConfig{
+		"openai": {Enabled: true, APIKey: "test-key", Model: "gpt-4"},
+	}
+
+	s := &Server{cfg: cfg}
+	reg := llm.NewRegistry()
+
+	if err := s.setupLLMProviders(reg); err != nil {
+		t.Fatalf("setupLLMProviders() error = %v", err)
+	}
+
+	found := false
+	for _, name := range reg.List() {
+		if name == "openai" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("setupLLMProviders() should register openai")
+	}
+}
+
+func TestSetupLLMProviders_Claude(t *testing.T) {
+	cfg := config.DefaultLocalConfig()
+	cfg.LLM.Providers = map[string]*config.ProviderConfig{
+		"claude": {Enabled: true, APIKey: "test-key", Model: "claude-3"},
+	}
+
+	s := &Server{cfg: cfg}
+	reg := llm.NewRegistry()
+
+	if err := s.setupLLMProviders(reg); err != nil {
+		t.Fatalf("setupLLMProviders() error = %v", err)
+	}
+
+	found := false
+	for _, name := range reg.List() {
+		if name == "claude" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("setupLLMProviders() should register claude")
+	}
+}
+
+func TestSetupLLMProviders_OpenAIEmptyKey(t *testing.T) {
+	cfg := config.DefaultLocalConfig()
+	cfg.LLM.Providers = map[string]*config.ProviderConfig{
+		"openai": {Enabled: true, APIKey: "", Model: "gpt-4"},
+	}
+
+	s := &Server{cfg: cfg}
+	reg := llm.NewRegistry()
+
+	if err := s.setupLLMProviders(reg); err != nil {
+		t.Fatalf("setupLLMProviders() error = %v", err)
+	}
+
+	if len(reg.List()) != 0 {
+		t.Errorf("setupLLMProviders() should not register openai without key")
+	}
+}
+
 func TestConvertToDomainProfile(t *testing.T) {
 	m := newServerWithMocks()
 
@@ -101,5 +193,20 @@ func TestConvertToDomainProfile(t *testing.T) {
 	if result.SuggestMaxLevel() == domain.L0Clarify {
 		// Sanity check that profile is usable
 		return
+	}
+}
+
+func TestNewServer(t *testing.T) {
+	cfg := ServerConfig{
+		Config: config.DefaultLocalConfig(),
+	}
+	ctx := context.Background()
+
+	srv, err := NewServer(ctx, cfg)
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
+	if srv == nil {
+		t.Fatal("NewServer() returned nil")
 	}
 }

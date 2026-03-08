@@ -152,6 +152,30 @@ func TestTrackHandlers_CRUD(t *testing.T) {
 	}
 }
 
+func TestTrackHandlers_ListWithStore(t *testing.T) {
+	m, cleanup := setupTrackServer(t)
+	defer cleanup()
+
+	track := domain.Track{
+		ID:              "test-track",
+		Name:            "Test",
+		Description:     "Test track",
+		MaxLevel:        domain.L1CategoryHint,
+		CooldownSeconds: 5,
+	}
+	body, _ := json.Marshal(track)
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/tracks", bytes.NewReader(body))
+	createRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(createRec, createReq)
+
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/tracks", nil)
+	listRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("ListTracks status = %d; want %d", listRec.Code, http.StatusOK)
+	}
+}
+
 func TestTrackHandlers_ExportImport(t *testing.T) {
 	m, cleanup := setupTrackServer(t)
 	defer cleanup()
@@ -263,6 +287,19 @@ func TestTrackHandlers_Errors(t *testing.T) {
 	}
 }
 
+func TestTrackHandlers_ListWithoutStore(t *testing.T) {
+	m := newServerWithMocks()
+	m.server.trackStore = nil
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/tracks", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("ListTracks without store status = %d; want %d", rec.Code, http.StatusServiceUnavailable)
+	}
+}
+
 func TestDocIndexHandlers(t *testing.T) {
 	m, _ := setupDocIndexServer(t)
 
@@ -325,5 +362,87 @@ func TestDocIndexHandlers_Errors(t *testing.T) {
 	m.server.router.ServeHTTP(statusRec, statusReq)
 	if statusRec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("DocIndex status missing service = %d; want %d", statusRec.Code, http.StatusServiceUnavailable)
+	}
+}
+
+func TestDocIndexHandlers_ListDocuments_NoService(t *testing.T) {
+	m := newServerWithMocks()
+	m.server.docindexService = nil
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/docindex/documents", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("DocIndex list no service status = %d; want %d", rec.Code, http.StatusServiceUnavailable)
+	}
+}
+
+func TestDocIndexHandlers_Reindex_NoService(t *testing.T) {
+	m := newServerWithMocks()
+	m.server.docindexService = nil
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/docindex/reindex", nil)
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("DocIndex reindex no service status = %d; want %d", rec.Code, http.StatusServiceUnavailable)
+	}
+}
+
+func TestDocIndexHandlers_ListWithLimit(t *testing.T) {
+	m, _ := setupDocIndexServer(t)
+
+	indexReq := httptest.NewRequest(http.MethodPost, "/v1/docindex/index", bytes.NewReader([]byte(`{}`)))
+	indexRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(indexRec, indexReq)
+
+	listReq := httptest.NewRequest(http.MethodGet, "/v1/docindex/documents?limit=1", nil)
+	listRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("DocIndex list with limit status = %d; want %d", listRec.Code, http.StatusOK)
+	}
+}
+
+func TestDocIndexHandlers_IndexWithPaths(t *testing.T) {
+	m, _ := setupDocIndexServer(t)
+
+	indexReq := httptest.NewRequest(http.MethodPost, "/v1/docindex/index", bytes.NewReader([]byte(`{"paths":["."]}`)))
+	indexRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(indexRec, indexReq)
+	if indexRec.Code != http.StatusOK {
+		t.Fatalf("DocIndex index with paths status = %d; want %d", indexRec.Code, http.StatusOK)
+	}
+}
+
+func TestDocIndexHandlers_SearchWithFilters(t *testing.T) {
+	m, _ := setupDocIndexServer(t)
+
+	indexReq := httptest.NewRequest(http.MethodPost, "/v1/docindex/index", bytes.NewReader([]byte(`{}`)))
+	indexRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(indexRec, indexReq)
+
+	searchReq := httptest.NewRequest(http.MethodPost, "/v1/docindex/search", bytes.NewReader([]byte(`{"query":"intro","top_k":5}`)))
+	searchRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(searchRec, searchReq)
+	if searchRec.Code != http.StatusOK {
+		t.Fatalf("DocIndex search with filters status = %d; want %d", searchRec.Code, http.StatusOK)
+	}
+}
+
+func TestDocIndexHandlers_SearchWithDocType(t *testing.T) {
+	m, _ := setupDocIndexServer(t)
+
+	indexReq := httptest.NewRequest(http.MethodPost, "/v1/docindex/index", bytes.NewReader([]byte(`{}`)))
+	indexRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(indexRec, indexReq)
+
+	searchReq := httptest.NewRequest(http.MethodPost, "/v1/docindex/search", bytes.NewReader([]byte(`{"query":"intro","doc_type":"readme","top_k":3}`)))
+	searchRec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(searchRec, searchReq)
+	if searchRec.Code != http.StatusOK {
+		t.Fatalf("DocIndex search with doc_type status = %d; want %d", searchRec.Code, http.StatusOK)
 	}
 }

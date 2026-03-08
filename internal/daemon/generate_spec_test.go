@@ -130,3 +130,73 @@ func TestHandleGenerateSpec_Success(t *testing.T) {
 		t.Errorf("acceptance criteria id should be set")
 	}
 }
+
+func TestHandleGenerateSpec_WithGoals(t *testing.T) {
+	m := newServerWithMocks()
+
+	provider := &mockProvider{
+		name: "mock",
+		resp: "result:\n{" +
+			"\"name\":\"Demo\"," +
+			"\"version\":\"0.1.0\"," +
+			"\"goals\":[\"goal1\",\"goal2\"]," +
+			"\"features\":[{" +
+			"\"id\":\"feature-1\",\"title\":\"Feature\",\"description\":\"desc\",\"priority\":\"high\",\"success_criteria\":[\"done\"]" +
+			"}]," +
+			"\"non_functional\":{\"performance\":[\"p\"],\"security\":[\"s\"],\"scalability\":[\"c\"]}," +
+			"\"acceptance_criteria\":[{\"id\":\"ac-1\",\"description\":\"Given...\",\"satisfied\":false}]," +
+			"\"milestones\":[{\"id\":\"ms-001\",\"name\":\"M1\",\"features\":[\"feature-1\"],\"target\":\"soon\",\"description\":\"desc\"}]" +
+			"}\nend",
+	}
+
+	m.registry.defaultFn = func() (llm.Provider, error) {
+		return provider, nil
+	}
+	m.specs.saveFn = func(ctx context.Context, spec *domain.ProductSpec) error {
+		return nil
+	}
+
+	body := []byte(`{"name":"Demo","description":"Test","goals":["goal1","goal2"]}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/specs/generate", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusCreated)
+	}
+}
+
+func TestHandleGenerateSpec_WithContext(t *testing.T) {
+	m := newServerWithMocks()
+
+	provider := &mockProvider{
+		name: "mock",
+		resp: "result:\n{" +
+			"\"name\":\"Demo\"," +
+			"\"version\":\"0.1.0\"," +
+			"\"goals\":[\"g1\"]," +
+			"\"features\":[{" +
+			"\"id\":\"feature-1\",\"title\":\"Feature\",\"description\":\"desc\",\"priority\":\"high\",\"success_criteria\":[\"done\"]" +
+			"}]," +
+			"\"non_functional\":{\"performance\":[\"p\"],\"security\":[\"s\"],\"scalability\":[\"c\"]}," +
+			"\"acceptance_criteria\":[{\"id\":\"ac-1\",\"description\":\"Given...\",\"satisfied\":false}]," +
+			"\"milestones\":[{\"id\":\"ms-001\",\"name\":\"M1\",\"features\":[\"feature-1\"],\"target\":\"soon\",\"description\":\"desc\"}]" +
+			"}\nend",
+	}
+
+	m.registry.defaultFn = func() (llm.Provider, error) {
+		return provider, nil
+	}
+	m.specs.saveFn = func(ctx context.Context, spec *domain.ProductSpec) error {
+		return nil
+	}
+
+	body := []byte(`{"name":"Demo","description":"Test","context":"extra context"}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/specs/generate", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusCreated)
+	}
+}
