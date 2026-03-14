@@ -64,3 +64,7 @@ temp/
 
 # Roady
 .roady/
+
+# Security scan output
+findings.json
+.nox/

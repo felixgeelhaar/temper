@@ -13,18 +13,18 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "astro": "^5.7.10",
-    "@astrojs/vue": "^5.0.10",
     "@astrojs/check": "^0.9.6",
-    "vue": "^3.5.13",
+    "@astrojs/vue": "^5.0.10",
+    "astro": "^5.7.10",
     "d3": "^7.9.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@vitejs/plugin-vue": "^5.2.4",
-    "vitest": "^3.2.1",
     "@vue/test-utils": "^2.4.6",
-    "happy-dom": "^17.4.6"
+    "happy-dom": "^20.8.4",
+    "vitest": "^3.2.1"
   }
 }
