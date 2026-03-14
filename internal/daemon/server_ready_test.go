@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/felixgeelhaar/temper/internal/config"
@@ -197,8 +199,17 @@ func TestConvertToDomainProfile(t *testing.T) {
 }
 
 func TestNewServer(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "temper-test-*")
+	if err != nil {
+		t.Fatalf("create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	localCfg := config.DefaultLocalConfig()
+	localCfg.Storage.Path = filepath.Join(tmpDir, "temper.db")
+
 	cfg := ServerConfig{
-		Config: config.DefaultLocalConfig(),
+		Config: localCfg,
 	}
 	ctx := context.Background()
 

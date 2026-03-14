@@ -113,6 +113,7 @@ func setupTestServerWithContext(t *testing.T) *testServerContext {
 	cfg := config.DefaultLocalConfig()
 	cfg.Daemon.Port = 0 // Let system choose port
 	cfg.Runner.Executor = "local"
+	cfg.Storage.Path = filepath.Join(tmpDir, "temper.db")
 
 	// Create server
 	server, err := NewServer(context.Background(), ServerConfig{
