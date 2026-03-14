@@ -26,7 +26,7 @@ M.config = {
 
 	-- Auto behaviors
 	auto_run_on_save = false,
-	check_daemon_on_start = true,
+	check_daemon_on_start = false,
 	show_hints_in_quickfix = false,
 
 	-- Keymaps (set to false to disable)
@@ -91,6 +91,24 @@ function M.setup(opts)
 		if M.config.check_daemon_on_start then
 			M.health_check()
 		end
+
+		-- Auto-shutdown: clean up session when Neovim exits
+		vim.api.nvim_create_autocmd("VimLeavePre", {
+			callback = function()
+				if M.state.session_id then
+					-- Synchronous cleanup so it completes before exit
+					local url = string.format(
+						"http://%s:%d/v1/sessions/%s",
+						M.config.host,
+						M.config.port,
+						M.state.session_id
+					)
+					vim.fn.system({ "curl", "-s", "-X", "DELETE", "--max-time", "2", url })
+					M.state.session_id = nil
+					M.state.exercise_id = nil
+				end
+			end,
+		})
 end
 
 -- Create user commands

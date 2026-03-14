@@ -72,22 +72,22 @@ describe("state", function()
 	end)
 
 	describe("daemon health check", function()
-		it("runs health_check by default", function()
+		it("skips health_check by default", function()
 			local calls = 0
 			temper.health_check = function()
 				calls = calls + 1
 			end
 			temper.setup({})
-			assert.equals(1, calls)
+			assert.equals(0, calls)
 		end)
 
-		it("skips health_check when disabled", function()
+		it("runs health_check when explicitly enabled", function()
 			local calls = 0
 			temper.health_check = function()
 				calls = calls + 1
 			end
-			temper.setup({ check_daemon_on_start = false })
-			assert.equals(0, calls)
+			temper.setup({ check_daemon_on_start = true })
+			assert.equals(1, calls)
 		end)
 	end)
 
