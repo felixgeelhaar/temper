@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -2179,6 +2180,17 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cmdName := strings.TrimSpace(req.Cmd[0])
+	if cmdName == "" {
+		s.jsonError(w, http.StatusBadRequest, "cmd is required", nil)
+		return
+	}
+	cmdBase := path.Base(cmdName)
+	if !isSandboxCommandAllowed(cmdBase) {
+		s.jsonError(w, http.StatusBadRequest, "command not allowed", nil)
+		return
+	}
+
 	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
@@ -2216,6 +2228,30 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, http.StatusOK, result)
+}
+
+func isSandboxCommandAllowed(cmd string) bool {
+	allowed := map[string]struct{}{
+		"bash":        {},
+		"echo":        {},
+		"git":         {},
+		"go":          {},
+		"gofmt":       {},
+		"goimports":   {},
+		"govulncheck": {},
+		"make":        {},
+		"node":        {},
+		"npm":         {},
+		"pnpm":        {},
+		"python":      {},
+		"python3":     {},
+		"sh":          {},
+		"staticcheck": {},
+		"yarn":        {},
+	}
+
+	_, ok := allowed[strings.ToLower(cmd)]
+	return ok
 }
 
 func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {

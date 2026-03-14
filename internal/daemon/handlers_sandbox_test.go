@@ -238,6 +238,23 @@ func TestHandleSandboxExec_InvalidBody(t *testing.T) {
 	}
 }
 
+func TestHandleSandboxExec_CommandNotAllowed(t *testing.T) {
+	m := newServerWithMocks()
+
+	m.sandbox.getBySessionFn = func(ctx context.Context, sessionID string) (*sandbox.Sandbox, error) {
+		return &sandbox.Sandbox{ID: "sb-1", SessionID: sessionID, Status: sandbox.StatusReady}, nil
+	}
+
+	body := []byte(`{"cmd":["rm","-rf","/"]}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/sessions/s1/sandbox/exec", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	m.server.router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d; want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
 func TestHandleSandboxExec_ExecError(t *testing.T) {
 	m := newServerWithMocks()
 
