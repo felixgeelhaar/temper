@@ -1,13 +1,13 @@
 module github.com/felixgeelhaar/temper
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/felixgeelhaar/fortify v1.1.2
 	github.com/felixgeelhaar/mcp-go v1.3.1
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.1
+	github.com/jackc/pgx/v5 v5.9.0
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/rabbitmq/amqp091-go v1.10.0
