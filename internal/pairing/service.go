@@ -2,6 +2,7 @@ package pairing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ type Service struct {
 	defaultProvider string
 	selector        *Selector
 	prompter        *Prompter
+	clampValidator  *ClampValidator
 }
 
 // NewService creates a new pairing service
@@ -25,6 +27,7 @@ func NewService(llmRegistry *llm.Registry, defaultProvider string) *Service {
 		defaultProvider: defaultProvider,
 		selector:        NewSelector(),
 		prompter:        NewPrompter(),
+		clampValidator:  NewClampValidator(),
 	}
 }
 
@@ -78,18 +81,22 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		return nil, fmt.Errorf("get LLM provider: %w", err)
 	}
 
+	systemPrompt := s.prompter.SystemPrompt(level)
+
 	// Generate intervention content
 	llmResp, err := provider.Generate(ctx, &llm.Request{
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
-		System:      s.prompter.SystemPrompt(level),
+		System:      systemPrompt,
 		MaxTokens:   1024,
 		Temperature: 0.7,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("generate intervention: %w", err)
 	}
+
+	content, rationale := s.enforceClamp(ctx, provider, level, prompt, systemPrompt, llmResp.Content)
 
 	// Build intervention
 	intervention := &domain.Intervention{
@@ -100,14 +107,60 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		Intent:      req.Intent,
 		Level:       level,
 		Type:        interventionType,
-		Content:     llmResp.Content,
+		Content:     content,
 		Targets:     s.extractTargets(req.Context),
-		Rationale:   fmt.Sprintf("Selected L%d based on intent=%s, profile signals", level, req.Intent),
+		Rationale:   fmt.Sprintf("Selected L%d based on intent=%s, profile signals%s", level, req.Intent, rationale),
 		RequestedAt: time.Now(),
 		DeliveredAt: time.Now(),
 	}
 
 	return intervention, nil
+}
+
+// enforceClamp validates LLM output against the level clamp. On violation,
+// retries once with a tightening directive. If the retry also violates,
+// sanitizes the output and annotates the rationale.
+func (s *Service) enforceClamp(
+	ctx context.Context,
+	provider llm.Provider,
+	level domain.InterventionLevel,
+	userPrompt, systemPrompt, initial string,
+) (content, rationaleSuffix string) {
+	if s.clampValidator == nil {
+		return initial, ""
+	}
+
+	if err := s.clampValidator.Validate(level, initial); err == nil {
+		return initial, ""
+	} else {
+		// Retry once with stricter system prompt.
+		violation := &ClampViolation{}
+		reason := "unspecified"
+		if errors.As(err, &violation) {
+			reason = violation.Reason
+		}
+
+		retryResp, retryErr := provider.Generate(ctx, &llm.Request{
+			Messages: []llm.Message{
+				{Role: llm.RoleUser, Content: userPrompt},
+			},
+			System:      systemPrompt + s.clampValidator.TighteningDirective(level, reason),
+			MaxTokens:   1024,
+			Temperature: 0.5,
+		})
+		if retryErr == nil {
+			if validateErr := s.clampValidator.Validate(level, retryResp.Content); validateErr == nil {
+				return retryResp.Content, "; clamp retry succeeded"
+			} else {
+				// Retry also violated. Sanitize as last resort.
+				return s.clampValidator.Sanitize(level, retryResp.Content),
+					"; clamp violated twice — output sanitized"
+			}
+		}
+
+		// Retry failed (network etc) — sanitize the original.
+		return s.clampValidator.Sanitize(level, initial), "; clamp violated, retry failed — sanitized"
+	}
 }
 
 // IntervenStream generates an intervention with streaming response
