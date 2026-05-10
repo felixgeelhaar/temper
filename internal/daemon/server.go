@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"path/filepath"
@@ -58,6 +59,9 @@ type Server struct {
 
 	// Document index service for external context
 	docindexService *docindex.Service
+
+	// Idempotency cache for non-idempotent POSTs (run, sandbox-exec).
+	idempotency *IdempotencyCache
 }
 
 // SandboxManager defines the interface for sandbox operations
@@ -91,8 +95,9 @@ type ServerConfig struct {
 // NewServer creates a new daemon server
 func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	s := &Server{
-		cfg:    cfg.Config,
-		router: http.NewServeMux(),
+		cfg:         cfg.Config,
+		router:      http.NewServeMux(),
+		idempotency: NewIdempotencyCache(),
 	}
 
 	// Initialize LLM registry
@@ -779,6 +784,30 @@ func (s *Server) handleDeleteSession(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("id")
 
+	// Read the body once so we can both deduplicate via Idempotency-Key
+	// and decode it. MaxBytesReader still bounds total bytes consumed.
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRunBodyBytes)
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.jsonErrorCode(w, http.StatusRequestEntityTooLarge, ErrCodePayloadTooLarge, "request body too large", err)
+		return
+	}
+
+	idemKey := r.Header.Get(IdempotencyHeader)
+	if idemKey != "" && s.idempotency != nil {
+		if entry, ok, conflict := s.idempotency.Lookup(sessionID, idemKey, bodyBytes); conflict {
+			s.jsonErrorCode(w, http.StatusConflict, ErrCodeConflict,
+				"Idempotency-Key reused with a different request body", nil)
+			return
+		} else if ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Idempotent-Replay", "true")
+			w.WriteHeader(entry.statusCode)
+			w.Write(entry.payload)
+			return
+		}
+	}
+
 	var req struct {
 		Code   map[string]string `json:"code"`
 		Format bool              `json:"format"`
@@ -786,8 +815,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		Test   bool              `json:"test"`
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRunBodyBytes)
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
 		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
 		return
 	}
@@ -799,6 +827,18 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		}
 		s.jsonError(w, http.StatusBadRequest, err.Error(), err)
 		return
+	}
+
+	// Wrap the response writer so successful responses can be cached for
+	// future replay under the same idempotency key.
+	if idemKey != "" && s.idempotency != nil {
+		captured := newCapturingResponseWriter(w)
+		defer func() {
+			if captured.statusCode >= 200 && captured.statusCode < 300 {
+				s.idempotency.Store(sessionID, idemKey, bodyBytes, captured.statusCode, captured.body.Bytes())
+			}
+		}()
+		w = captured
 	}
 
 	// If session ID is provided, use session service
