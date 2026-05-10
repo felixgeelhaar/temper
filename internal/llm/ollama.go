@@ -90,6 +90,7 @@ func (p *OllamaProvider) Generate(ctx context.Context, req *Request) (*Response,
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
+	applyCorrelationHeader(httpReq, req)
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
@@ -131,6 +132,7 @@ func (p *OllamaProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
+	applyCorrelationHeader(httpReq, req)
 
 	resp, err := p.streamClient.Do(httpReq)
 	if err != nil {

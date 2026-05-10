@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
+	"github.com/felixgeelhaar/temper/internal/correlation"
 )
 
 func TestGetCorrelationID_FromContext(t *testing.T) {
 	testID := "test-correlation-id-123"
-	ctx := context.WithValue(context.Background(), CorrelationIDKey, testID)
+	ctx := correlation.WithContext(context.Background(), testID)
 
 	result := GetCorrelationID(ctx)
 	if result != testID {

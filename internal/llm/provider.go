@@ -45,6 +45,11 @@ type Request struct {
 	// flagged blocks; providers that do not (OpenAI, Ollama) concatenate
 	// the blocks back into a single string.
 	SystemBlocks []SystemContentBlock
+
+	// CorrelationID propagates the daemon's request ID to the upstream
+	// LLM API so failures can be traced editor → daemon → provider. When
+	// non-empty, providers attach it as the X-Request-ID HTTP header.
+	CorrelationID string
 }
 
 // SystemContentBlock is a chunk of the system prompt with an optional

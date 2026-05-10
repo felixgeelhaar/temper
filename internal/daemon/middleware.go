@@ -9,42 +9,40 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/felixgeelhaar/temper/internal/correlation"
 )
 
-// ContextKey is the type for context keys used in this package
+// ContextKey is the type for context keys used in this package.
+// Kept exported for external test imports; the canonical source for the
+// correlation ID is the internal/correlation package.
 type ContextKey string
 
 const (
-	// CorrelationIDKey is the context key for the correlation ID
+	// CorrelationIDKey is preserved for backwards compatibility with code
+	// that referenced the old key. New code should use correlation.FromContext.
 	CorrelationIDKey ContextKey = "correlation_id"
-	// CorrelationIDHeader is the HTTP header name for correlation ID
-	CorrelationIDHeader = "X-Request-ID"
+	// CorrelationIDHeader is re-exported for tests.
+	CorrelationIDHeader = correlation.HeaderName
 )
 
 // GetCorrelationID extracts the correlation ID from a context
 func GetCorrelationID(ctx context.Context) string {
-	if id, ok := ctx.Value(CorrelationIDKey).(string); ok {
-		return id
-	}
-	return ""
+	return correlation.FromContext(ctx)
 }
 
 // correlationIDMiddleware adds or propagates a correlation ID for request tracing
 func correlationIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check for existing correlation ID in header
-		correlationID := r.Header.Get(CorrelationIDHeader)
+		correlationID := r.Header.Get(correlation.HeaderName)
 		if correlationID == "" {
 			correlationID = uuid.New().String()
 		}
 
-		// Add correlation ID to response header
-		w.Header().Set(CorrelationIDHeader, correlationID)
+		w.Header().Set(correlation.HeaderName, correlationID)
 
-		// Add correlation ID to request context
-		ctx := context.WithValue(r.Context(), CorrelationIDKey, correlationID)
+		ctx := correlation.WithContext(r.Context(), correlationID)
 
-		// Continue with enriched context
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

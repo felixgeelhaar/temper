@@ -96,6 +96,7 @@ func (p *OpenAIProvider) Generate(ctx context.Context, req *Request) (*Response,
 	}
 
 	p.setHeaders(httpReq)
+	applyCorrelationHeader(httpReq, req)
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
@@ -130,6 +131,7 @@ func (p *OpenAIProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 	}
 
 	p.setHeaders(httpReq)
+	applyCorrelationHeader(httpReq, req)
 
 	resp, err := p.streamClient.Do(httpReq)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/felixgeelhaar/temper/internal/correlation"
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/llm"
 	"github.com/google/uuid"
@@ -136,10 +137,11 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
-		System:       systemPrompt,
-		SystemBlocks: systemBlocks,
-		MaxTokens:    1024,
-		Temperature:  0.7,
+		System:        systemPrompt,
+		SystemBlocks:  systemBlocks,
+		CorrelationID: correlation.FromContext(ctx),
+		MaxTokens:     1024,
+		Temperature:   0.7,
 	})
 	if err != nil {
 		// LLM failed (network, circuit breaker open, rate limit, etc.).
@@ -297,8 +299,9 @@ func (s *Service) IntervenStream(ctx context.Context, req InterventionRequest) (
 		SystemBlocks: []llm.SystemContentBlock{
 			{Text: streamSystem, CacheControl: true},
 		},
-		MaxTokens:   1024,
-		Temperature: 0.7,
+		CorrelationID: correlation.FromContext(ctx),
+		MaxTokens:     1024,
+		Temperature:   0.7,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("generate stream: %w", err)

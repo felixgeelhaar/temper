@@ -113,6 +113,7 @@ func (p *ClaudeProvider) Generate(ctx context.Context, req *Request) (*Response,
 	}
 
 	p.setHeaders(httpReq)
+	applyCorrelationHeader(httpReq, req)
 
 	resp, err := p.httpClient.Do(httpReq)
 	if err != nil {
@@ -147,6 +148,7 @@ func (p *ClaudeProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 	}
 
 	p.setHeaders(httpReq)
+	applyCorrelationHeader(httpReq, req)
 
 	resp, err := p.streamClient.Do(httpReq)
 	if err != nil {
@@ -274,6 +276,15 @@ func (p *ClaudeProvider) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", p.apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
+}
+
+// applyCorrelationHeader attaches the per-request correlation ID as
+// X-Request-ID so the LLM API call can be matched to the originating
+// daemon request in logs.
+func applyCorrelationHeader(httpReq *http.Request, llmReq *Request) {
+	if llmReq != nil && llmReq.CorrelationID != "" {
+		httpReq.Header.Set("X-Request-ID", llmReq.CorrelationID)
+	}
 }
 
 func (p *ClaudeProvider) parseResponse(resp *claudeResponse) *Response {
