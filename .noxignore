@@ -1,0 +1,20 @@
+# Paths excluded from Nox security scanning. Format: gitignore-style.
+#
+# Reason for each entry — keep current so reviewers know why something
+# is suppressed. Run `nox scan` after editing to confirm the exclusion
+# took effect.
+
+# npm/pnpm lockfiles: sha512 integrity hashes false-match every imported
+# gitleaks "Detected X API Key" pattern (Firebase, ELK Stack, IBM Cloud,
+# Prometheus, Literal, etc.). These are public deterministic hashes,
+# not credentials. Real dep CVEs are still tracked via VULN-001.
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Demo environment: intentionally weak fixed creds (temper:temper). Not
+# production. Documented at top of the file.
+docker-compose.demo.yml
+
+# .env example file: documents env-var names with placeholder values.
+.env.example

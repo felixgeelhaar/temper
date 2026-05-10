@@ -1,0 +1,11 @@
+# Dependabot version updates are intentionally disabled. Dependency
+# security is owned by Nox (see .github/workflows/nox.yml). This empty
+# updates: list satisfies dependabot.yml schema validation while
+# producing no PRs.
+#
+# Note: Dependabot *security* alerts are configured in repo Settings →
+# Code security → Dependabot alerts. Disable manually there if you also
+# want to stop the security-alert-driven PRs that bypass this file.
+
+version: 2
+updates: []

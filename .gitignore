@@ -68,3 +68,5 @@ temp/
 # Security scan output
 findings.json
 .nox/
+# Keep the baseline checked in — CI relies on it.
+!.nox/baseline.json

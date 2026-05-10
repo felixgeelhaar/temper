@@ -1,0 +1,49 @@
+name: Security
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Sunday 03:00 UTC — catches new advisories without
+    # waiting for the next push.
+    - cron: '0 3 * * 0'
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  nox-scan:
+    name: Nox security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Install Nox
+        run: |
+          # Pin to a known release for reproducibility. Update this
+          # version field deliberately, not transitively.
+          curl -fsSL https://nox.dev/install.sh | sh -s -- v0.8.1
+          echo "$HOME/.nox/bin" >> "$GITHUB_PATH"
+
+      - name: Show Nox version
+        run: nox version
+
+      - name: Run scan against baseline
+        run: |
+          # Exit non-zero on any finding NOT in .nox/baseline.json.
+          # The baseline file is committed; review changes during PR.
+          nox scan --baseline .nox/baseline.json --fail-on critical,high
+
+      - name: Annotate PR with new findings
+        if: github.event_name == 'pull_request' && failure()
+        run: nox annotate > nox-annotations.json
+        continue-on-error: true
