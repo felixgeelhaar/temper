@@ -131,8 +131,18 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 		Timeout int               `json:"timeout,omitempty"` // seconds
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRunBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.jsonError(w, http.StatusBadRequest, "invalid request body", err)
+		return
+	}
+
+	if err := validateCodePayload(req.Code); err != nil {
+		if pe := asPayloadError(err); pe != nil {
+			s.jsonError(w, http.StatusRequestEntityTooLarge, pe.Message, err)
+			return
+		}
+		s.jsonError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
