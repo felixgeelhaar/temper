@@ -40,7 +40,7 @@ func (s *Server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 	track, err := s.trackStore.Get(id)
 	if err != nil {
 		if err == sqlitestore.ErrTrackNotFound {
-			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeTrackNotFound, "track not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get track", err)
@@ -97,7 +97,7 @@ func (s *Server) handleUpdateTrack(w http.ResponseWriter, r *http.Request) {
 	existing, err := s.trackStore.Get(id)
 	if err != nil {
 		if err == sqlitestore.ErrTrackNotFound {
-			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeTrackNotFound, "track not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get track", err)
@@ -137,7 +137,7 @@ func (s *Server) handleDeleteTrack(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.trackStore.Delete(id); err != nil {
 		if err == sqlitestore.ErrTrackNotFound {
-			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeTrackNotFound, "track not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to delete track", err)
@@ -166,7 +166,7 @@ func (s *Server) handleExportTrack(w http.ResponseWriter, r *http.Request) {
 	track, err := s.trackStore.Get(req.ID)
 	if err != nil {
 		if err == sqlitestore.ErrTrackNotFound {
-			s.jsonError(w, http.StatusNotFound, "track not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeTrackNotFound, "track not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get track", err)

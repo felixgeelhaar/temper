@@ -56,9 +56,9 @@ func (s *Server) handleCreateSandbox(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sandbox.ErrSessionHasSandbox:
-			s.jsonError(w, http.StatusConflict, "session already has a sandbox", nil)
+			s.jsonErrorCode(w, http.StatusConflict, ErrCodeSessionConflict, "session already has a sandbox", nil)
 		case sandbox.ErrMaxSandboxes:
-			s.jsonError(w, http.StatusTooManyRequests, "maximum concurrent sandboxes reached", nil)
+			s.jsonErrorCode(w, http.StatusTooManyRequests, ErrCodeSandboxLimitHit, "maximum concurrent sandboxes reached", nil)
 		default:
 			s.jsonError(w, http.StatusInternalServerError, "failed to create sandbox", err)
 		}
@@ -70,7 +70,7 @@ func (s *Server) handleCreateSandbox(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGetSandbox(w http.ResponseWriter, r *http.Request) {
 	if s.SandboxManager == nil {
-		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		s.jsonErrorCode(w, http.StatusServiceUnavailable, ErrCodeServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (s *Server) handleGetSandbox(w http.ResponseWriter, r *http.Request) {
 	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
-			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSandboxNotFound, "no sandbox for this session", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
@@ -91,7 +91,7 @@ func (s *Server) handleGetSandbox(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
 	if s.SandboxManager == nil {
-		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		s.jsonErrorCode(w, http.StatusServiceUnavailable, ErrCodeServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
 	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
-			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSandboxNotFound, "no sandbox for this session", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
@@ -119,7 +119,7 @@ func (s *Server) handleDestroySandbox(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 	if s.SandboxManager == nil {
-		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		s.jsonErrorCode(w, http.StatusServiceUnavailable, ErrCodeServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
@@ -165,7 +165,7 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
-			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSandboxNotFound, "no sandbox for this session", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
@@ -189,9 +189,9 @@ func (s *Server) handleSandboxExec(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case sandbox.ErrSandboxExpired:
-			s.jsonError(w, http.StatusGone, "sandbox has expired", nil)
+			s.jsonErrorCode(w, http.StatusGone, ErrCodeSandboxExpired, "sandbox has expired", nil)
 		case sandbox.ErrSandboxNotReady:
-			s.jsonError(w, http.StatusConflict, "sandbox is not ready", nil)
+			s.jsonErrorCode(w, http.StatusConflict, ErrCodeConflict, "sandbox is not ready", nil)
 		default:
 			s.jsonError(w, http.StatusInternalServerError, "execution failed", err)
 		}
@@ -227,7 +227,7 @@ func isSandboxCommandAllowed(cmd string) bool {
 
 func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
 	if s.SandboxManager == nil {
-		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		s.jsonErrorCode(w, http.StatusServiceUnavailable, ErrCodeServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
@@ -236,7 +236,7 @@ func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
 	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
-			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSandboxNotFound, "no sandbox for this session", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)
@@ -255,7 +255,7 @@ func (s *Server) handlePauseSandbox(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleResumeSandbox(w http.ResponseWriter, r *http.Request) {
 	if s.SandboxManager == nil {
-		s.jsonError(w, http.StatusServiceUnavailable, "sandbox support not available", nil)
+		s.jsonErrorCode(w, http.StatusServiceUnavailable, ErrCodeServiceUnavailable, "sandbox support not available", nil)
 		return
 	}
 
@@ -264,7 +264,7 @@ func (s *Server) handleResumeSandbox(w http.ResponseWriter, r *http.Request) {
 	sb, err := s.SandboxManager.GetBySession(r.Context(), sessionID)
 	if err != nil {
 		if err == sandbox.ErrSandboxNotFound {
-			s.jsonError(w, http.StatusNotFound, "no sandbox for this session", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSandboxNotFound, "no sandbox for this session", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get sandbox", err)

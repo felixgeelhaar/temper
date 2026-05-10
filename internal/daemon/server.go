@@ -617,7 +617,7 @@ func (s *Server) handleGetExercise(w http.ResponseWriter, r *http.Request) {
 
 	ex, err := s.exerciseLoader.LoadExercise(packID, slug)
 	if err != nil {
-		s.jsonError(w, http.StatusNotFound, "exercise not found", err)
+		s.jsonErrorCode(w, http.StatusNotFound, ErrCodeExerciseNotFound, "exercise not found", err)
 		return
 	}
 
@@ -694,7 +694,7 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if err == session.ErrExerciseNotFound {
-			s.jsonError(w, http.StatusNotFound, "exercise not found", err)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeExerciseNotFound, "exercise not found", err)
 			return
 		}
 		if err == session.ErrSpecRequired {
@@ -718,7 +718,7 @@ func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	sess, err := s.sessionService.Get(r.Context(), id)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -735,7 +735,7 @@ func (s *Server) handleDeleteSession(w http.ResponseWriter, r *http.Request) {
 	sess, err := s.sessionService.Get(r.Context(), id)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -811,7 +811,7 @@ func (s *Server) handleCreateRun(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			if err == session.ErrSessionNotFound {
-				s.jsonError(w, http.StatusNotFound, "session not found", nil)
+				s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 				return
 			}
 			if err == session.ErrSessionNotActive {
@@ -1001,7 +1001,7 @@ func (s *Server) handlePairingWithEscalation(w http.ResponseWriter, r *http.Requ
 	sess, err := s.sessionService.Get(r.Context(), sessionID)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -1155,7 +1155,7 @@ func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request, intent do
 	sess, err := s.sessionService.Get(r.Context(), sessionID)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -1340,11 +1340,28 @@ func (s *Server) jsonResponse(w http.ResponseWriter, status int, data interface{
 }
 
 func (s *Server) jsonError(w http.ResponseWriter, status int, message string, err error) {
+	s.jsonErrorCode(w, status, defaultErrorCodeForStatus(status), message, err)
+}
+
+// jsonErrorCode writes a structured error response with an explicit
+// machine-readable error_code. Editor clients should switch on error_code,
+// never on the message text.
+func (s *Server) jsonErrorCode(w http.ResponseWriter, status int, code, message string, err error) {
+	if code == "" {
+		code = defaultErrorCodeForStatus(status)
+	}
 	response := map[string]interface{}{
-		"error":  message,
-		"status": status,
+		"error":      message,
+		"error_code": code,
+		"status":     status,
 	}
 	if err != nil {
+		// If the underlying error already carries a payload-specific code,
+		// surface it as the authoritative code; payload validators set
+		// these.
+		if pe := asPayloadError(err); pe != nil {
+			response["error_code"] = pe.Code
+		}
 		response["details"] = err.Error()
 	}
 	s.jsonResponse(w, status, response)
@@ -1518,7 +1535,7 @@ func (s *Server) handleGetSpec(w http.ResponseWriter, r *http.Request) {
 	specObj, err := s.specService.Load(r.Context(), path)
 	if err != nil {
 		if err == spec.ErrSpecNotFound {
-			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSpecNotFound, "spec not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to load spec", err)
@@ -1538,7 +1555,7 @@ func (s *Server) handleValidateSpec(w http.ResponseWriter, r *http.Request) {
 	validation, err := s.specService.Validate(r.Context(), path)
 	if err != nil {
 		if err == spec.ErrSpecNotFound {
-			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSpecNotFound, "spec not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to validate spec", err)
@@ -1575,11 +1592,11 @@ func (s *Server) handleMarkCriterionSatisfied(w http.ResponseWriter, r *http.Req
 
 	if err := s.specService.MarkCriterionSatisfied(r.Context(), path, criterionID, req.Evidence); err != nil {
 		if err == spec.ErrSpecNotFound {
-			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSpecNotFound, "spec not found", nil)
 			return
 		}
 		if err == spec.ErrCriterionNotFound {
-			s.jsonError(w, http.StatusNotFound, "criterion not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeCriterionNotFound, "criterion not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to mark criterion satisfied", err)
@@ -1603,7 +1620,7 @@ func (s *Server) handleLockSpec(w http.ResponseWriter, r *http.Request) {
 	lock, err := s.specService.Lock(r.Context(), path)
 	if err != nil {
 		if err == spec.ErrSpecNotFound {
-			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSpecNotFound, "spec not found", nil)
 			return
 		}
 		if err == spec.ErrSpecInvalid {
@@ -1627,7 +1644,7 @@ func (s *Server) handleGetSpecProgress(w http.ResponseWriter, r *http.Request) {
 	progress, err := s.specService.GetProgress(r.Context(), path)
 	if err != nil {
 		if err == spec.ErrSpecNotFound {
-			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSpecNotFound, "spec not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get progress", err)
@@ -1647,7 +1664,7 @@ func (s *Server) handleGetSpecDrift(w http.ResponseWriter, r *http.Request) {
 	drift, err := s.specService.GetDrift(r.Context(), path)
 	if err != nil {
 		if err == spec.ErrSpecNotFound {
-			s.jsonError(w, http.StatusNotFound, "spec not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSpecNotFound, "spec not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get drift report", err)
@@ -1702,7 +1719,7 @@ func (s *Server) handlePatchApply(w http.ResponseWriter, r *http.Request) {
 	sess, err := s.sessionService.Get(r.Context(), sessionID)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -1912,7 +1929,7 @@ func (s *Server) handleAuthoringSuggest(w http.ResponseWriter, r *http.Request) 
 	sess, err := s.sessionService.Get(r.Context(), sessionID)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -1997,7 +2014,7 @@ func (s *Server) handleAuthoringApply(w http.ResponseWriter, r *http.Request) {
 	sess, err := s.sessionService.Get(r.Context(), sessionID)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
@@ -2037,7 +2054,7 @@ func (s *Server) handleAuthoringHint(w http.ResponseWriter, r *http.Request) {
 	sess, err := s.sessionService.Get(r.Context(), sessionID)
 	if err != nil {
 		if err == session.ErrSessionNotFound {
-			s.jsonError(w, http.StatusNotFound, "session not found", nil)
+			s.jsonErrorCode(w, http.StatusNotFound, ErrCodeSessionNotFound, "session not found", nil)
 			return
 		}
 		s.jsonError(w, http.StatusInternalServerError, "failed to get session", err)
