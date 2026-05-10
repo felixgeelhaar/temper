@@ -17,7 +17,7 @@ type Intervention struct {
 	Type        InterventionType
 	Content     string   // the actual guidance text
 	Targets     []Target // file/line targets
-	Rationale   string   // internal reasoning (not shown to user)
+	Rationale   string   // selector reasoning, surfaced via --why
 	RequestedAt time.Time
 	DeliveredAt time.Time
 }

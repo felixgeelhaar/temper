@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/correlation"
@@ -167,26 +168,75 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		return nil, fmt.Errorf("generate intervention: %w", err)
 	}
 
-	content, rationale := s.enforceClamp(ctx, provider, level, prompt, systemPrompt, llmResp.Content)
+	content, clampRationale := s.enforceClamp(ctx, provider, level, prompt, systemPrompt, llmResp.Content)
 
 	// Build intervention
 	intervention := &domain.Intervention{
-		ID:        uuid.New(),
-		SessionID: req.SessionID,
-		UserID:    req.UserID,
-		RunID:     req.RunID,
-		Intent:    req.Intent,
-		Level:     level,
-		Type:      interventionType,
-		Content:   content,
-		Targets:   s.extractTargets(req.Context),
-		Rationale: fmt.Sprintf("Selected L%d based on intent=%s, profile signals%s; model=%s",
-			level, req.Intent, rationale, fallbackModelLabel(chosenModel)),
+		ID:          uuid.New(),
+		SessionID:   req.SessionID,
+		UserID:      req.UserID,
+		RunID:       req.RunID,
+		Intent:      req.Intent,
+		Level:       level,
+		Type:        interventionType,
+		Content:     content,
+		Targets:     s.extractTargets(req.Context),
+		Rationale:   buildRationale(level, req, chosenModel, clampRationale),
 		RequestedAt: time.Now(),
 		DeliveredAt: time.Now(),
 	}
 
 	return intervention, nil
+}
+
+// buildRationale composes the rich, user-facing rationale string surfaced
+// via `temper hint --why` and editor equivalents. Should answer "why this
+// level for me?" with concrete signals: intent, dependency, topic skill,
+// run-output, model, and any clamp-retry note.
+func buildRationale(
+	level domain.InterventionLevel,
+	req InterventionRequest,
+	chosenModel string,
+	clampNote string,
+) string {
+	parts := []string{
+		fmt.Sprintf("Selected L%d for intent=%s", level, req.Intent),
+	}
+
+	if req.Context.Profile != nil {
+		dep := req.Context.Profile.HintDependency()
+		parts = append(parts, fmt.Sprintf("hint dependency %.0f%%", dep*100))
+
+		if req.Context.Exercise != nil {
+			topic := profile.ExtractTopic(req.Context.Exercise.ID)
+			skill := req.Context.Profile.GetSkillLevel(topic).Level
+			parts = append(parts, fmt.Sprintf("topic=%s (skill %.2f)", topic, skill))
+		}
+	}
+
+	if ex := req.Context.Exercise; ex != nil && ex.Difficulty != "" {
+		parts = append(parts, fmt.Sprintf("difficulty=%s", ex.Difficulty))
+	}
+
+	if out := req.Context.RunOutput; out != nil {
+		switch {
+		case out.AllTestsPassed():
+			parts = append(parts, "all tests passing")
+		case out.HasErrors():
+			parts = append(parts, "build errors present")
+		case out.TestsFailed > 0:
+			parts = append(parts, fmt.Sprintf("%d tests failing", out.TestsFailed))
+		}
+	}
+
+	parts = append(parts, fmt.Sprintf("policy clamp=L%d", req.Policy.MaxLevel))
+	parts = append(parts, fmt.Sprintf("model=%s", fallbackModelLabel(chosenModel)))
+
+	out := strings.Join(parts, "; ")
+	if clampNote != "" {
+		out += clampNote
+	}
+	return out
 }
 
 // offlineIntervention serves a level-appropriate hint from the exercise's
