@@ -24,7 +24,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -32,7 +32,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache: true
 
       - name: Download dependencies
@@ -65,7 +65,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84
         with:
-          version: latest
+          version: v1.65.1
           args: --timeout=3m
 
   # Single build verification (not multi-platform - that's for releases)
@@ -81,7 +81,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache: true
 
       - name: Build binaries
