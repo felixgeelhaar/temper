@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
-    "@astrojs/vue": "^5.0.10",
-    "astro": "^5.7.10",
+    "@astrojs/vue": "^6.0.1",
+    "astro": "^6.1.8",
     "d3": "^7.9.0",
     "typescript": "^5.8.3",
     "vue": "^3.5.13"
