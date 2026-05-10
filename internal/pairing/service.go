@@ -111,12 +111,6 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		FocusCriterion: req.Context.FocusCriterion,
 	})
 
-	// Get LLM provider
-	provider, err := s.llmRegistry.Default()
-	if err != nil {
-		return nil, fmt.Errorf("get LLM provider: %w", err)
-	}
-
 	systemPrompt := s.prompter.SystemPromptForLanguage(level, exerciseLanguage(req.Context.Exercise))
 	systemBlocks := []llm.SystemContentBlock{
 		// Stable per (provider, level, language) — cache it. Hint requests
@@ -126,9 +120,19 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 
 	chosenModel := s.modelForLevel(level)
 
+	// Get LLM provider. If none is available (no API key, all disabled),
+	// fall back to the offline path so the user still gets useful guidance.
+	provider, err := s.llmRegistry.Default()
+	if err != nil {
+		if fallback := s.offlineIntervention(req, level, interventionType, "no LLM provider available"); fallback != nil {
+			return fallback, nil
+		}
+		return nil, fmt.Errorf("get LLM provider: %w", err)
+	}
+
 	// Generate intervention content
 	llmResp, err := provider.Generate(ctx, &llm.Request{
-		Model:        chosenModel,
+		Model: chosenModel,
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
@@ -138,6 +142,11 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		Temperature:  0.7,
 	})
 	if err != nil {
+		// LLM failed (network, circuit breaker open, rate limit, etc.).
+		// Serve a YAML hint when one is available rather than fail hard.
+		if fallback := s.offlineIntervention(req, level, interventionType, fmt.Sprintf("LLM error: %v", err)); fallback != nil {
+			return fallback, nil
+		}
 		return nil, fmt.Errorf("generate intervention: %w", err)
 	}
 
@@ -145,15 +154,15 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 
 	// Build intervention
 	intervention := &domain.Intervention{
-		ID:          uuid.New(),
-		SessionID:   req.SessionID,
-		UserID:      req.UserID,
-		RunID:       req.RunID,
-		Intent:      req.Intent,
-		Level:       level,
-		Type:        interventionType,
-		Content:     content,
-		Targets:     s.extractTargets(req.Context),
+		ID:        uuid.New(),
+		SessionID: req.SessionID,
+		UserID:    req.UserID,
+		RunID:     req.RunID,
+		Intent:    req.Intent,
+		Level:     level,
+		Type:      interventionType,
+		Content:   content,
+		Targets:   s.extractTargets(req.Context),
 		Rationale: fmt.Sprintf("Selected L%d based on intent=%s, profile signals%s; model=%s",
 			level, req.Intent, rationale, fallbackModelLabel(chosenModel)),
 		RequestedAt: time.Now(),
@@ -161,6 +170,52 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 	}
 
 	return intervention, nil
+}
+
+// offlineIntervention serves a level-appropriate hint from the exercise's
+// YAML when the LLM is unavailable. Returns nil if no hint is available
+// for the requested level (caller should propagate the LLM error).
+//
+// The returned intervention's content is prefixed with "[offline mode]" and
+// the rationale explains why the LLM was skipped, so the user is never
+// misled about the source of the guidance.
+func (s *Service) offlineIntervention(
+	req InterventionRequest,
+	level domain.InterventionLevel,
+	iType domain.InterventionType,
+	reason string,
+) *domain.Intervention {
+	if req.Context.Exercise == nil {
+		return nil
+	}
+	hints := req.Context.Exercise.GetHintsForLevel(level)
+	if len(hints) == 0 {
+		// Try one level down — better to under-help than fail entirely.
+		if level > domain.L0Clarify {
+			hints = req.Context.Exercise.GetHintsForLevel(level.Decrement())
+		}
+	}
+	if len(hints) == 0 {
+		return nil
+	}
+
+	content := "[offline mode] " + hints[0]
+
+	return &domain.Intervention{
+		ID:        uuid.New(),
+		SessionID: req.SessionID,
+		UserID:    req.UserID,
+		RunID:     req.RunID,
+		Intent:    req.Intent,
+		Level:     level,
+		Type:      iType,
+		Content:   content,
+		Targets:   s.extractTargets(req.Context),
+		Rationale: fmt.Sprintf("Offline fallback at L%d (intent=%s); reason: %s",
+			level, req.Intent, reason),
+		RequestedAt: time.Now(),
+		DeliveredAt: time.Now(),
+	}
 }
 
 // enforceClamp validates LLM output against the level clamp. On violation,
