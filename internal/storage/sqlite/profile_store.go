@@ -125,7 +125,7 @@ func (s *ProfileStore) List() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list profiles: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {
@@ -141,7 +141,7 @@ func (s *ProfileStore) List() ([]string, error) {
 // Exists checks if a profile exists.
 func (s *ProfileStore) Exists(id string) bool {
 	var count int
-	s.db.QueryRow("SELECT COUNT(*) FROM profiles WHERE id = ?", id).Scan(&count)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM profiles WHERE id = ?", id).Scan(&count)
 	return count > 0
 }
 

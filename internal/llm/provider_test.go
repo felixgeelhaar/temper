@@ -141,7 +141,7 @@ func TestRegistry_Default(t *testing.T) {
 	// Set and get default
 	p := &mockProvider{name: "test"}
 	r.Register("test", p)
-	r.SetDefault("test")
+	_ = r.SetDefault("test")
 
 	got, err := r.Default()
 	if err != nil {
@@ -189,7 +189,7 @@ func TestRegistry_DefaultName(t *testing.T) {
 
 	// Set default
 	r.Register("test", &mockProvider{name: "test"})
-	r.SetDefault("test")
+	_ = r.SetDefault("test")
 
 	if r.DefaultName() != "test" {
 		t.Errorf("DefaultName() = %v, want test", r.DefaultName())
@@ -1232,7 +1232,7 @@ func TestClaudeProvider_Generate_HTTPSuccess(t *testing.T) {
 		resp.Usage.InputTokens = 10
 		resp.Usage.OutputTokens = 5
 
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -1256,7 +1256,7 @@ func TestClaudeProvider_Generate_HTTPSuccess(t *testing.T) {
 func TestClaudeProvider_Generate_HTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "internal server error"}`))
+		_, _ = w.Write([]byte(`{"error": "internal server error"}`))
 	}))
 	defer server.Close()
 
@@ -1307,7 +1307,7 @@ func TestOpenAIProvider_Generate_HTTPSuccess(t *testing.T) {
 				"completion_tokens": 5,
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -1374,7 +1374,7 @@ func TestOllamaProvider_Generate_HTTPSuccess(t *testing.T) {
 			"eval_count":        5,
 			"prompt_eval_count": 10,
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -1593,7 +1593,7 @@ func TestOllamaProvider_GenerateStream_HTTPSuccess(t *testing.T) {
 func TestClaudeProvider_Generate_ContextCancellation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(100 * time.Millisecond)
-		json.NewEncoder(w).Encode(map[string]interface{}{})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 	}))
 	defer server.Close()
 
@@ -1617,7 +1617,7 @@ func TestClaudeProvider_Generate_ContextCancellation(t *testing.T) {
 func TestOpenAIProvider_Generate_ContextCancellation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(100 * time.Millisecond)
-		json.NewEncoder(w).Encode(map[string]interface{}{})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 	}))
 	defer server.Close()
 
@@ -1641,7 +1641,7 @@ func TestOpenAIProvider_Generate_ContextCancellation(t *testing.T) {
 func TestOllamaProvider_Generate_ContextCancellation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(100 * time.Millisecond)
-		json.NewEncoder(w).Encode(map[string]interface{}{})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 	}))
 	defer server.Close()
 

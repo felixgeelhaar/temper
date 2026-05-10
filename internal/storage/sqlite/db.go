@@ -27,7 +27,7 @@ func Open(path string) (*DB, error) {
 
 	// Verify connectivity
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
 
@@ -94,12 +94,12 @@ func (db *DB) Migrate() error {
 		}
 
 		if _, err := tx.Exec(string(data)); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("apply migration %s: %w", name, err)
 		}
 
 		if _, err := tx.Exec("INSERT OR REPLACE INTO schema_migrations (version) VALUES (?)", version); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("record migration %s: %w", name, err)
 		}
 

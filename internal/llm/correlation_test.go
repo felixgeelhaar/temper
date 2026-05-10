@@ -38,7 +38,7 @@ func TestClaudeProvider_AttachesCorrelationOnHTTP(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		captured = r.Header.Get("X-Request-ID")
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"id":"x","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":1,"output_tokens":1}}`))
+		_, _ = w.Write([]byte(`{"id":"x","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":1,"output_tokens":1}}`))
 	}))
 	defer srv.Close()
 

@@ -67,7 +67,7 @@ func TestLogger_Log_Applied(t *testing.T) {
 		Status:         domain.PatchStatusApplied,
 	}
 
-	logger.Log(LogActionApplied, patch)
+	_ = logger.Log(LogActionApplied, patch)
 
 	entries := logger.GetEntries()
 	if len(entries) != 1 {
@@ -93,7 +93,7 @@ func TestLogger_GetRecentEntries(t *testing.T) {
 			File:           "test.go",
 			Status:         domain.PatchStatusPending,
 		}
-		logger.Log(LogActionCreated, patch)
+		_ = logger.Log(LogActionCreated, patch)
 	}
 
 	// Get last 3
@@ -123,19 +123,19 @@ func TestLogger_GetSessionEntries(t *testing.T) {
 	session2 := uuid.New()
 
 	// Add entries for different sessions
-	logger.Log(LogActionCreated, &domain.Patch{
+	_ = logger.Log(LogActionCreated, &domain.Patch{
 		ID:             uuid.New(),
 		SessionID:      session1,
 		InterventionID: uuid.New(),
 		File:           "file1.go",
 	})
-	logger.Log(LogActionCreated, &domain.Patch{
+	_ = logger.Log(LogActionCreated, &domain.Patch{
 		ID:             uuid.New(),
 		SessionID:      session2,
 		InterventionID: uuid.New(),
 		File:           "file2.go",
 	})
-	logger.Log(LogActionCreated, &domain.Patch{
+	_ = logger.Log(LogActionCreated, &domain.Patch{
 		ID:             uuid.New(),
 		SessionID:      session1,
 		InterventionID: uuid.New(),
@@ -270,7 +270,7 @@ func TestLogger_Persistence(t *testing.T) {
 		File:           "persistent.go",
 		Description:    "Test persistence",
 	}
-	logger1.Log(LogActionCreated, patch)
+	_ = logger1.Log(LogActionCreated, patch)
 
 	// Create new logger from same directory (should load existing)
 	logger2, err := NewLogger(tmpDir)

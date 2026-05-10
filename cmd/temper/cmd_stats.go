@@ -37,7 +37,7 @@ func cmdStatsOverview() error {
 	if err != nil {
 		return fmt.Errorf("get overview: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var overview struct {
 		TotalSessions       int     `json:"total_sessions"`
@@ -88,7 +88,7 @@ func cmdStatsSkills() error {
 	if err != nil {
 		return fmt.Errorf("get skills: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var breakdown struct {
 		Skills map[string]struct {
@@ -141,7 +141,7 @@ func cmdStatsErrors() error {
 	if err != nil {
 		return fmt.Errorf("get errors: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result struct {
 		Patterns []struct {
@@ -176,7 +176,7 @@ func cmdStatsTrend() error {
 	if err != nil {
 		return fmt.Errorf("get trend: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result struct {
 		Trend []struct {

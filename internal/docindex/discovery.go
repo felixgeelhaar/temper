@@ -7,7 +7,11 @@ import (
 	"time"
 
 	"github.com/felixgeelhaar/temper/internal/domain"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
+
+var titleCaser = cases.Title(language.Und)
 
 // DefaultDocPaths are common documentation locations to search
 var DefaultDocPaths = []string{
@@ -221,7 +225,7 @@ func inferTitle(path string, content string) string {
 	// Fall back to filename
 	name := filepath.Base(path)
 	name = strings.TrimSuffix(name, filepath.Ext(name))
-	return strings.Title(strings.ReplaceAll(name, "-", " "))
+	return titleCaser.String(strings.ReplaceAll(name, "-", " "))
 }
 
 // inferDocType determines the document type from path and content

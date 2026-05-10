@@ -69,7 +69,7 @@ func cmdSpecCreate(name string) error {
 	if err != nil {
 		return fmt.Errorf("create spec: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated {
 		var errResp struct {
@@ -108,7 +108,7 @@ func cmdSpecList() error {
 	if err != nil {
 		return fmt.Errorf("list specs: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result struct {
 		Specs []struct {
@@ -156,7 +156,7 @@ func cmdSpecValidate(path string) error {
 	if err != nil {
 		return fmt.Errorf("validate spec: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("spec not found: %s", path)
@@ -206,7 +206,7 @@ func cmdSpecStatus(path string) error {
 	if err != nil {
 		return fmt.Errorf("get spec: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("spec not found: %s", path)
@@ -285,7 +285,7 @@ func cmdSpecLock(path string) error {
 	if err != nil {
 		return fmt.Errorf("lock spec: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("spec not found: %s", path)
@@ -326,7 +326,7 @@ func cmdSpecDrift(path string) error {
 	if err != nil {
 		return fmt.Errorf("get drift: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("spec or lock not found: %s", path)

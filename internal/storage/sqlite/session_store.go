@@ -93,7 +93,7 @@ func (s *SessionStore) List() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list sessions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {
@@ -117,7 +117,7 @@ func (s *SessionStore) ListActive() ([]*session.Session, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list active sessions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sessions []*session.Session
 	for rows.Next() {
@@ -133,7 +133,7 @@ func (s *SessionStore) ListActive() ([]*session.Session, error) {
 // Exists checks if a session exists.
 func (s *SessionStore) Exists(id string) bool {
 	var count int
-	s.db.QueryRow("SELECT COUNT(*) FROM sessions WHERE id = ?", id).Scan(&count)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM sessions WHERE id = ?", id).Scan(&count)
 	return count > 0
 }
 
@@ -201,7 +201,7 @@ func (s *SessionStore) ListRuns(sessionID string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list runs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {
@@ -270,7 +270,7 @@ func (s *SessionStore) ListInterventions(sessionID string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list interventions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var ids []string
 	for rows.Next() {

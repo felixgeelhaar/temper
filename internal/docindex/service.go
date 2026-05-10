@@ -81,7 +81,11 @@ func (s *Service) IndexDirectory(ctx context.Context, basePath string) (*IndexRe
 		result.SectionsEmbedded += embedded
 
 		// Mark as indexed
-		s.index.MarkIndexed(doc.Hash)
+		if err := s.index.MarkIndexed(doc.Hash); err != nil {
+			s.logger.Error("failed to mark document indexed", "hash", doc.Hash, "error", err)
+			result.Errors++
+			continue
+		}
 	}
 
 	return result, nil

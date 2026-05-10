@@ -73,13 +73,13 @@ func (r *Registry) Format() string {
 
 	for _, n := range names {
 		if c, ok := r.counters[n]; ok {
-			sb.WriteString(fmt.Sprintf("# HELP %s %s\n", c.name, c.help))
-			sb.WriteString(fmt.Sprintf("# TYPE %s counter\n", c.name))
+			fmt.Fprintf(&sb, "# HELP %s %s\n", c.name, c.help)
+			fmt.Fprintf(&sb, "# TYPE %s counter\n", c.name)
 			c.format(&sb)
 		}
 		if g, ok := r.gauges[n]; ok {
-			sb.WriteString(fmt.Sprintf("# HELP %s %s\n", g.name, g.help))
-			sb.WriteString(fmt.Sprintf("# TYPE %s gauge\n", g.name))
+			fmt.Fprintf(&sb, "# HELP %s %s\n", g.name, g.help)
+			fmt.Fprintf(&sb, "# TYPE %s gauge\n", g.name)
 			fmt.Fprintf(&sb, "%s %d\n", g.name, g.value.Load())
 		}
 	}

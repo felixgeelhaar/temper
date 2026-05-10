@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/felixgeelhaar/temper/internal/config"
 )
@@ -51,12 +50,6 @@ func daemonPost(url, contentType string, body io.Reader) (*http.Response, error)
 		req.Header.Set("Authorization", "Bearer "+t)
 	}
 	return http.DefaultClient.Do(req)
-}
-
-// daemonPostJSON is a thin convenience wrapper around daemonPost for JSON
-// bodies given as strings.
-func daemonPostJSON(url, body string) (*http.Response, error) {
-	return daemonPost(url, "application/json", strings.NewReader(body))
 }
 
 // authError returns true if the response indicates the bearer token is

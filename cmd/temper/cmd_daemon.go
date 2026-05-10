@@ -126,7 +126,7 @@ func cmdStatus() error {
 	if err != nil {
 		return fmt.Errorf("get status: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var status struct {
 		Status       string   `json:"status"`
@@ -168,7 +168,7 @@ func cmdLogs() error {
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Seek to end and go back ~4KB for recent logs
 	info, _ := file.Stat()
@@ -199,7 +199,7 @@ func isRunning() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return resp.StatusCode == http.StatusOK
 }
 

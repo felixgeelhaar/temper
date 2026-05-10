@@ -26,13 +26,9 @@ func TestTemperDir(t *testing.T) {
 }
 
 func TestEnsureTemperDir(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	dir, err := EnsureTemperDir()
 	if err != nil {
@@ -252,13 +248,9 @@ func TestLoadSecrets_UnknownProvider(t *testing.T) {
 }
 
 func TestLoadLocalConfig_DefaultsWhenNoFile(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	// Create .temper directory (but no config.yaml)
 	if err := os.MkdirAll(filepath.Join(tmpHome, ".temper"), 0755); err != nil {
@@ -277,13 +269,9 @@ func TestLoadLocalConfig_DefaultsWhenNoFile(t *testing.T) {
 }
 
 func TestLoadLocalConfig_WithConfigFile(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	// Create .temper directory and config file
 	temperDir := filepath.Join(tmpHome, ".temper")
@@ -323,13 +311,9 @@ llm:
 }
 
 func TestLoadLocalConfig_WithSecrets(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	// Create .temper directory
 	temperDir := filepath.Join(tmpHome, ".temper")
@@ -364,13 +348,9 @@ func TestLoadLocalConfig_WithSecrets(t *testing.T) {
 }
 
 func TestLoadLocalConfig_InvalidConfigYAML(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	// Create .temper directory and invalid config
 	temperDir := filepath.Join(tmpHome, ".temper")
@@ -390,13 +370,9 @@ func TestLoadLocalConfig_InvalidConfigYAML(t *testing.T) {
 }
 
 func TestSaveLocalConfig(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	cfg := DefaultLocalConfig()
 	cfg.Daemon.Port = 8888
@@ -427,13 +403,9 @@ func TestSaveLocalConfig(t *testing.T) {
 }
 
 func TestSaveSecrets(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	secrets := map[string]string{
 		"claude": "sk-claude-secret",
@@ -476,13 +448,9 @@ func TestSaveSecrets(t *testing.T) {
 }
 
 func TestSaveSecrets_Empty(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	secrets := map[string]string{}
 
@@ -498,13 +466,9 @@ func TestSaveSecrets_Empty(t *testing.T) {
 }
 
 func TestRoundTrip_ConfigAndSecrets(t *testing.T) {
-	// Save original HOME
-	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-
 	// Use temp directory as HOME
 	tmpHome := t.TempDir()
-	os.Setenv("HOME", tmpHome)
+	t.Setenv("HOME", tmpHome)
 
 	// Save config
 	cfg := DefaultLocalConfig()

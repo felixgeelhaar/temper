@@ -52,7 +52,7 @@ func openTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("create schema: %v", err)
 	}
 
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	return db
 }
 
@@ -82,13 +82,13 @@ func TestIndex_SaveDocument(t *testing.T) {
 
 	// Verify document was saved
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&count)
+	_ = db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 document; got %d", count)
 	}
 
 	// Verify sections were saved
-	db.QueryRow("SELECT COUNT(*) FROM document_sections").Scan(&count)
+	_ = db.QueryRow("SELECT COUNT(*) FROM document_sections").Scan(&count)
 	if count != 2 {
 		t.Errorf("expected 2 sections; got %d", count)
 	}
@@ -110,7 +110,7 @@ func TestIndex_SaveDocument_Upsert(t *testing.T) {
 	}
 
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&count)
+	_ = db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 document after upsert; got %d", count)
 	}
@@ -125,7 +125,9 @@ func TestIndex_DocumentExists(t *testing.T) {
 		t.Error("DocumentExists() should return false before saving")
 	}
 
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	if !idx.DocumentExists(doc.Hash) {
 		t.Error("DocumentExists() should return true after saving")
@@ -137,7 +139,9 @@ func TestIndex_ListUnindexedSections(t *testing.T) {
 	idx := NewIndex(db)
 	doc := testDocument()
 
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	sections, err := idx.ListUnindexedSections()
 	if err != nil {
@@ -149,9 +153,15 @@ func TestIndex_ListUnindexedSections(t *testing.T) {
 
 	// Update one with an embedding
 	embedding := EncodeEmbedding([]float32{1.0, 0.0, 0.0})
-	idx.UpdateSectionEmbedding(sections[0].ID, embedding)
+	if err := idx.UpdateSectionEmbedding(sections[0].ID, embedding); err != nil {
+		t.Fatalf("UpdateSectionEmbedding() error = %v", err)
+	}
 
-	sections, _ = idx.ListUnindexedSections()
+	var err2 error
+	sections, err2 = idx.ListUnindexedSections()
+	if err2 != nil {
+		t.Fatalf("ListUnindexedSections() error = %v", err2)
+	}
 	if len(sections) != 1 {
 		t.Errorf("after embedding, ListUnindexedSections() returned %d; want 1", len(sections))
 	}
@@ -162,7 +172,9 @@ func TestIndex_ListAllSectionsWithEmbeddings(t *testing.T) {
 	idx := NewIndex(db)
 	doc := testDocument()
 
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	// Initially no sections with embeddings
 	sections, err := idx.ListAllSectionsWithEmbeddings()
@@ -174,13 +186,21 @@ func TestIndex_ListAllSectionsWithEmbeddings(t *testing.T) {
 	}
 
 	// Add embedding to both sections
-	unindexed, _ := idx.ListUnindexedSections()
+	unindexed, err := idx.ListUnindexedSections()
+	if err != nil {
+		t.Fatalf("ListUnindexedSections() error = %v", err)
+	}
 	for _, s := range unindexed {
 		embedding := EncodeEmbedding([]float32{1.0, 0.5, 0.0})
-		idx.UpdateSectionEmbedding(s.ID, embedding)
+		if err := idx.UpdateSectionEmbedding(s.ID, embedding); err != nil {
+			t.Fatalf("UpdateSectionEmbedding() error = %v", err)
+		}
 	}
 
-	sections, _ = idx.ListAllSectionsWithEmbeddings()
+	sections, err = idx.ListAllSectionsWithEmbeddings()
+	if err != nil {
+		t.Fatalf("ListAllSectionsWithEmbeddings() error = %v", err)
+	}
 	if len(sections) != 2 {
 		t.Errorf("expected 2 sections with embeddings; got %d", len(sections))
 	}
@@ -191,7 +211,9 @@ func TestIndex_MarkIndexed(t *testing.T) {
 	idx := NewIndex(db)
 	doc := testDocument()
 
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	if err := idx.MarkIndexed(doc.Hash); err != nil {
 		t.Fatalf("MarkIndexed() error = %v", err)
@@ -199,7 +221,7 @@ func TestIndex_MarkIndexed(t *testing.T) {
 
 	// Verify indexed_at is set
 	var indexedAt sql.NullTime
-	db.QueryRow("SELECT indexed_at FROM documents WHERE id = ?", doc.Hash).Scan(&indexedAt)
+	_ = db.QueryRow("SELECT indexed_at FROM documents WHERE id = ?", doc.Hash).Scan(&indexedAt)
 	if !indexedAt.Valid {
 		t.Error("MarkIndexed() should set indexed_at")
 	}
@@ -210,7 +232,9 @@ func TestIndex_GetDocument(t *testing.T) {
 	idx := NewIndex(db)
 	doc := testDocument()
 
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	got, err := idx.GetDocument(doc.Hash)
 	if err != nil {
@@ -239,7 +263,9 @@ func TestIndex_DeleteDocument(t *testing.T) {
 	idx := NewIndex(db)
 	doc := testDocument()
 
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	if err := idx.DeleteDocument(doc.Hash); err != nil {
 		t.Fatalf("DeleteDocument() error = %v", err)
@@ -251,7 +277,7 @@ func TestIndex_DeleteDocument(t *testing.T) {
 
 	// Sections should be cascade deleted
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM document_sections WHERE document_id = ?", doc.Hash).Scan(&count)
+	_ = db.QueryRow("SELECT COUNT(*) FROM document_sections WHERE document_id = ?", doc.Hash).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 sections after cascade delete; got %d", count)
 	}
@@ -275,8 +301,12 @@ func TestIndex_ListDocuments(t *testing.T) {
 		},
 	}
 
-	idx.SaveDocument(doc1)
-	idx.SaveDocument(doc2)
+	if err := idx.SaveDocument(doc1); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
+	if err := idx.SaveDocument(doc2); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	docs, err := idx.ListDocuments()
 	if err != nil {
@@ -292,13 +322,22 @@ func TestIndex_Stats(t *testing.T) {
 	idx := NewIndex(db)
 	doc := testDocument()
 
-	idx.SaveDocument(doc)
-	idx.MarkIndexed(doc.Hash)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
+	if err := idx.MarkIndexed(doc.Hash); err != nil {
+		t.Fatalf("MarkIndexed() error = %v", err)
+	}
 
 	// Embed one section
-	sections, _ := idx.ListUnindexedSections()
+	sections, err := idx.ListUnindexedSections()
+	if err != nil {
+		t.Fatalf("ListUnindexedSections() error = %v", err)
+	}
 	if len(sections) > 0 {
-		idx.UpdateSectionEmbedding(sections[0].ID, EncodeEmbedding([]float32{1.0}))
+		if err := idx.UpdateSectionEmbedding(sections[0].ID, EncodeEmbedding([]float32{1.0})); err != nil {
+			t.Fatalf("UpdateSectionEmbedding() error = %v", err)
+		}
 	}
 
 	stats, err := idx.Stats()
@@ -339,14 +378,24 @@ func TestRetriever_Search(t *testing.T) {
 			{Heading: "Error Handling", Level: 2, Content: "Go uses explicit error returns instead of exceptions."},
 		},
 	}
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
 	// Embed all sections
-	sections, _ := idx.ListUnindexedSections()
+	sections, err := idx.ListUnindexedSections()
+	if err != nil {
+		t.Fatalf("ListUnindexedSections() error = %v", err)
+	}
 	for _, sec := range sections {
 		text := sec.Heading + "\n" + sec.Content
-		vec, _ := embedder.Embed(ctx, text)
-		idx.UpdateSectionEmbedding(sec.ID, EncodeEmbedding(vec))
+		vec, err := embedder.Embed(ctx, text)
+		if err != nil {
+			t.Fatalf("Embed() error = %v", err)
+		}
+		if err := idx.UpdateSectionEmbedding(sec.ID, EncodeEmbedding(vec)); err != nil {
+			t.Fatalf("UpdateSectionEmbedding() error = %v", err)
+		}
 	}
 
 	// Search
@@ -389,12 +438,22 @@ func TestRetriever_SearchWithThreshold(t *testing.T) {
 		},
 		DiscoveredAt: time.Now(),
 	}
-	idx.SaveDocument(doc)
+	if err := idx.SaveDocument(doc); err != nil {
+		t.Fatalf("SaveDocument() error = %v", err)
+	}
 
-	sections, _ := idx.ListUnindexedSections()
+	sections, err := idx.ListUnindexedSections()
+	if err != nil {
+		t.Fatalf("ListUnindexedSections() error = %v", err)
+	}
 	for _, sec := range sections {
-		vec, _ := embedder.Embed(ctx, sec.Heading+"\n"+sec.Content)
-		idx.UpdateSectionEmbedding(sec.ID, EncodeEmbedding(vec))
+		vec, err := embedder.Embed(ctx, sec.Heading+"\n"+sec.Content)
+		if err != nil {
+			t.Fatalf("Embed() error = %v", err)
+		}
+		if err := idx.UpdateSectionEmbedding(sec.ID, EncodeEmbedding(vec)); err != nil {
+			t.Fatalf("UpdateSectionEmbedding() error = %v", err)
+		}
 	}
 
 	retriever := NewRetriever(idx, embedder)

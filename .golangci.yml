@@ -1,0 +1,27 @@
+version: "2"
+linters:
+  default: standard
+  exclusions:
+    paths:
+      - ".*_test\\.go$"
+      - "^internal/daemon/"
+      - "^internal/runner/"
+      - "^internal/pairing/"
+  settings:
+    errcheck:
+      exclude-functions:
+        - "net/http.(*Response).Body.Close"
+        - "database/sql.(*Rows).Close"
+        - "database/sql.(*Row).Scan"
+        - "database/sql.(*Tx).Rollback"
+        - "os.(*File).Close"
+        - "io.ReadCloser.Close"
+        - "io.Writer.Write"
+        - "fmt.Fprintln"
+        - "fmt.Fprintf"
+        - "fmt.Fprint"
+        - "(github.com/felixgeelhaar/temper/internal/patch.Logger).Log"
+formatters:
+  exclusions:
+    paths:
+      - ".*_test\\.go$"

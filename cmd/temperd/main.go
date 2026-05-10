@@ -57,7 +57,7 @@ func run() error {
 		return fmt.Errorf("setup logging: %w", err)
 	}
 	if logFile != nil {
-		defer logFile.Close()
+		defer func() { _ = logFile.Close() }()
 	}
 
 	// Write PID file
@@ -65,7 +65,7 @@ func run() error {
 	if err := writePIDFile(pidPath); err != nil {
 		return fmt.Errorf("write pid file: %w", err)
 	}
-	defer os.Remove(pidPath)
+	defer func() { _ = os.Remove(pidPath) }()
 
 	// Use exercises directory (try current dir first, then ~/.temper)
 	exercisePath := "./exercises"

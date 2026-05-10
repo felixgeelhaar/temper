@@ -39,7 +39,7 @@ func cmdStatsExport(args []string) error {
 	if err != nil {
 		return fmt.Errorf("get profile: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := authError(resp); err != nil {
 		return err
@@ -91,7 +91,7 @@ func cmdStatsExport(args []string) error {
 		if err != nil {
 			return fmt.Errorf("open %s: %w", *out, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		w = f
 	}
 

@@ -84,7 +84,7 @@ func (m *Manager) Create(ctx context.Context, sessionID string, cfg Config) (*Sa
 	containerID, err := m.backend.CreateContainer(ctx, cfg)
 	if err != nil {
 		sb.Status = StatusDestroyed
-		m.store.Save(sb)
+		_ = m.store.Save(sb)
 		return nil, fmt.Errorf("create container: %w", err)
 	}
 
@@ -94,7 +94,7 @@ func (m *Manager) Create(ctx context.Context, sessionID string, cfg Config) (*Sa
 
 	if err := m.store.Save(sb); err != nil {
 		// Roll back container
-		m.backend.DestroyContainer(ctx, containerID)
+		_ = m.backend.DestroyContainer(ctx, containerID)
 		return nil, fmt.Errorf("save sandbox: %w", err)
 	}
 
@@ -152,7 +152,7 @@ func (m *Manager) Execute(ctx context.Context, sandboxID string, cmd []string, t
 	// Update status to running
 	sb.Status = StatusRunning
 	sb.UpdatedAt = time.Now()
-	m.store.Save(sb)
+	_ = m.store.Save(sb)
 
 	result, err := m.backend.Exec(ctx, sb.ContainerID, cmd, timeout)
 
@@ -162,7 +162,7 @@ func (m *Manager) Execute(ctx context.Context, sandboxID string, cmd []string, t
 	sb.LastExecAt = &now
 	sb.ExpiresAt = now.Add(DefaultIdleTTL)
 	sb.UpdatedAt = now
-	m.store.Save(sb)
+	_ = m.store.Save(sb)
 
 	return result, err
 }

@@ -39,7 +39,7 @@ func cmdExerciseList() error {
 	if err != nil {
 		return fmt.Errorf("get exercises: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result struct {
 		Packs []struct {
@@ -82,7 +82,7 @@ func cmdExerciseInfo(id string) error {
 	if err != nil {
 		return fmt.Errorf("get exercise: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("exercise not found: %s", id)

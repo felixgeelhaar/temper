@@ -86,7 +86,7 @@ func (s *TrackStore) List() ([]*domain.Track, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list tracks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tracks []*domain.Track
 	for rows.Next() {
@@ -108,7 +108,7 @@ func (s *TrackStore) ListByPreset(preset string) ([]*domain.Track, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list tracks by preset: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tracks []*domain.Track
 	for rows.Next() {
@@ -124,7 +124,7 @@ func (s *TrackStore) ListByPreset(preset string) ([]*domain.Track, error) {
 // Exists checks if a track exists.
 func (s *TrackStore) Exists(id string) bool {
 	var count int
-	s.db.QueryRow("SELECT COUNT(*) FROM tracks WHERE id = ?", id).Scan(&count)
+	_ = s.db.QueryRow("SELECT COUNT(*) FROM tracks WHERE id = ?", id).Scan(&count)
 	return count > 0
 }
 

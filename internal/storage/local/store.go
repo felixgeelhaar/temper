@@ -37,7 +37,7 @@ func (s *Store) Save(collection, id string, data interface{}) error {
 	if err != nil {
 		return fmt.Errorf("create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -61,7 +61,7 @@ func (s *Store) Load(collection, id string, data interface{}) error {
 		}
 		return fmt.Errorf("open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	if err := json.NewDecoder(file).Decode(data); err != nil {
 		return fmt.Errorf("decode json: %w", err)
@@ -139,7 +139,7 @@ func (s *Store) SaveDir(collection, id, subdir, filename string, data interface{
 	if err != nil {
 		return fmt.Errorf("create file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -163,7 +163,7 @@ func (s *Store) LoadDir(collection, id, subdir, filename string, data interface{
 		}
 		return fmt.Errorf("open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	if err := json.NewDecoder(file).Decode(data); err != nil {
 		return fmt.Errorf("decode json: %w", err)

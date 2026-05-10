@@ -70,7 +70,7 @@ func (s *AnalyticsStore) Query(eventType string, sessionID string, since, until 
 	if err != nil {
 		return nil, fmt.Errorf("query analytics: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var events []AnalyticsEvent
 	for rows.Next() {

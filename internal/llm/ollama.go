@@ -96,7 +96,7 @@ func (p *OllamaProvider) Generate(ctx context.Context, req *Request) (*Response,
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -141,7 +141,7 @@ func (p *OllamaProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -149,7 +149,7 @@ func (p *OllamaProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 
 	go func() {
 		defer close(ch)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {

@@ -84,7 +84,7 @@ func (s *SandboxStore) ListActive() ([]*sandbox.Sandbox, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list active sandboxes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sandboxes []*sandbox.Sandbox
 	for rows.Next() {
@@ -108,7 +108,7 @@ func (s *SandboxStore) ListExpired() ([]*sandbox.Sandbox, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list expired sandboxes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sandboxes []*sandbox.Sandbox
 	for rows.Next() {

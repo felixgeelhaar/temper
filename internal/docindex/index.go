@@ -161,7 +161,7 @@ func (idx *Index) GetDocument(id string) (*domain.Document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get sections: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var s domain.DocumentSection
@@ -182,7 +182,7 @@ func (idx *Index) ListDocuments() ([]domain.Document, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list documents: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var docs []domain.Document
 	for rows.Next() {
@@ -207,7 +207,7 @@ func (idx *Index) DeleteDocument(id string) error {
 // DocumentExists checks if a document with the given hash already exists
 func (idx *Index) DocumentExists(hash string) bool {
 	var count int
-	idx.db.QueryRow("SELECT COUNT(*) FROM documents WHERE hash = ?", hash).Scan(&count)
+	_ = idx.db.QueryRow("SELECT COUNT(*) FROM documents WHERE hash = ?", hash).Scan(&count)
 	return count > 0
 }
 
@@ -223,10 +223,10 @@ type IndexStats struct {
 func (idx *Index) Stats() (*IndexStats, error) {
 	var stats IndexStats
 
-	idx.db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&stats.TotalDocuments)
-	idx.db.QueryRow("SELECT COUNT(*) FROM documents WHERE indexed_at IS NOT NULL").Scan(&stats.IndexedDocuments)
-	idx.db.QueryRow("SELECT COUNT(*) FROM document_sections").Scan(&stats.TotalSections)
-	idx.db.QueryRow("SELECT COUNT(*) FROM document_sections WHERE embedding IS NOT NULL").Scan(&stats.EmbeddedSections)
+	_ = idx.db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&stats.TotalDocuments)
+	_ = idx.db.QueryRow("SELECT COUNT(*) FROM documents WHERE indexed_at IS NOT NULL").Scan(&stats.IndexedDocuments)
+	_ = idx.db.QueryRow("SELECT COUNT(*) FROM document_sections").Scan(&stats.TotalSections)
+	_ = idx.db.QueryRow("SELECT COUNT(*) FROM document_sections WHERE embedding IS NOT NULL").Scan(&stats.EmbeddedSections)
 
 	return &stats, nil
 }
