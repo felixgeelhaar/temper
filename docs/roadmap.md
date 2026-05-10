@@ -27,7 +27,7 @@
 | CLI (`temper`) | ✅ | Install, updates, diagnostics |
 | Daemon (`temperd`) | ✅ | Local server, session management |
 | Learning Profile | ✅ | Skill tracking, error patterns, hint dependency |
-| Exercise System | ✅ | 41 exercises (Go, Python, TypeScript) |
+| Exercise System | ✅ | 85 exercises across 6 language packs (Go, Python, TypeScript, Java, Rust, C) |
 | Progress CLI | ✅ | `temper stats` with overview, skills, errors, trends |
 
 ### IDE Integrations

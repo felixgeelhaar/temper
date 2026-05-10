@@ -1,4 +1,4 @@
-.PHONY: help build test test-cover test-integration test-all lint fmt clean deps install-tools eval eval-build build-runner-image
+.PHONY: help build test test-cover test-integration test-all lint fmt clean deps install-tools eval eval-build build-runner-image check-docs
 
 # Default target
 help:
@@ -50,6 +50,10 @@ test-all:
 # Lint and format
 lint:
 	golangci-lint run ./...
+
+# Asserts user-facing docs reference the actual exercise count.
+check-docs:
+	./scripts/check-exercise-count.sh
 
 fmt:
 	gofmt -w .

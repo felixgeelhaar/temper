@@ -32,7 +32,7 @@ Temper enforces a "Learning Contract" with progressive intervention levels:
 
 ### Structured Exercises
 
-41+ exercises across Go, Python, TypeScript, and Rust:
+85 exercises across 6 language packs (Go, Python, TypeScript, Java, Rust, C):
 
 - Beginner to advanced difficulty
 - Clear learning objectives

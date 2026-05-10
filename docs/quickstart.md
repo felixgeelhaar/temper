@@ -106,7 +106,7 @@ Checking system requirements...
 
 Docker:    ✓
 LLM:       ✓ (claude ready)
-Exercises: ✓ (3 packs, 41 exercises)
+Exercises: ✓ (6 packs, 85 exercises)
 
 All checks passed!
 ```
@@ -133,9 +133,12 @@ temper logs
 temper exercise list
 
 # Available packs:
-#   Go Fundamentals (go-v1) - 14 exercises
-#   Python Fundamentals (python-v1) - 13 exercises
-#   TypeScript Fundamentals (typescript-v1) - 14 exercises
+#   Go Fundamentals         (go-v1)         - 15 exercises
+#   Python Fundamentals     (python-v1)     - 15 exercises
+#   TypeScript Fundamentals (typescript-v1) - 15 exercises
+#   Java Fundamentals       (java-v1)       - 13 exercises
+#   Rust Fundamentals       (rust-v1)       - 15 exercises
+#   C Fundamentals          (c-v1)          - 12 exercises
 
 # Start a session (via daemon API)
 curl -X POST http://localhost:7432/v1/sessions \

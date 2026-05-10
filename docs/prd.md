@@ -215,7 +215,7 @@ Example:
 |--------|--------|
 | VS Code | ✅ Extension available |
 | Cursor | ✅ MCP server available |
-| Neovim | ⏳ Planned |
+| Neovim | ✅ Lua plugin available |
 
 All IDEs offer a comparable learning experience.
 
