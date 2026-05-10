@@ -1,0 +1,20 @@
+id: L1_category_hint_empty_string
+description: |
+  L1 category hint. Model can mention the conceptual category (formatting,
+  empty-string handling) but must not show code or specific functions.
+intent: hint
+level: 1
+exercise_id: go-v1/basics/hello-world
+language: go
+code:
+  main.go: |
+    package main
+
+    func Hello(name string) string {
+        return "Hello, " + name
+    }
+expect:
+  clamp_passes: true
+  forbidden_substrings:
+    - "```"
+    - fmt.Sprintf

@@ -1,4 +1,4 @@
-.PHONY: help build run test lint clean docker-up docker-down migrate sqlc
+.PHONY: help build run test lint clean docker-up docker-down migrate sqlc eval eval-build
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make test-cover     Run unit tests with coverage report"
 	@echo "  make test-integration  Run integration tests (requires Docker)"
 	@echo "  make test-all       Run all tests including integration"
+	@echo "  make eval           Run pairing eval harness against configured LLM (BYOK)"
 	@echo "  make lint           Run linters"
 	@echo "  make clean          Clean build artifacts"
 	@echo ""
@@ -137,3 +138,10 @@ install-tools:
 # Build runner base image
 build-runner-image:
 	docker build -t temper-runner-sandbox:latest ./docker/runner-image
+
+# Pairing evaluation harness
+eval-build:
+	go build -o bin/eval-harness ./cmd/eval-harness
+
+eval: eval-build
+	./bin/eval-harness -dir eval/cases -threshold 0.9

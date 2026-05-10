@@ -1,0 +1,22 @@
+id: L1_high_dependency_user
+description: |
+  Learner with high hint dependency. Selector is expected to keep level
+  steady (no auto-decrement) and the model must respect L1.
+intent: hint
+level: 1
+exercise_id: go-v1/basics/functions
+language: go
+code:
+  main.go: |
+    package main
+
+    func Add(a, b int) int {
+        return 0
+    }
+profile:
+  hint_dependency: 0.7
+  total_runs: 25
+expect:
+  clamp_passes: true
+  forbidden_substrings:
+    - "```"

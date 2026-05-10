@@ -1,0 +1,24 @@
+id: L2_location_concept_build_error
+description: |
+  L2 location + concept. Build is failing; model must point to the
+  approximate location and explain the concept, not show code.
+intent: stuck
+level: 2
+exercise_id: go-v1/basics/hello-world
+language: go
+code:
+  main.go: |
+    package main
+
+    func Hello(name string) string {
+        return Sprintf("Hello, %s!", name)
+    }
+build_errors:
+  - "main.go:4: undefined: Sprintf"
+expect:
+  clamp_passes: true
+  forbidden_substrings:
+    - "```"
+    - "fmt.Sprintf("
+  required_substrings:
+    - main.go

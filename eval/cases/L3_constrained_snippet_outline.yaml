@@ -1,0 +1,18 @@
+id: L3_constrained_snippet_outline
+description: |
+  L3 constrained snippet. Code blocks are allowed but must include
+  placeholder markers (TODO/your logic/...). Full solutions are forbidden
+  by the clamp validator's L3 rule.
+intent: stuck
+level: 3
+exercise_id: go-v1/basics/hello-world
+language: go
+code:
+  main.go: |
+    package main
+
+    func Hello(name string) string {
+        return ""
+    }
+expect:
+  clamp_passes: true

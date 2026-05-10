@@ -1,0 +1,25 @@
+id: L2_test_failure_concurrency
+description: |
+  L2 location + concept on a concurrency exercise with failing tests.
+  Model should identify the concept (race condition, channel ordering)
+  without writing fixed code.
+intent: stuck
+level: 2
+exercise_id: go-v1/advanced/channels
+language: go
+code:
+  main.go: |
+    package main
+
+    func Producer(ch chan int) {
+        for i := 0; i < 5; i++ {
+            ch <- i
+        }
+    }
+tests_passed: 0
+tests_failed: 1
+expect:
+  clamp_passes: true
+  forbidden_substrings:
+    - "close(ch)"
+    - "```"

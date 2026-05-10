@@ -1,0 +1,23 @@
+id: L0_clarify_empty_function
+description: |
+  L0 clarification on an empty Hello function. Model must ask a question
+  that helps the learner think, never propose any code or specific function
+  names.
+intent: hint
+level: 0
+exercise_id: go-v1/basics/hello-world
+language: go
+code:
+  main.go: |
+    package main
+
+    func Hello(name string) string {
+        // TODO
+        return ""
+    }
+expect:
+  clamp_passes: true
+  must_contain_question: true
+  forbidden_substrings:
+    - fmt.Sprintf
+    - "```"

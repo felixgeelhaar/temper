@@ -1,0 +1,28 @@
+id: L0_review_empty_test_pass
+description: |
+  Review intent on code where all tests pass. Selector is expected to
+  decay to L0 because there is nothing to fix; the model should ask a
+  reflection question rather than offer further help.
+intent: review
+level: 0
+exercise_id: go-v1/basics/hello-world
+language: go
+code:
+  main.go: |
+    package main
+
+    import "fmt"
+
+    func Hello(name string) string {
+        if name == "" {
+            name = "World"
+        }
+        return fmt.Sprintf("Hello, %s!", name)
+    }
+tests_passed: 3
+tests_failed: 0
+expect:
+  clamp_passes: true
+  must_contain_question: true
+  forbidden_substrings:
+    - "```"

@@ -1,0 +1,21 @@
+id: L1_explain_concept
+description: |
+  Explain intent at L1. Model should explain the conceptual category
+  (string formatting in Go) without showing code or naming specific
+  functions.
+intent: explain
+level: 1
+exercise_id: go-v1/basics/hello-world
+language: go
+code:
+  main.go: |
+    package main
+
+    func Hello(name string) string {
+        return name
+    }
+expect:
+  clamp_passes: true
+  forbidden_substrings:
+    - "```"
+    - Sprintf
