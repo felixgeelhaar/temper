@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,9 +27,10 @@ type StorageConfig struct {
 
 // DaemonConfig holds daemon server settings
 type DaemonConfig struct {
-	Port     int    `yaml:"port"`
-	Bind     string `yaml:"bind"`
-	LogLevel string `yaml:"log_level"`
+	Port      int    `yaml:"port"`
+	Bind      string `yaml:"bind"`
+	LogLevel  string `yaml:"log_level"`
+	AuthToken string `yaml:"-"` // Loaded from secrets.yaml
 }
 
 // LLMConfig holds LLM provider settings
@@ -72,8 +75,11 @@ type DockerRunnerConfig struct {
 	NetworkOff     bool    `yaml:"network_off"`
 }
 
-// SecretsConfig holds API keys loaded from secrets.yaml
+// SecretsConfig holds API keys and the daemon auth token loaded from secrets.yaml
 type SecretsConfig struct {
+	Daemon struct {
+		AuthToken string `yaml:"auth_token,omitempty"`
+	} `yaml:"daemon,omitempty"`
 	Providers map[string]struct {
 		APIKey string `yaml:"api_key"`
 	} `yaml:"providers"`
@@ -231,8 +237,55 @@ func loadSecrets(dir string, cfg *LocalConfig) error {
 			provider.APIKey = secret.APIKey
 		}
 	}
+	cfg.Daemon.AuthToken = secrets.Daemon.AuthToken
 
 	return nil
+}
+
+// EnsureAuthToken returns the configured auth token, generating and persisting
+// one if none exists. Token is 32 bytes of crypto/rand encoded as
+// URL-safe base64 (~43 chars). Stored in secrets.yaml chmod 0600.
+func EnsureAuthToken() (string, error) {
+	dir, err := EnsureTemperDir()
+	if err != nil {
+		return "", err
+	}
+
+	secretsPath := filepath.Join(dir, "secrets.yaml")
+
+	var secrets SecretsConfig
+	if data, err := os.ReadFile(secretsPath); err == nil {
+		_ = yaml.Unmarshal(data, &secrets)
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("read secrets: %w", err)
+	}
+
+	if secrets.Daemon.AuthToken != "" {
+		return secrets.Daemon.AuthToken, nil
+	}
+
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", fmt.Errorf("generate token: %w", err)
+	}
+	token := base64.RawURLEncoding.EncodeToString(tokenBytes)
+	secrets.Daemon.AuthToken = token
+
+	if secrets.Providers == nil {
+		secrets.Providers = make(map[string]struct {
+			APIKey string `yaml:"api_key"`
+		})
+	}
+
+	data, err := yaml.Marshal(&secrets)
+	if err != nil {
+		return "", fmt.Errorf("marshal secrets: %w", err)
+	}
+	if err := os.WriteFile(secretsPath, data, 0600); err != nil {
+		return "", fmt.Errorf("write secrets: %w", err)
+	}
+
+	return token, nil
 }
 
 // SaveLocalConfig saves configuration to ~/.temper/config.yaml
@@ -256,7 +309,9 @@ func SaveLocalConfig(cfg *LocalConfig) error {
 	return nil
 }
 
-// SaveSecrets saves API keys to ~/.temper/secrets.yaml
+// SaveSecrets saves API keys to ~/.temper/secrets.yaml. Preserves any
+// existing daemon section (e.g., auth_token) so callers updating only API
+// keys do not destroy the daemon auth token.
 func SaveSecrets(secrets map[string]string) error {
 	dir, err := EnsureTemperDir()
 	if err != nil {
@@ -265,24 +320,30 @@ func SaveSecrets(secrets map[string]string) error {
 
 	secretsPath := filepath.Join(dir, "secrets.yaml")
 
-	secretsCfg := SecretsConfig{
-		Providers: make(map[string]struct {
+	var existing SecretsConfig
+	if data, err := os.ReadFile(secretsPath); err == nil {
+		_ = yaml.Unmarshal(data, &existing)
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("read existing secrets: %w", err)
+	}
+
+	if existing.Providers == nil {
+		existing.Providers = make(map[string]struct {
 			APIKey string `yaml:"api_key"`
-		}),
+		})
 	}
 
 	for name, key := range secrets {
-		secretsCfg.Providers[name] = struct {
+		existing.Providers[name] = struct {
 			APIKey string `yaml:"api_key"`
 		}{APIKey: key}
 	}
 
-	data, err := yaml.Marshal(secretsCfg)
+	data, err := yaml.Marshal(existing)
 	if err != nil {
 		return fmt.Errorf("marshal secrets: %w", err)
 	}
 
-	// Write with restricted permissions (owner read/write only)
 	if err := os.WriteFile(secretsPath, data, 0600); err != nil {
 		return fmt.Errorf("write secrets: %w", err)
 	}

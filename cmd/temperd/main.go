@@ -39,6 +39,17 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
+	// Auto-generate the daemon auth token on first start so an existing
+	// install (pre-auth) becomes secure without re-running `temper init`.
+	if cfg.Daemon.AuthToken == "" {
+		token, err := config.EnsureAuthToken()
+		if err != nil {
+			return fmt.Errorf("ensure auth token: %w", err)
+		}
+		cfg.Daemon.AuthToken = token
+		slog.Info("daemon auth token generated", "path", filepath.Join(temperDir, "secrets.yaml"))
+	}
+
 	// Setup logging
 	logLevel := parseLogLevel(cfg.Daemon.LogLevel)
 	logFile, err := setupLogging(temperDir, logLevel)

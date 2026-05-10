@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 )
 
 // cmdStats shows learning statistics
@@ -32,7 +31,7 @@ func cmdStats(args []string) error {
 }
 
 func cmdStatsOverview() error {
-	resp, err := http.Get(daemonAddr + "/v1/analytics/overview")
+	resp, err := daemonGet(daemonAddr + "/v1/analytics/overview")
 	if err != nil {
 		return fmt.Errorf("get overview: %w", err)
 	}
@@ -83,7 +82,7 @@ func cmdStatsOverview() error {
 }
 
 func cmdStatsSkills() error {
-	resp, err := http.Get(daemonAddr + "/v1/analytics/skills")
+	resp, err := daemonGet(daemonAddr + "/v1/analytics/skills")
 	if err != nil {
 		return fmt.Errorf("get skills: %w", err)
 	}
@@ -136,7 +135,7 @@ func cmdStatsSkills() error {
 }
 
 func cmdStatsErrors() error {
-	resp, err := http.Get(daemonAddr + "/v1/analytics/errors")
+	resp, err := daemonGet(daemonAddr + "/v1/analytics/errors")
 	if err != nil {
 		return fmt.Errorf("get errors: %w", err)
 	}
@@ -171,7 +170,7 @@ func cmdStatsErrors() error {
 }
 
 func cmdStatsTrend() error {
-	resp, err := http.Get(daemonAddr + "/v1/analytics/trend")
+	resp, err := daemonGet(daemonAddr + "/v1/analytics/trend")
 	if err != nil {
 		return fmt.Errorf("get trend: %w", err)
 	}

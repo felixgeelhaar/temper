@@ -65,7 +65,7 @@ func cmdSpecCreate(name string) error {
 	}
 
 	body := fmt.Sprintf(`{"name": %q}`, name)
-	resp, err := http.Post(daemonAddr+"/v1/specs", "application/json", strings.NewReader(body))
+	resp, err := daemonPost(daemonAddr+"/v1/specs", "application/json", strings.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("create spec: %w", err)
 	}
@@ -104,7 +104,7 @@ func cmdSpecList() error {
 		return fmt.Errorf("daemon not running (run 'temper start' first)")
 	}
 
-	resp, err := http.Get(daemonAddr + "/v1/specs")
+	resp, err := daemonGet(daemonAddr + "/v1/specs")
 	if err != nil {
 		return fmt.Errorf("list specs: %w", err)
 	}
@@ -152,7 +152,7 @@ func cmdSpecValidate(path string) error {
 	}
 
 	url := fmt.Sprintf("%s/v1/specs/%s/validate", daemonAddr, path)
-	resp, err := http.Post(url, "application/json", nil)
+	resp, err := daemonPost(url, "application/json", nil)
 	if err != nil {
 		return fmt.Errorf("validate spec: %w", err)
 	}
@@ -202,7 +202,7 @@ func cmdSpecStatus(path string) error {
 
 	// Get spec details
 	url := fmt.Sprintf("%s/v1/specs/%s", daemonAddr, path)
-	resp, err := http.Get(url)
+	resp, err := daemonGet(url)
 	if err != nil {
 		return fmt.Errorf("get spec: %w", err)
 	}
@@ -281,7 +281,7 @@ func cmdSpecLock(path string) error {
 	}
 
 	url := fmt.Sprintf("%s/v1/specs/%s/lock", daemonAddr, path)
-	resp, err := http.Post(url, "application/json", nil)
+	resp, err := daemonPost(url, "application/json", nil)
 	if err != nil {
 		return fmt.Errorf("lock spec: %w", err)
 	}
@@ -322,7 +322,7 @@ func cmdSpecDrift(path string) error {
 	}
 
 	url := fmt.Sprintf("%s/v1/specs/%s/drift", daemonAddr, path)
-	resp, err := http.Get(url)
+	resp, err := daemonGet(url)
 	if err != nil {
 		return fmt.Errorf("get drift: %w", err)
 	}

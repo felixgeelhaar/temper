@@ -287,15 +287,16 @@ func TestMiddlewareChain_WithPanic(t *testing.T) {
 	}
 }
 
-func TestCorsMiddleware_AllowsOrigin(t *testing.T) {
+func TestCorsMiddleware_AllowsOriginInAllowlist(t *testing.T) {
 	called := false
-	handler := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mw := corsMiddleware([]string{"http://127.0.0.1:4321"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		w.WriteHeader(http.StatusOK)
 	}))
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("Origin", "http://127.0.0.1:4321")
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -303,19 +304,37 @@ func TestCorsMiddleware_AllowsOrigin(t *testing.T) {
 	if !called {
 		t.Error("handler should be called for non-OPTIONS requests")
 	}
-	if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
-		t.Error("Access-Control-Allow-Origin header should be set")
+	if rec.Header().Get("Access-Control-Allow-Origin") != "http://127.0.0.1:4321" {
+		t.Error("Access-Control-Allow-Origin header should be set for allowlisted origin")
+	}
+}
+
+func TestCorsMiddleware_RejectsUnknownOrigin(t *testing.T) {
+	mw := corsMiddleware([]string{"http://127.0.0.1:4321"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "https://attacker.example")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Error("Access-Control-Allow-Origin must not echo non-allowlisted origins")
 	}
 }
 
 func TestCorsMiddleware_Options(t *testing.T) {
 	called := false
-	handler := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mw := corsMiddleware([]string{"http://127.0.0.1:4321"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	}))
 
 	req := httptest.NewRequest(http.MethodOptions, "/test", nil)
-	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("Origin", "http://127.0.0.1:4321")
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -338,5 +357,164 @@ func TestCorrelationIDKey_Constant(t *testing.T) {
 	expected := ContextKey("correlation_id")
 	if CorrelationIDKey != expected {
 		t.Errorf("CorrelationIDKey = %v, want %v", CorrelationIDKey, expected)
+	}
+}
+
+func TestAuthMiddleware_RejectsMissingHeader(t *testing.T) {
+	mw := authMiddleware("secret-token")
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be called when token is missing")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestAuthMiddleware_RejectsWrongToken(t *testing.T) {
+	mw := authMiddleware("secret-token")
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be called for invalid token")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	req.Header.Set("Authorization", "Bearer wrong-token")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestAuthMiddleware_RejectsMalformedHeader(t *testing.T) {
+	mw := authMiddleware("secret-token")
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler should not be called for malformed header")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	req.Header.Set("Authorization", "secret-token") // No "Bearer " prefix
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestAuthMiddleware_AcceptsValidToken(t *testing.T) {
+	called := false
+	mw := authMiddleware("secret-token")
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	req.Header.Set("Authorization", "Bearer secret-token")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if !called {
+		t.Error("handler should be called when token matches")
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestAuthMiddleware_BypassesHealth(t *testing.T) {
+	called := false
+	mw := authMiddleware("secret-token")
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if !called {
+		t.Error("/v1/health must be reachable without a token")
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestHostGuardMiddleware_AllowsAllowlisted(t *testing.T) {
+	called := false
+	mw := hostGuardMiddleware([]string{"127.0.0.1"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	req.Host = "127.0.0.1:7432"
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if !called {
+		t.Error("handler should be called for allowlisted host")
+	}
+}
+
+func TestHostGuardMiddleware_RejectsAttackerHost(t *testing.T) {
+	mw := hostGuardMiddleware([]string{"127.0.0.1"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler must not be called for non-allowlisted Host")
+	}))
+
+	// Simulates DNS-rebinding: attacker's domain resolves to 127.0.0.1 but
+	// the browser sends the original hostname in Host.
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	req.Host = "evil.example:7432"
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+}
+
+func TestHostGuardMiddleware_BypassesHealth(t *testing.T) {
+	called := false
+	mw := hostGuardMiddleware([]string{"127.0.0.1"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
+	req.Host = "anything.example"
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if !called {
+		t.Error("/v1/health must be reachable from any host (liveness probes)")
+	}
+}
+
+func TestHostGuardMiddleware_RejectsLocalhostByDefault(t *testing.T) {
+	// Per security review, only 127.0.0.1 is allowlisted; "localhost" is
+	// rejected because resolver mapping cannot be trusted.
+	mw := hostGuardMiddleware([]string{"127.0.0.1"})
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler must not be called for non-allowlisted localhost")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sessions", nil)
+	req.Host = "localhost:7432"
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
 }

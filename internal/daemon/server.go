@@ -236,11 +236,38 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	// Setup routes
 	s.setupRoutes()
 
-	// Create HTTP server with middleware chain
-	// Order: cors -> correlationID -> recovery -> logging -> router
-	// CORS must be outermost to handle OPTIONS preflight before other middleware
+	// Build middleware chain.
+	// Order (outermost first): host guard -> CORS -> correlation ID ->
+	// recovery -> logging -> auth -> router.
+	// Host guard runs first to reject DNS-rebinding attempts before any
+	// processing. CORS is outside auth so the OPTIONS preflight does not
+	// require a token. Auth gates router and is the trust boundary for
+	// authenticated endpoints.
 	addr := fmt.Sprintf("%s:%d", cfg.Config.Daemon.Bind, cfg.Config.Daemon.Port)
-	handler := corsMiddleware(correlationIDMiddleware(recoveryMiddleware(loggingMiddleware(s.router))))
+
+	if cfg.Config.Daemon.Bind != "127.0.0.1" && cfg.Config.Daemon.AuthToken == "" {
+		return nil, fmt.Errorf("non-loopback bind %q requires daemon.auth_token in secrets.yaml", cfg.Config.Daemon.Bind)
+	}
+
+	allowedHosts := []string{"127.0.0.1"}
+	allowedOrigins := []string{
+		"http://127.0.0.1:4321",
+		"http://127.0.0.1:7432",
+		fmt.Sprintf("http://127.0.0.1:%d", cfg.Config.Daemon.Port),
+	}
+
+	var handler http.Handler = s.router
+	if cfg.Config.Daemon.AuthToken != "" {
+		handler = authMiddleware(cfg.Config.Daemon.AuthToken)(handler)
+	} else {
+		slog.Warn("daemon.auth_token is empty: API is unauthenticated. Run `temper init` to generate a token.")
+	}
+	handler = loggingMiddleware(handler)
+	handler = recoveryMiddleware(handler)
+	handler = correlationIDMiddleware(handler)
+	handler = corsMiddleware(allowedOrigins)(handler)
+	handler = hostGuardMiddleware(allowedHosts)(handler)
+
 	s.server = &http.Server{
 		Addr:         addr,
 		Handler:      handler,

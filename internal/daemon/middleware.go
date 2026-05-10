@@ -2,8 +2,10 @@ package daemon
 
 import (
 	"context"
+	"crypto/subtle"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -107,24 +109,106 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// corsMiddleware adds CORS headers for the web dashboard dev server
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		origin := r.Header.Get("Origin")
-		if origin != "" {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-ID")
-			w.Header().Set("Access-Control-Max-Age", "3600")
-		}
+// corsMiddleware adds CORS headers for the web dashboard. Only echoes an
+// allowlisted origin; previously echoed any Origin verbatim, which paired
+// with credentialed requests creates a CSRF surface from any attacker page.
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+	allowed := make(map[string]bool, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		allowed[o] = true
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if origin != "" && allowed[origin] {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-ID, Authorization")
+				w.Header().Set("Access-Control-Max-Age", "3600")
+				w.Header().Set("Vary", "Origin")
+			}
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// authMiddleware enforces a Bearer token on every request except /v1/health
+// (which must be reachable for liveness probes). Token comparison uses
+// constant-time equality to defeat timing oracles.
+func authMiddleware(token string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/v1/health" || r.Method == http.MethodOptions {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			header := r.Header.Get("Authorization")
+			const prefix = "Bearer "
+			if !strings.HasPrefix(header, prefix) {
+				slog.Warn("auth: missing or malformed Authorization header",
+					"correlation_id", GetCorrelationID(r.Context()),
+					"path", r.URL.Path,
+				)
+				http.Error(w, `{"error_code":"UNAUTHORIZED","message":"missing bearer token"}`, http.StatusUnauthorized)
+				w.Header().Set("Content-Type", "application/json")
+				return
+			}
+
+			provided := strings.TrimPrefix(header, prefix)
+			if subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
+				slog.Warn("auth: invalid bearer token",
+					"correlation_id", GetCorrelationID(r.Context()),
+					"path", r.URL.Path,
+				)
+				http.Error(w, `{"error_code":"UNAUTHORIZED","message":"invalid bearer token"}`, http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// hostGuardMiddleware rejects requests whose Host header is not in the
+// allowlist. Defends against DNS-rebinding attacks where a malicious page in
+// the user's browser resolves an attacker-controlled domain to 127.0.0.1 and
+// then issues credentialed requests to localhost. Browsers send the original
+// hostname in the Host header, which we reject.
+func hostGuardMiddleware(allowedHosts []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/v1/health" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			host := r.Host
+			if colon := strings.LastIndex(host, ":"); colon != -1 {
+				host = host[:colon]
+			}
+
+			for _, allowed := range allowedHosts {
+				if host == allowed {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			slog.Warn("host guard: rejected request",
+				"correlation_id", GetCorrelationID(r.Context()),
+				"host", r.Host,
+				"path", r.URL.Path,
+			)
+			http.Error(w, `{"error_code":"FORBIDDEN_HOST","message":"host not allowed"}`, http.StatusForbidden)
+		})
+	}
 }
 
 // recoveryMiddleware catches panics and logs them

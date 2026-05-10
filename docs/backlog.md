@@ -298,3 +298,9 @@ LOW. Strongest GTM frame is "the first AI pairing tool that helps you learn inst
 LOW. MIT + BYOK has no revenue path, which is fine for v1 OSS launch but needs an explicit v2 plan to avoid sustainability risk. Document the chosen path in docs/business-model.md from these options: (a) hosted exercise registry + curated paid packs, (b) team learning policies + admin dashboard as paid tier, (c) corp upskilling/enterprise plan, (d) pure OSS forever with sponsorship. Pick one direction now; design v2 features (sandboxes, team policies, web progress) consistent with the choice.
 
 ---
+
+## Editor clients send daemon bearer token
+
+FOLLOWUP to daemon auth feature. Three editor integrations now break without token: (1) VS Code extension at editors/vscode/src — read ~/.temper/secrets.yaml.daemon.auth_token at activation, attach Authorization: Bearer header to all daemon fetches, surface clear error when token is missing/wrong; (2) Neovim Lua plugin at editors/nvim/lua — same behavior via vim.fn.readfile + plenary.curl; (3) MCP server at internal/mcp — load token from config and attach to its outbound HTTP requests; (4) web dashboard at web/src — read token via daemon-served /v1/dashboard-token endpoint that requires same-origin OR via injected meta tag. Acceptance: smoke test for each editor confirming a hint request succeeds when daemon auth is enabled.
+
+---

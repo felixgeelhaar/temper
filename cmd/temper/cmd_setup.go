@@ -39,6 +39,13 @@ func cmdInit() error {
 		fmt.Println("Configuration already exists ✓")
 	}
 
+	// 2b. Generate daemon auth token if missing.
+	fmt.Print("Generating daemon auth token... ")
+	if _, err := config.EnsureAuthToken(); err != nil {
+		return fmt.Errorf("generate auth token: %w", err)
+	}
+	fmt.Println("✓")
+
 	// 3. Copy bundled exercises
 	fmt.Print("Setting up exercise packs... ")
 	exercisesDest := filepath.Join(temperDir, "exercises")

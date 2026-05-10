@@ -122,7 +122,7 @@ func cmdStatus() error {
 	}
 
 	// Get status from daemon
-	resp, err := http.Get(daemonAddr + "/v1/status")
+	resp, err := daemonGet(daemonAddr + "/v1/status")
 	if err != nil {
 		return fmt.Errorf("get status: %w", err)
 	}

@@ -35,7 +35,7 @@ func cmdExerciseList() error {
 		return fmt.Errorf("daemon not running (run 'temper start' first)")
 	}
 
-	resp, err := http.Get(daemonAddr + "/v1/exercises")
+	resp, err := daemonGet(daemonAddr + "/v1/exercises")
 	if err != nil {
 		return fmt.Errorf("get exercises: %w", err)
 	}
@@ -78,7 +78,7 @@ func cmdExerciseInfo(id string) error {
 
 	// Build URL: /v1/exercises/pack/category/slug
 	url := fmt.Sprintf("%s/v1/exercises/%s", daemonAddr, id)
-	resp, err := http.Get(url)
+	resp, err := daemonGet(url)
 	if err != nil {
 		return fmt.Errorf("get exercise: %w", err)
 	}
