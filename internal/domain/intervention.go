@@ -139,3 +139,22 @@ func (p LearningPolicy) ClampLevel(requested InterventionLevel) InterventionLeve
 	}
 	return requested
 }
+
+// Decrement returns level-1 clamped to L0. Used by selector adjustments
+// that lower the intervention level; centralizing the guard prevents
+// underflow if multiple adjustments compose at the floor.
+func (l InterventionLevel) Decrement() InterventionLevel {
+	if l <= L0Clarify {
+		return L0Clarify
+	}
+	return l - 1
+}
+
+// ClampToFloor returns the larger of l and L0Clarify. Defensive against
+// any code path that constructs an InterventionLevel from arithmetic.
+func (l InterventionLevel) ClampToFloor() InterventionLevel {
+	if l < L0Clarify {
+		return L0Clarify
+	}
+	return l
+}

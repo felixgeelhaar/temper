@@ -12,24 +12,29 @@ func NewSelector() *Selector {
 	return &Selector{}
 }
 
-// SelectLevel determines the appropriate intervention level
+// SelectLevel determines the appropriate intervention level.
+//
+// Adjustment order is deliberate and documented because each step composes
+// with the next:
+//  1. intentToBaseLevel: derive base level from explicit user intent.
+//  2. adjustForContext:   exercise difficulty narrows the band.
+//  3. adjustForProfile:   skill signals (hint dependency, total runs).
+//  4. adjustForRunOutput: build/test signals can ratchet the level back up
+//     to L2 when the user clearly needs concrete help, regardless of prior
+//     decrements. This must run AFTER profile so a build error overrides
+//     the "independent learner" decrement.
+//  5. adjustForSpec:      feature-guidance scope check, applied last so
+//     spec-aware decrement does not mask earlier ratchets.
+//
+// All decrements use Decrement() which floors at L0; all increments are
+// bounded by the policy clamp applied by the caller.
 func (s *Selector) SelectLevel(intent domain.Intent, ctx InterventionContext, policy domain.LearningPolicy) domain.InterventionLevel {
-	// Base level selection based on intent
-	baseLevel := s.intentToBaseLevel(intent)
-
-	// Adjust based on context signals
-	level := s.adjustForContext(baseLevel, ctx)
-
-	// Adjust based on profile signals
+	level := s.intentToBaseLevel(intent)
+	level = s.adjustForContext(level, ctx)
 	level = s.adjustForProfile(level, ctx.Profile)
-
-	// Adjust based on run output
 	level = s.adjustForRunOutput(level, ctx.RunOutput)
-
-	// Adjust based on spec context (feature guidance sessions)
 	level = s.adjustForSpec(level, ctx)
-
-	return level
+	return level.ClampToFloor()
 }
 
 // intentToBaseLevel maps intent to base intervention level
@@ -63,9 +68,9 @@ func (s *Selector) adjustForContext(level domain.InterventionLevel, ctx Interven
 	case domain.DifficultyIntermediate:
 		// Keep as is
 	case domain.DifficultyAdvanced:
-		// Maybe slightly more restrictive for advanced
+		// Slightly more restrictive for advanced exercises.
 		if level > domain.L1CategoryHint {
-			level = domain.InterventionLevel(int(level) - 1)
+			level = level.Decrement()
 		}
 	}
 
@@ -87,9 +92,7 @@ func (s *Selector) adjustForProfile(level domain.InterventionLevel, profile *dom
 
 	// If user is very independent, consider reducing level
 	if dependency < 0.2 && profile.TotalRuns > 10 {
-		if level > domain.L0Clarify {
-			return domain.InterventionLevel(int(level) - 1)
-		}
+		return level.Decrement()
 	}
 
 	return level
@@ -144,7 +147,7 @@ func (s *Selector) adjustForSpec(level domain.InterventionLevel, ctx Interventio
 
 		// If significant progress, trust the user more
 		if progress > 0.5 && level > domain.L1CategoryHint {
-			return domain.InterventionLevel(int(level) - 1)
+			return level.Decrement()
 		}
 	}
 
