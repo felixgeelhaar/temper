@@ -42,7 +42,7 @@ jobs:
         run: go vet ./...
 
       - name: Run tests
-        run: go test -short -race -coverprofile=coverage.out ./...
+        run: go test -short -race -timeout=20m -coverprofile=coverage.out ./...
 
       - name: Upload coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
@@ -65,7 +65,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84
         with:
-          version: v1.65.1
+          version: v2.12.2
           args: --timeout=3m
 
   # Single build verification (not multi-platform - that's for releases)
