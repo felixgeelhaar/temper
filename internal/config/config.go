@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 		RabbitMQURL:    getEnv("RABBITMQ_URL", "amqp://temper:temper@localhost:5672/"),
 		LLMProvider:    getEnv("LLM_PROVIDER", "claude"),
 		LLMAPIKey:      getEnv("LLM_API_KEY", ""),
-		LLMModel:       getEnv("LLM_MODEL", "claude-sonnet-4-20250514"),
+		LLMModel:       getEnv("LLM_MODEL", "claude-sonnet-4-6"),
 		OllamaURL:      getEnv("OLLAMA_URL", "http://localhost:11434"),
 		RunnerPoolSize: getEnvInt("RUNNER_POOL_SIZE", 3),
 		RunnerTimeout:  getEnvInt("RUNNER_TIMEOUT", 30),

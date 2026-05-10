@@ -200,11 +200,15 @@ func (p *OpenAIProvider) buildRequest(req *Request, stream bool) *openaiRequest 
 
 	messages := make([]openaiMessage, 0, len(req.Messages)+1)
 
-	// Add system message if provided
-	if req.System != "" {
+	// Collapse SystemBlocks into a single system message if present;
+	// fall back to the legacy System string otherwise. OpenAI does not
+	// support per-block cache control today, so flagged blocks are simply
+	// concatenated.
+	systemText := flattenSystemBlocks(req)
+	if systemText != "" {
 		messages = append(messages, openaiMessage{
 			Role:    "system",
-			Content: req.System,
+			Content: systemText,
 		})
 	}
 

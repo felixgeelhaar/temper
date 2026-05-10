@@ -136,7 +136,7 @@ func DefaultLocalConfig() *LocalConfig {
 			Providers: map[string]*ProviderConfig{
 				"claude": {
 					Enabled: true,
-					Model:   "claude-sonnet-4-20250514",
+					Model:   "claude-sonnet-4-6",
 				},
 				"openai": {
 					Enabled: false,

@@ -23,7 +23,7 @@ type ClaudeProvider struct {
 type ClaudeConfig struct {
 	APIKey  string
 	BaseURL string // default: https://api.anthropic.com
-	Model   string // default: claude-sonnet-4-20250514
+	Model   string // default: claude-sonnet-4-6
 }
 
 // NewClaudeProvider creates a new Claude provider
@@ -32,7 +32,7 @@ func NewClaudeProvider(cfg ClaudeConfig) *ClaudeProvider {
 		cfg.BaseURL = "https://api.anthropic.com"
 	}
 	if cfg.Model == "" {
-		cfg.Model = "claude-sonnet-4-20250514"
+		cfg.Model = "claude-sonnet-4-6"
 	}
 
 	return &ClaudeProvider{
@@ -55,10 +55,26 @@ type claudeRequest struct {
 	Model       string          `json:"model"`
 	MaxTokens   int             `json:"max_tokens"`
 	Messages    []claudeMessage `json:"messages"`
-	System      string          `json:"system,omitempty"`
+	// System is either a string (legacy, no cache control) or an array of
+	// claudeSystemBlock to enable prompt caching. Marshaled via the
+	// any-typed field so we can switch shape per request.
+	System      any             `json:"system,omitempty"`
 	Temperature float64         `json:"temperature,omitempty"`
 	StopSeqs    []string        `json:"stop_sequences,omitempty"`
 	Stream      bool            `json:"stream,omitempty"`
+}
+
+// claudeSystemBlock is the array form of Anthropic's system field.
+// Setting CacheControl creates a cache breakpoint: everything before
+// (and including) this block is cached for ~5 minutes.
+type claudeSystemBlock struct {
+	Type         string                  `json:"type"`
+	Text         string                  `json:"text"`
+	CacheControl *claudeCacheControl     `json:"cache_control,omitempty"`
+}
+
+type claudeCacheControl struct {
+	Type string `json:"type"` // "ephemeral"
 }
 
 type claudeMessage struct {
@@ -213,12 +229,31 @@ func (p *ClaudeProvider) buildRequest(req *Request, stream bool) *claudeRequest 
 		})
 	}
 
-	// Extract system message
-	system := req.System
-	for _, m := range req.Messages {
-		if m.Role == RoleSystem {
-			system = m.Content
-			break
+	// Build system field. Prefer block form when SystemBlocks is set,
+	// since it supports cache_control breakpoints.
+	var system any
+	if len(req.SystemBlocks) > 0 {
+		blocks := make([]claudeSystemBlock, 0, len(req.SystemBlocks))
+		for _, b := range req.SystemBlocks {
+			block := claudeSystemBlock{Type: "text", Text: b.Text}
+			if b.CacheControl {
+				block.CacheControl = &claudeCacheControl{Type: "ephemeral"}
+			}
+			blocks = append(blocks, block)
+		}
+		system = blocks
+	} else {
+		// Legacy single-string path. Falls back to RoleSystem in messages
+		// for callers that put the system prompt there.
+		s := req.System
+		for _, m := range req.Messages {
+			if m.Role == RoleSystem {
+				s = m.Content
+				break
+			}
+		}
+		if s != "" {
+			system = s
 		}
 	}
 

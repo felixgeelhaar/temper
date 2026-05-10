@@ -729,8 +729,8 @@ func TestNewClaudeProvider_Defaults(t *testing.T) {
 	if p.baseURL != "https://api.anthropic.com" {
 		t.Errorf("baseURL = %v, want https://api.anthropic.com", p.baseURL)
 	}
-	if p.model != "claude-sonnet-4-20250514" {
-		t.Errorf("model = %v, want claude-sonnet-4-20250514", p.model)
+	if p.model != "claude-sonnet-4-6" {
+		t.Errorf("model = %v, want claude-sonnet-4-6", p.model)
 	}
 	if p.httpClient == nil {
 		t.Error("httpClient should not be nil")

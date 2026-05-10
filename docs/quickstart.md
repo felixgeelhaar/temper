@@ -66,7 +66,7 @@ llm:
   providers:
     claude:
       enabled: true
-      model: claude-sonnet-4-20250514
+      model: claude-sonnet-4-6
 
 learning_contract:
   default_track: practice

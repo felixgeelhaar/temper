@@ -27,14 +27,58 @@ type Provider interface {
 	SupportsStreaming() bool
 }
 
-// Request represents an LLM request
+// Request represents an LLM request.
 type Request struct {
 	Model       string
 	Messages    []Message
 	MaxTokens   int
 	Temperature float64
 	StopSeqs    []string
-	System      string // System prompt (some providers handle this separately)
+
+	// System is the legacy single-string system prompt. Used when
+	// SystemBlocks is empty.
+	System string
+
+	// SystemBlocks lets callers split the system prompt into ordered
+	// chunks and mark stable prefixes for prompt caching. When non-nil,
+	// providers that support caching (Anthropic) emit cache_control on
+	// flagged blocks; providers that do not (OpenAI, Ollama) concatenate
+	// the blocks back into a single string.
+	SystemBlocks []SystemContentBlock
+}
+
+// SystemContentBlock is a chunk of the system prompt with an optional
+// cache breakpoint. Callers should order blocks from most stable to least
+// stable (e.g. [base instructions, exercise context, dynamic addendum])
+// and set CacheControl=true on the LAST block whose content is stable
+// across calls. Anthropic caches everything up to and including a
+// cache_control marker.
+type SystemContentBlock struct {
+	Text         string
+	CacheControl bool
+}
+
+// flattenSystemBlocks returns the system prompt as a single string,
+// preferring SystemBlocks (joined with two newlines) when present.
+// Used by providers (OpenAI, Ollama) that lack native cache_control.
+func flattenSystemBlocks(req *Request) string {
+	if len(req.SystemBlocks) == 0 {
+		return req.System
+	}
+	parts := make([]string, 0, len(req.SystemBlocks))
+	for _, b := range req.SystemBlocks {
+		if b.Text != "" {
+			parts = append(parts, b.Text)
+		}
+	}
+	if len(parts) == 0 {
+		return req.System
+	}
+	out := parts[0]
+	for _, p := range parts[1:] {
+		out += "\n\n" + p
+	}
+	return out
 }
 
 // Message represents a chat message

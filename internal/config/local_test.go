@@ -120,7 +120,7 @@ func TestDefaultLocalConfig_ProviderDetails(t *testing.T) {
 		model   string
 		url     string
 	}{
-		{"claude", true, "claude-sonnet-4-20250514", ""},
+		{"claude", true, "claude-sonnet-4-6", ""},
 		{"openai", false, "gpt-4o", ""},
 		{"ollama", true, "llama2", "http://localhost:11434"},
 	}

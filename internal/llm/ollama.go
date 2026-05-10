@@ -185,11 +185,11 @@ func (p *OllamaProvider) buildRequest(req *Request, stream bool) *ollamaRequest 
 
 	messages := make([]ollamaMessage, 0, len(req.Messages)+1)
 
-	// Add system message if provided
-	if req.System != "" {
+	systemText := flattenSystemBlocks(req)
+	if systemText != "" {
 		messages = append(messages, ollamaMessage{
 			Role:    "system",
-			Content: req.System,
+			Content: systemText,
 		})
 	}
 

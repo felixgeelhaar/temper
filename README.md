@@ -183,7 +183,7 @@ llm:
   providers:
     claude:
       enabled: true
-      model: claude-sonnet-4-20250514
+      model: claude-sonnet-4-6
     ollama:
       enabled: true
       url: http://localhost:11434

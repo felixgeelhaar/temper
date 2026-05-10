@@ -82,15 +82,21 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 	}
 
 	systemPrompt := s.prompter.SystemPrompt(level)
+	systemBlocks := []llm.SystemContentBlock{
+		// Stable per (provider, level) — cache it. Hint requests within a
+		// session reuse the same level system prompt repeatedly.
+		{Text: systemPrompt, CacheControl: true},
+	}
 
 	// Generate intervention content
 	llmResp, err := provider.Generate(ctx, &llm.Request{
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
-		System:      systemPrompt,
-		MaxTokens:   1024,
-		Temperature: 0.7,
+		System:       systemPrompt,
+		SystemBlocks: systemBlocks,
+		MaxTokens:    1024,
+		Temperature:  0.7,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("generate intervention: %w", err)
@@ -186,11 +192,15 @@ func (s *Service) IntervenStream(ctx context.Context, req InterventionRequest) (
 		return nil, fmt.Errorf("get LLM provider: %w", err)
 	}
 
+	streamSystem := s.prompter.SystemPrompt(level)
 	llmStream, err := provider.GenerateStream(ctx, &llm.Request{
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
-		System:      s.prompter.SystemPrompt(level),
+		System: streamSystem,
+		SystemBlocks: []llm.SystemContentBlock{
+			{Text: streamSystem, CacheControl: true},
+		},
 		MaxTokens:   1024,
 		Temperature: 0.7,
 	})
@@ -277,7 +287,10 @@ func (s *Service) SuggestForSection(ctx context.Context, authCtx AuthoringContex
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
-		System:      s.prompter.AuthoringSystemPrompt(authCtx.Section),
+		System: s.prompter.AuthoringSystemPrompt(authCtx.Section),
+		SystemBlocks: []llm.SystemContentBlock{
+			{Text: s.prompter.AuthoringSystemPrompt(authCtx.Section), CacheControl: true},
+		},
 		MaxTokens:   2048,
 		Temperature: 0.7,
 	})
@@ -307,7 +320,10 @@ func (s *Service) AuthoringHint(ctx context.Context, authCtx AuthoringContext) (
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
-		System:      s.prompter.AuthoringSystemPrompt(authCtx.Section),
+		System: s.prompter.AuthoringSystemPrompt(authCtx.Section),
+		SystemBlocks: []llm.SystemContentBlock{
+			{Text: s.prompter.AuthoringSystemPrompt(authCtx.Section), CacheControl: true},
+		},
 		MaxTokens:   1024,
 		Temperature: 0.7,
 	})
