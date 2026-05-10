@@ -15,6 +15,31 @@
 - Claude 4.7 Opus is preferred only for L4/L5 escalations once
   level-based model routing lands (tracked in roady).
 
+## Level-based routing
+
+L0/L1 hints don't need flagship reasoning. L4/L5 escalations benefit
+from it. Per-level model routing trades cost for capability:
+
+```yaml
+llm:
+  default_provider: claude
+  level_models:
+    "0": claude-haiku-4-5     # clarifying questions
+    "1": claude-haiku-4-5     # category hints
+    "2": claude-sonnet-4-6    # location + concept
+    "3": claude-sonnet-4-6    # constrained snippet
+    "4": claude-opus-4-7      # partial solution (gated)
+    "5": claude-opus-4-7      # full solution (rare)
+```
+
+Estimated savings on the highest-frequency hint paths (L0/L1):
+roughly 4–5x cheaper input tokens, ~5x cheaper output. Keys "0"–"5"
+or "L0"–"L5" are both accepted. A missing key falls back to the
+provider's configured default model.
+
+The chosen model is recorded in `Intervention.Rationale` for
+transparency: `"…model=claude-haiku-4-5"`.
+
 ## Prompt-caching strategy
 
 Anthropic's `system` field accepts an array of content blocks, each

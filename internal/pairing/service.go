@@ -15,6 +15,7 @@ import (
 type Service struct {
 	llmRegistry     *llm.Registry
 	defaultProvider string
+	levelModels     map[domain.InterventionLevel]string
 	selector        *Selector
 	prompter        *Prompter
 	clampValidator  *ClampValidator
@@ -29,6 +30,22 @@ func NewService(llmRegistry *llm.Registry, defaultProvider string) *Service {
 		prompter:        NewPrompter(),
 		clampValidator:  NewClampValidator(),
 	}
+}
+
+// SetLevelModels configures per-level model overrides. Empty map disables
+// routing — the provider's default model is used for every level.
+func (s *Service) SetLevelModels(m map[domain.InterventionLevel]string) {
+	s.levelModels = m
+}
+
+// modelForLevel returns the configured model for a level, or empty when
+// no override is set. Empty signals to the provider that its default
+// should be used.
+func (s *Service) modelForLevel(level domain.InterventionLevel) string {
+	if s.levelModels == nil {
+		return ""
+	}
+	return s.levelModels[level]
 }
 
 // InterventionRequest contains data for requesting an intervention
@@ -53,6 +70,15 @@ func exerciseLanguage(ex *domain.Exercise) string {
 		return ""
 	}
 	return ex.Language
+}
+
+// fallbackModelLabel returns a human-readable label for the model that
+// will be used. Empty input means the provider default is in effect.
+func fallbackModelLabel(m string) string {
+	if m == "" {
+		return "(provider default)"
+	}
+	return m
 }
 
 // Intervene generates an intervention based on the request
@@ -98,8 +124,11 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		{Text: systemPrompt, CacheControl: true},
 	}
 
+	chosenModel := s.modelForLevel(level)
+
 	// Generate intervention content
 	llmResp, err := provider.Generate(ctx, &llm.Request{
+		Model:        chosenModel,
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},
@@ -125,7 +154,8 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		Type:        interventionType,
 		Content:     content,
 		Targets:     s.extractTargets(req.Context),
-		Rationale:   fmt.Sprintf("Selected L%d based on intent=%s, profile signals%s", level, req.Intent, rationale),
+		Rationale: fmt.Sprintf("Selected L%d based on intent=%s, profile signals%s; model=%s",
+			level, req.Intent, rationale, fallbackModelLabel(chosenModel)),
 		RequestedAt: time.Now(),
 		DeliveredAt: time.Now(),
 	}
@@ -204,6 +234,7 @@ func (s *Service) IntervenStream(ctx context.Context, req InterventionRequest) (
 
 	streamSystem := s.prompter.SystemPromptForLanguage(level, exerciseLanguage(req.Context.Exercise))
 	llmStream, err := provider.GenerateStream(ctx, &llm.Request{
+		Model: s.modelForLevel(level),
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
 		},

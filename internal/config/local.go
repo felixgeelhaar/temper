@@ -37,6 +37,16 @@ type DaemonConfig struct {
 type LLMConfig struct {
 	DefaultProvider string                     `yaml:"default_provider"`
 	Providers       map[string]*ProviderConfig `yaml:"providers"`
+
+	// LevelModels overrides the default provider's model per intervention
+	// level. Keys are the integer level (0..5). Recommended defaults trade
+	// per-call cost for capability:
+	//   0,1 → Haiku (clarifying questions, category hints)
+	//   2,3 → Sonnet (location/concept, constrained snippet)
+	//   4,5 → Opus  (partial / full solution after explicit escalation)
+	// When a level is not in the map, the provider's configured Model is
+	// used. A "default" string key (yaml: "default") seeds unknown levels.
+	LevelModels map[string]string `yaml:"level_models,omitempty"`
 }
 
 // ProviderConfig holds settings for a single LLM provider
@@ -147,6 +157,17 @@ func DefaultLocalConfig() *LocalConfig {
 					URL:     "http://localhost:11434",
 					Model:   "llama2",
 				},
+			},
+			// Default routing assumes Anthropic. If the user configures
+			// OpenAI as primary, override these keys with appropriate
+			// model identifiers.
+			LevelModels: map[string]string{
+				"0": "claude-haiku-4-5",
+				"1": "claude-haiku-4-5",
+				"2": "claude-sonnet-4-6",
+				"3": "claude-sonnet-4-6",
+				"4": "claude-opus-4-7",
+				"5": "claude-opus-4-7",
 			},
 		},
 		Learning: LearningConfig{

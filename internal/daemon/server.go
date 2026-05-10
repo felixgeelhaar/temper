@@ -218,7 +218,11 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	s.sessionServiceConcrete.SetSpecService(specSvc)
 
 	// Initialize pairing service
-	s.pairingService = pairing.NewService(s.llmRegistryConcrete, cfg.Config.LLM.DefaultProvider)
+	pairingSvc := pairing.NewService(s.llmRegistryConcrete, cfg.Config.LLM.DefaultProvider)
+	if levelMap := buildLevelModelMap(cfg.Config.LLM.LevelModels); len(levelMap) > 0 {
+		pairingSvc.SetLevelModels(levelMap)
+	}
+	s.pairingService = pairingSvc
 
 	// Initialize appreciation service
 	s.appreciationService = appreciation.NewService()
@@ -2806,4 +2810,42 @@ func (s *Server) handleDocIndexReindex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.jsonResponse(w, http.StatusOK, result)
+}
+
+// buildLevelModelMap converts the YAML-friendly map[string]string from
+// config into the typed map the pairing service expects. Keys "0".."5"
+// are recognized; unknown keys are ignored with a slog warn.
+func buildLevelModelMap(in map[string]string) map[domain.InterventionLevel]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[domain.InterventionLevel]string, 6)
+	for k, v := range in {
+		level, ok := parseLevelKey(k)
+		if !ok {
+			slog.Warn("ignoring unknown level_models key", "key", k)
+			continue
+		}
+		out[level] = v
+	}
+	return out
+}
+
+func parseLevelKey(k string) (domain.InterventionLevel, bool) {
+	switch k {
+	case "0", "L0":
+		return domain.L0Clarify, true
+	case "1", "L1":
+		return domain.L1CategoryHint, true
+	case "2", "L2":
+		return domain.L2LocationConcept, true
+	case "3", "L3":
+		return domain.L3ConstrainedSnippet, true
+	case "4", "L4":
+		return domain.L4PartialSolution, true
+	case "5", "L5":
+		return domain.L5FullSolution, true
+	default:
+		return 0, false
+	}
 }
