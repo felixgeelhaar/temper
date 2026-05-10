@@ -25,8 +25,10 @@ func cmdStats(args []string) error {
 		return cmdStatsErrors()
 	case "trend":
 		return cmdStatsTrend()
+	case "export":
+		return cmdStatsExport(args[1:])
 	default:
-		return fmt.Errorf("unknown stats command: %s (valid: overview, skills, errors, trend)", subCmd)
+		return fmt.Errorf("unknown stats command: %s (valid: overview, skills, errors, trend, export)", subCmd)
 	}
 }
 
