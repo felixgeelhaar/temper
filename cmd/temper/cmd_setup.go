@@ -66,29 +66,58 @@ func cmdInit() error {
 		}
 	}
 
-	// 4. Configure LLM provider
+	// 4. Configure LLM provider.
 	fmt.Println()
 	fmt.Println("LLM Provider Setup")
 	fmt.Println("------------------")
 	fmt.Println("Temper supports: Claude (Anthropic), OpenAI, and Ollama (local)")
 	fmt.Println()
 
-	// Load current config to check existing keys
 	cfg, _ := config.LoadLocalConfig()
 
-	// Claude
+	// Probe Ollama at the configured (or default) URL. If reachable, we
+	// can offer a zero-friction first-run experience: no API key, no
+	// network calls leaving the machine. Users still volunteer Claude
+	// or OpenAI keys for higher-quality models.
+	ollamaURL := defaultOllamaURL(cfg)
+	ollamaUp := isOllamaReachable(ollamaURL)
+
+	if ollamaUp {
+		fmt.Printf("Ollama detected at %s ✓\n", ollamaURL)
+		fmt.Println("Defaulting to local Ollama. You can add a Claude or OpenAI key now or later.")
+	} else {
+		fmt.Println("Ollama not detected (run `ollama serve` for free local models).")
+	}
+
+	// Claude is optional; offer to set the key but never require it.
 	if cfg != nil && cfg.LLM.Providers["claude"] != nil && cfg.LLM.Providers["claude"].APIKey != "" {
 		fmt.Println("Claude API key: already configured ✓")
 	} else {
-		fmt.Print("Enter Claude API key (or press Enter to skip): ")
+		prompt := "Enter Claude API key (or press Enter to skip): "
+		if ollamaUp {
+			prompt = "Enter Claude API key for higher-quality models (or press Enter to use Ollama only): "
+		}
+		fmt.Print(prompt)
 		key, _ := reader.ReadString('\n')
 		key = strings.TrimSpace(key)
 		if key != "" {
-			secrets := map[string]string{"claude": key}
-			if err := config.SaveSecrets(secrets); err != nil {
+			if err := config.SaveSecrets(map[string]string{"claude": key}); err != nil {
 				fmt.Printf("  ⚠ Failed to save: %v\n", err)
 			} else {
 				fmt.Println("  ✓ Saved")
+			}
+		}
+	}
+
+	// If Ollama is the only thing reachable, set it as the default
+	// provider so `temper hint` works immediately without further config.
+	if ollamaUp && cfg != nil {
+		hasClaudeKey := cfg.LLM.Providers["claude"] != nil && cfg.LLM.Providers["claude"].APIKey != ""
+		hasOpenAIKey := cfg.LLM.Providers["openai"] != nil && cfg.LLM.Providers["openai"].APIKey != ""
+		if !hasClaudeKey && !hasOpenAIKey && cfg.LLM.DefaultProvider == "auto" {
+			cfg.LLM.DefaultProvider = "ollama"
+			if err := config.SaveLocalConfig(cfg); err == nil {
+				fmt.Println("Default provider set to ollama ✓")
 			}
 		}
 	}
