@@ -30,13 +30,25 @@ type PromptRequest struct {
 	FocusCriterion *domain.AcceptanceCriterion
 }
 
-// SystemPrompt returns the system prompt for a given level
+// SystemPrompt returns the system prompt for a given level. Language is
+// injected when known so the model adapts terminology and example
+// phrasing per language. Falls back to a language-agnostic phrasing
+// when language is empty.
 func (p *Prompter) SystemPrompt(level domain.InterventionLevel) string {
-	base := `You are an adaptive programming tutor helping a learner practice Go.
-Your goal is to help them understand and learn, NOT to solve the problem for them.
-The learner should remain the author of their code at all times.
+	return p.SystemPromptForLanguage(level, "")
+}
 
-CRITICAL CONSTRAINTS based on intervention level:`
+// SystemPromptForLanguage returns the system prompt parameterized by the
+// programming language being practiced. Empty language → generic phrasing.
+func (p *Prompter) SystemPromptForLanguage(level domain.InterventionLevel, language string) string {
+	langPhrase := languagePhrase(language)
+	idiomPhrase := languageIdiomExample(language)
+	commentSyntax := languageCommentMarker(language)
+
+	base := "You are an adaptive programming tutor helping a learner practice " + langPhrase + ".\n" +
+		"Your goal is to help them understand and learn, NOT to solve the problem for them.\n" +
+		"The learner should remain the author of their code at all times.\n\n" +
+		"CRITICAL CONSTRAINTS based on intervention level:"
 
 	switch level {
 	case domain.L0Clarify:
@@ -47,32 +59,85 @@ CRITICAL CONSTRAINTS based on intervention level:`
 - Example: "What do you expect this function to return when the input is empty?"`
 
 	case domain.L1CategoryHint:
-		return base + `
-- Hint at the CATEGORY or DIRECTION to explore
-- Do NOT mention specific functions, methods, or syntax
-- Do NOT show any code
-- Example: "Think about how Go handles string formatting"`
+		return base + "\n" +
+			"- Hint at the CATEGORY or DIRECTION to explore\n" +
+			"- Do NOT mention specific functions, methods, or syntax\n" +
+			"- Do NOT show any code\n" +
+			`- Example: "Think about how ` + langPhrase + ` handles string formatting"`
 
 	case domain.L2LocationConcept:
-		return base + `
-- Point to the LOCATION of the issue (file/function/line area)
-- Explain the CONCEPT that applies
-- Do NOT show code solutions
-- Do NOT give step-by-step instructions
-- Example: "The issue is in your Hello function. Consider how to check if a string is empty in Go."`
+		return base + "\n" +
+			"- Point to the LOCATION of the issue (file/function/line area)\n" +
+			"- Explain the CONCEPT that applies\n" +
+			"- Do NOT show code solutions\n" +
+			"- Do NOT give step-by-step instructions\n" +
+			`- Example: "The issue is in your function. Consider how to check if a string is empty in ` + langPhrase + `."`
 
 	case domain.L3ConstrainedSnippet:
-		return base + `
-- Provide a CONSTRAINED snippet or OUTLINE
-- Show structure, not the complete solution
-- Use placeholders like "// your logic here"
-- Example: "Your function structure should be: check condition, then format string"`
+		return base + "\n" +
+			"- Provide a CONSTRAINED snippet or OUTLINE\n" +
+			"- Show structure, not the complete solution\n" +
+			`- Use placeholders like "` + commentSyntax + ` your logic here"` + "\n" +
+			`- Example: ` + idiomPhrase
 
 	default:
 		return base + `
 - Provide appropriate guidance for the learner's level
 - Always prefer less help over more
 - The learner should do the thinking`
+	}
+}
+
+// languagePhrase maps the language slug to a human-readable phrase used
+// in the system prompt. Falls back to "this language" when unknown.
+func languagePhrase(language string) string {
+	switch language {
+	case "go":
+		return "Go"
+	case "python":
+		return "Python"
+	case "typescript":
+		return "TypeScript"
+	case "java":
+		return "Java"
+	case "rust":
+		return "Rust"
+	case "c":
+		return "C"
+	case "":
+		return "the chosen programming language"
+	default:
+		return language
+	}
+}
+
+// languageCommentMarker returns the canonical single-line comment
+// marker so L3 placeholder examples render correctly per language.
+func languageCommentMarker(language string) string {
+	switch language {
+	case "python":
+		return "#"
+	default:
+		return "//"
+	}
+}
+
+// languageIdiomExample returns a level-appropriate idiomatic example
+// phrasing per language for the L3 system prompt.
+func languageIdiomExample(language string) string {
+	switch language {
+	case "python":
+		return `"Your function structure should be: check condition with an if statement, then return a formatted string"`
+	case "typescript":
+		return `"Your function structure should be: type-check the input, then return a template literal"`
+	case "java":
+		return `"Your method should: validate the parameter, then return a String.format result"`
+	case "rust":
+		return `"Your function should: pattern-match the input, then return a formatted String"`
+	case "c":
+		return `"Your function should: check the pointer, then write into the buffer with snprintf"`
+	default:
+		return `"Your function structure should be: check condition, then format the output"`
 	}
 }
 

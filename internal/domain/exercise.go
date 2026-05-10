@@ -4,6 +4,7 @@ package domain
 type Exercise struct {
 	ID            string // slug: "go-v1/basics/hello-world"
 	PackID        string // "go-v1"
+	Language      string // inherited from pack: "go", "python", "typescript", ...
 	Title         string
 	Description   string
 	Difficulty    Difficulty

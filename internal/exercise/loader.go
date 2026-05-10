@@ -113,7 +113,8 @@ func (l *Loader) LoadPack(packID string) (*domain.ExercisePack, error) {
 	return pack, nil
 }
 
-// LoadExercise loads a single exercise from a YAML file
+// LoadExercise loads a single exercise from a YAML file. Inherits the
+// language from the parent pack so prompter can adapt per language.
 func (l *Loader) LoadExercise(packID, slug string) (*domain.Exercise, error) {
 	// Build path: basePath/packID/category/exercise.yaml
 	parts := strings.Split(slug, "/")
@@ -133,9 +134,18 @@ func (l *Loader) LoadExercise(packID, slug string) (*domain.Exercise, error) {
 		return nil, fmt.Errorf("parse exercise file: %w", err)
 	}
 
+	// Inherit language from pack. Best-effort: if the pack file is missing
+	// or unparseable, the exercise loads anyway with empty Language and
+	// the prompter falls back to a generic phrasing.
+	language := ""
+	if pack, err := l.LoadPack(packID); err == nil {
+		language = pack.Language
+	}
+
 	exercise := &domain.Exercise{
 		ID:            fmt.Sprintf("%s/%s", packID, slug),
 		PackID:        packID,
+		Language:      language,
 		Title:         exFile.Title,
 		Description:   exFile.Description,
 		Difficulty:    domain.Difficulty(exFile.Difficulty),

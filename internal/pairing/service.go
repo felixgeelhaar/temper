@@ -45,6 +45,16 @@ type InterventionRequest struct {
 
 // InterventionContext is defined in context.go with spec support
 
+// exerciseLanguage returns the language slug from a context's exercise,
+// or empty when no exercise is attached. Empty triggers the prompter's
+// language-agnostic fallback.
+func exerciseLanguage(ex *domain.Exercise) string {
+	if ex == nil {
+		return ""
+	}
+	return ex.Language
+}
+
 // Intervene generates an intervention based on the request
 func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*domain.Intervention, error) {
 	var level domain.InterventionLevel
@@ -81,10 +91,10 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 		return nil, fmt.Errorf("get LLM provider: %w", err)
 	}
 
-	systemPrompt := s.prompter.SystemPrompt(level)
+	systemPrompt := s.prompter.SystemPromptForLanguage(level, exerciseLanguage(req.Context.Exercise))
 	systemBlocks := []llm.SystemContentBlock{
-		// Stable per (provider, level) — cache it. Hint requests within a
-		// session reuse the same level system prompt repeatedly.
+		// Stable per (provider, level, language) — cache it. Hint requests
+		// within a session reuse the same level system prompt repeatedly.
 		{Text: systemPrompt, CacheControl: true},
 	}
 
@@ -192,7 +202,7 @@ func (s *Service) IntervenStream(ctx context.Context, req InterventionRequest) (
 		return nil, fmt.Errorf("get LLM provider: %w", err)
 	}
 
-	streamSystem := s.prompter.SystemPrompt(level)
+	streamSystem := s.prompter.SystemPromptForLanguage(level, exerciseLanguage(req.Context.Exercise))
 	llmStream, err := provider.GenerateStream(ctx, &llm.Request{
 		Messages: []llm.Message{
 			{Role: llm.RoleUser, Content: prompt},
