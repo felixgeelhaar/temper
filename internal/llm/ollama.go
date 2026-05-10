@@ -12,9 +12,10 @@ import (
 
 // OllamaProvider implements the Provider interface for Ollama local models
 type OllamaProvider struct {
-	baseURL    string
-	model      string
-	httpClient *http.Client
+	baseURL      string
+	model        string
+	httpClient   *http.Client
+	streamClient *http.Client
 }
 
 // OllamaConfig holds configuration for the Ollama provider
@@ -33,9 +34,10 @@ func NewOllamaProvider(cfg OllamaConfig) *OllamaProvider {
 	}
 
 	return &OllamaProvider{
-		baseURL:    cfg.BaseURL,
-		model:      cfg.Model,
-		httpClient: &http.Client{},
+		baseURL:      cfg.BaseURL,
+		model:        cfg.Model,
+		httpClient:   newLLMHTTPClient(),
+		streamClient: newLLMStreamHTTPClient(),
 	}
 }
 
@@ -130,7 +132,7 @@ func (p *OllamaProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	resp, err := p.httpClient.Do(httpReq)
+	resp, err := p.streamClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}

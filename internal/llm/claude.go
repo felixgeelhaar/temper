@@ -13,10 +13,11 @@ import (
 
 // ClaudeProvider implements the Provider interface for Anthropic's Claude
 type ClaudeProvider struct {
-	apiKey     string
-	baseURL    string
-	model      string
-	httpClient *http.Client
+	apiKey       string
+	baseURL      string
+	model        string
+	httpClient   *http.Client // timeouts on; used for non-streaming
+	streamClient *http.Client // no Client.Timeout; used for streaming
 }
 
 // ClaudeConfig holds configuration for the Claude provider
@@ -36,10 +37,11 @@ func NewClaudeProvider(cfg ClaudeConfig) *ClaudeProvider {
 	}
 
 	return &ClaudeProvider{
-		apiKey:     cfg.APIKey,
-		baseURL:    cfg.BaseURL,
-		model:      cfg.Model,
-		httpClient: &http.Client{},
+		apiKey:       cfg.APIKey,
+		baseURL:      cfg.BaseURL,
+		model:        cfg.Model,
+		httpClient:   newLLMHTTPClient(),
+		streamClient: newLLMStreamHTTPClient(),
 	}
 }
 
@@ -146,7 +148,7 @@ func (p *ClaudeProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 
 	p.setHeaders(httpReq)
 
-	resp, err := p.httpClient.Do(httpReq)
+	resp, err := p.streamClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}

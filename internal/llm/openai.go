@@ -13,10 +13,11 @@ import (
 
 // OpenAIProvider implements the Provider interface for OpenAI-compatible APIs
 type OpenAIProvider struct {
-	apiKey     string
-	baseURL    string
-	model      string
-	httpClient *http.Client
+	apiKey       string
+	baseURL      string
+	model        string
+	httpClient   *http.Client
+	streamClient *http.Client
 }
 
 // OpenAIConfig holds configuration for the OpenAI provider
@@ -36,10 +37,11 @@ func NewOpenAIProvider(cfg OpenAIConfig) *OpenAIProvider {
 	}
 
 	return &OpenAIProvider{
-		apiKey:     cfg.APIKey,
-		baseURL:    cfg.BaseURL,
-		model:      cfg.Model,
-		httpClient: &http.Client{},
+		apiKey:       cfg.APIKey,
+		baseURL:      cfg.BaseURL,
+		model:        cfg.Model,
+		httpClient:   newLLMHTTPClient(),
+		streamClient: newLLMStreamHTTPClient(),
 	}
 }
 
@@ -129,7 +131,7 @@ func (p *OpenAIProvider) GenerateStream(ctx context.Context, req *Request) (<-ch
 
 	p.setHeaders(httpReq)
 
-	resp, err := p.httpClient.Do(httpReq)
+	resp, err := p.streamClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("do request: %w", err)
 	}
