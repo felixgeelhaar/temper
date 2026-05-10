@@ -80,28 +80,38 @@ CRITICAL CONSTRAINTS based on intervention level:`
 func (p *Prompter) BuildPrompt(req PromptRequest) string {
 	var sb strings.Builder
 
-	// Exercise context
+	f := newFence()
+	sb.WriteString(f.securityPreamble())
+
+	// Exercise context (title and description are author-controlled, fence them)
 	if req.Exercise != nil {
-		sb.WriteString(fmt.Sprintf("## Exercise: %s\n\n", req.Exercise.Title))
-		sb.WriteString(fmt.Sprintf("%s\n\n", req.Exercise.Description))
+		sb.WriteString("## Exercise\n\n")
+		sb.WriteString(f.wrap("EXERCISE_TITLE", req.Exercise.Title))
+		sb.WriteString("\n\n")
+		sb.WriteString(f.wrap("EXERCISE_DESCRIPTION", req.Exercise.Description))
+		sb.WriteString("\n\n")
 	}
 
-	// Learner intent
+	// Learner intent (system-controlled, no fence needed)
 	sb.WriteString(fmt.Sprintf("## Learner Intent: %s\n\n", p.intentDescription(req.Intent)))
 
-	// Intervention constraints
+	// Intervention constraints (system-controlled)
 	sb.WriteString(fmt.Sprintf("## Intervention Level: L%d (%s)\n", req.Level, req.Level.String()))
 	sb.WriteString(fmt.Sprintf("%s\n\n", req.Level.Description()))
 
-	// Current code
+	// Current code (user-controlled, primary injection vector)
 	if len(req.Code) > 0 {
 		sb.WriteString("## Current Code\n\n")
 		for filename, content := range req.Code {
-			sb.WriteString(fmt.Sprintf("### %s\n```go\n%s\n```\n\n", filename, content))
+			label := "USER_CODE_" + sanitizeLabel(filename)
+			sb.WriteString(fmt.Sprintf("### %s\n", f.sanitize(filename)))
+			sb.WriteString(f.wrap(label, content))
+			sb.WriteString("\n\n")
 		}
 	}
 
-	// Run output
+	// Run output (mixed: structural fields are safe; messages are tool output
+	// that may include user-controlled strings — fence the message text).
 	if req.Output != nil {
 		sb.WriteString("## Run Results\n\n")
 		if req.Output.BuildOK {
@@ -109,7 +119,9 @@ func (p *Prompter) BuildPrompt(req PromptRequest) string {
 		} else {
 			sb.WriteString("- Build: ✗ Failed\n")
 			for _, diag := range req.Output.BuildErrors {
-				sb.WriteString(fmt.Sprintf("  - %s:%d: %s\n", diag.File, diag.Line, diag.Message))
+				sb.WriteString(fmt.Sprintf("  - %s:%d: ", f.sanitize(diag.File), diag.Line))
+				sb.WriteString(f.wrap("BUILD_ERROR", diag.Message))
+				sb.WriteString("\n")
 			}
 		}
 
@@ -125,40 +137,61 @@ func (p *Prompter) BuildPrompt(req PromptRequest) string {
 			sb.WriteString("\nFailing tests:\n")
 			for _, test := range req.Output.TestResults {
 				if !test.Passed {
-					sb.WriteString(fmt.Sprintf("- %s: %s\n", test.Name, p.truncate(test.Output, 200)))
+					sb.WriteString(fmt.Sprintf("- %s: ", f.sanitize(test.Name)))
+					sb.WriteString(f.wrap("TEST_OUTPUT", p.truncate(test.Output, 200)))
+					sb.WriteString("\n")
 				}
 			}
 		}
 		sb.WriteString("\n")
 	}
 
-	// Exercise hints for this level (if available)
+	// Exercise hints (author-controlled — fence)
 	if req.Exercise != nil {
 		hints := req.Exercise.GetHintsForLevel(req.Level)
 		if len(hints) > 0 {
 			sb.WriteString("## Available Hints (for reference)\n")
 			for _, hint := range hints {
-				sb.WriteString(fmt.Sprintf("- %s\n", hint))
+				sb.WriteString("- ")
+				sb.WriteString(f.wrap("EXERCISE_HINT", hint))
+				sb.WriteString("\n")
 			}
 			sb.WriteString("\n")
 		}
 	}
 
-	// Spec context for feature guidance sessions
+	// Spec context (mixed author/user-controlled — fence inside builder)
 	if req.Spec != nil {
-		sb.WriteString(p.buildSpecContext(req.Spec, req.FocusCriterion))
+		sb.WriteString(p.buildSpecContext(f, req.Spec, req.FocusCriterion))
 	}
 
-	// Final instruction
+	// Final instruction (system-controlled)
 	sb.WriteString("## Your Task\n\n")
 	sb.WriteString(p.taskInstruction(req.Intent, req.Level, req.Type))
 
-	// Add spec-specific instructions if applicable
 	if req.Spec != nil {
 		sb.WriteString(p.specTaskAddendum(req.Spec, req.FocusCriterion))
 	}
 
 	return sb.String()
+}
+
+// sanitizeLabel keeps fence labels free of characters that would interfere
+// with the delimiter format. Whitespace, brackets, and quotes are stripped.
+func sanitizeLabel(s string) string {
+	out := make([]rune, 0, len(s))
+	for _, r := range s {
+		switch {
+		case r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '_':
+			out = append(out, r)
+		case r == '.', r == '-', r == '/':
+			out = append(out, '_')
+		}
+	}
+	if len(out) == 0 {
+		return "FILE"
+	}
+	return string(out)
 }
 
 func (p *Prompter) intentDescription(intent domain.Intent) string {
@@ -221,17 +254,21 @@ func (p *Prompter) truncate(s string, maxLen int) string {
 }
 
 // buildSpecContext creates the spec context section for feature guidance prompts
-func (p *Prompter) buildSpecContext(spec *domain.ProductSpec, focus *domain.AcceptanceCriterion) string {
+func (p *Prompter) buildSpecContext(f *fence, spec *domain.ProductSpec, focus *domain.AcceptanceCriterion) string {
 	var sb strings.Builder
 
 	sb.WriteString("## Product Specification Context\n\n")
-	sb.WriteString(fmt.Sprintf("**Spec**: %s (v%s)\n\n", spec.Name, spec.Version))
+	sb.WriteString(fmt.Sprintf("**Spec**: "))
+	sb.WriteString(f.wrap("SPEC_NAME", fmt.Sprintf("%s (v%s)", spec.Name, spec.Version)))
+	sb.WriteString("\n\n")
 
-	// Goals provide high-level direction
+	// Goals provide high-level direction (author-controlled)
 	if len(spec.Goals) > 0 {
 		sb.WriteString("### Goals\n")
 		for _, goal := range spec.Goals {
-			sb.WriteString(fmt.Sprintf("- %s\n", goal))
+			sb.WriteString("- ")
+			sb.WriteString(f.wrap("SPEC_GOAL", goal))
+			sb.WriteString("\n")
 		}
 		sb.WriteString("\n")
 	}
@@ -239,7 +276,9 @@ func (p *Prompter) buildSpecContext(spec *domain.ProductSpec, focus *domain.Acce
 	// Current focus criterion
 	if focus != nil {
 		sb.WriteString("### Current Focus\n")
-		sb.WriteString(fmt.Sprintf("**Acceptance Criterion %s**: %s\n", focus.ID, focus.Description))
+		sb.WriteString(fmt.Sprintf("**Acceptance Criterion %s**: ", f.sanitize(focus.ID)))
+		sb.WriteString(f.wrap("AC_DESCRIPTION", focus.Description))
+		sb.WriteString("\n")
 		if focus.Satisfied {
 			sb.WriteString("Status: ✓ Satisfied\n")
 		} else {
@@ -257,24 +296,34 @@ func (p *Prompter) buildSpecContext(spec *domain.ProductSpec, focus *domain.Acce
 	}
 	sb.WriteString(fmt.Sprintf("### Progress: %d/%d criteria satisfied\n\n", satisfied, len(spec.AcceptanceCriteria)))
 
-	// Relevant features for context
+	// Relevant features for context (titles + descriptions are author-controlled)
 	sb.WriteString("### Features in Scope\n")
 	for _, feat := range spec.Features {
-		sb.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", feat.Title, feat.Priority, p.truncate(feat.Description, 100)))
+		sb.WriteString("- **")
+		sb.WriteString(f.wrap("FEATURE_TITLE", feat.Title))
+		sb.WriteString(fmt.Sprintf("** (%s): ", f.sanitize(string(feat.Priority))))
+		sb.WriteString(f.wrap("FEATURE_DESCRIPTION", p.truncate(feat.Description, 100)))
+		sb.WriteString("\n")
 		if feat.API != nil {
-			sb.WriteString(fmt.Sprintf("  - API: %s %s\n", feat.API.Method, feat.API.Path))
+			sb.WriteString(fmt.Sprintf("  - API: %s %s\n",
+				f.sanitize(feat.API.Method),
+				f.sanitize(feat.API.Path)))
 		}
 	}
 	sb.WriteString("\n")
 
-	// Non-functional requirements as constraints
+	// Non-functional requirements as constraints (author-controlled)
 	if len(spec.NonFunctional.Performance) > 0 || len(spec.NonFunctional.Security) > 0 {
 		sb.WriteString("### Non-Functional Requirements\n")
 		for _, req := range spec.NonFunctional.Performance {
-			sb.WriteString(fmt.Sprintf("- Performance: %s\n", req))
+			sb.WriteString("- Performance: ")
+			sb.WriteString(f.wrap("NFR_PERFORMANCE", req))
+			sb.WriteString("\n")
 		}
 		for _, req := range spec.NonFunctional.Security {
-			sb.WriteString(fmt.Sprintf("- Security: %s\n", req))
+			sb.WriteString("- Security: ")
+			sb.WriteString(f.wrap("NFR_SECURITY", req))
+			sb.WriteString("\n")
 		}
 		sb.WriteString("\n")
 	}

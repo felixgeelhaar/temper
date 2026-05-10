@@ -547,7 +547,7 @@ func TestPrompter_buildSpecContext(t *testing.T) {
 		},
 	}
 
-	result := p.buildSpecContext(spec, nil)
+	result := p.buildSpecContext(newFence(), spec, nil)
 
 	if !strings.Contains(result, "My Spec (v2.0)") {
 		t.Error("buildSpecContext should contain spec name and version")
