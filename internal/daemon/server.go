@@ -18,6 +18,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/llm"
+	"github.com/felixgeelhaar/temper/internal/metrics"
 	"github.com/felixgeelhaar/temper/internal/pairing"
 	"github.com/felixgeelhaar/temper/internal/patch"
 	"github.com/felixgeelhaar/temper/internal/profile"
@@ -62,6 +63,11 @@ type Server struct {
 
 	// Idempotency cache for non-idempotent POSTs (run, sandbox-exec).
 	idempotency *IdempotencyCache
+
+	// In-process metrics registry. Exposed at /v1/metrics in Prometheus
+	// text format. Pairing.ClampViolations() is exported separately and
+	// merged into the response.
+	metrics *metrics.Registry
 }
 
 // SandboxManager defines the interface for sandbox operations
@@ -98,6 +104,7 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 		cfg:         cfg.Config,
 		router:      http.NewServeMux(),
 		idempotency: NewIdempotencyCache(),
+		metrics:     metrics.New(),
 	}
 
 	// Initialize LLM registry
@@ -337,6 +344,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("GET /v1/health", s.handleHealth)
 	s.router.HandleFunc("GET /v1/ready", s.handleReady)
 	s.router.HandleFunc("GET /v1/status", s.handleStatus)
+	s.router.HandleFunc("GET /v1/metrics", s.handleMetrics)
 
 	// Config
 	s.router.HandleFunc("GET /v1/config", s.handleGetConfig)
@@ -1181,6 +1189,12 @@ func (s *Server) handlePairingWithEscalation(w http.ResponseWriter, r *http.Requ
 // handlePairing is the common handler for all pairing endpoints
 func (s *Server) handlePairing(w http.ResponseWriter, r *http.Request, intent domain.Intent) {
 	sessionID := r.PathValue("id")
+
+	if s.metrics != nil {
+		s.metrics.Counter("hint_requests_total",
+			"Pairing intervention requests by intent.").
+			Inc(map[string]string{"intent": string(intent)})
+	}
 
 	// Parse request
 	var req pairingRequest
