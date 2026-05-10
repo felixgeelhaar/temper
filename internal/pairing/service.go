@@ -9,6 +9,7 @@ import (
 	"github.com/felixgeelhaar/temper/internal/correlation"
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/llm"
+	"github.com/felixgeelhaar/temper/internal/profile"
 	"github.com/google/uuid"
 )
 
@@ -73,6 +74,19 @@ func exerciseLanguage(ex *domain.Exercise) string {
 	return ex.Language
 }
 
+// applyPolicyClamp applies the global MaxLevel ceiling plus an optional
+// per-topic adjustment based on the learner's profile. Falls back to the
+// plain ClampLevel path when no exercise or profile is available so older
+// session shapes (no exercise context) keep working.
+func applyPolicyClamp(requested domain.InterventionLevel, policy domain.LearningPolicy, ctx InterventionContext) domain.InterventionLevel {
+	if ctx.Exercise == nil || ctx.Profile == nil {
+		return policy.ClampLevel(requested)
+	}
+	topic := profile.ExtractTopic(ctx.Exercise.ID)
+	skill := ctx.Profile.GetSkillLevel(topic).Level
+	return policy.ClampForTopic(requested, skill)
+}
+
 // fallbackModelLabel returns a human-readable label for the model that
 // will be used. Empty input means the provider default is in effect.
 func fallbackModelLabel(m string) string {
@@ -92,8 +106,9 @@ func (s *Service) Intervene(ctx context.Context, req InterventionRequest) (*doma
 	} else {
 		// Select intervention level based on context
 		level = s.selector.SelectLevel(req.Intent, req.Context, req.Policy)
-		// Clamp level based on policy (only for non-explicit requests)
-		level = req.Policy.ClampLevel(level)
+		// Apply policy clamp, including the per-topic adjustment when the
+		// learner's exercise + profile expose a topic skill.
+		level = applyPolicyClamp(level, req.Policy, req.Context)
 	}
 
 	// Select intervention type

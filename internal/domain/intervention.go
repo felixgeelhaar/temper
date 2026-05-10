@@ -140,6 +140,26 @@ func (p LearningPolicy) ClampLevel(requested InterventionLevel) InterventionLeve
 	return requested
 }
 
+// ClampForTopic returns the policy ceiling adjusted for the user's skill in
+// a specific topic. The static MaxLevel always applies. On top of that:
+//
+//   - skill > 0.7 (confident in this topic) → ceiling drops by one level so
+//     the user gets more restraint and less hand-holding.
+//   - skill < 0.3 (struggling)              → ceiling stays at MaxLevel.
+//   - 0.3 ≤ skill ≤ 0.7 (learning)          → ceiling stays at MaxLevel.
+//
+// Returns at least L0 (no underflow).
+func (p LearningPolicy) ClampForTopic(requested InterventionLevel, topicSkill float64) InterventionLevel {
+	ceiling := p.MaxLevel
+	if topicSkill > 0.7 {
+		ceiling = ceiling.Decrement()
+	}
+	if requested > ceiling {
+		return ceiling
+	}
+	return requested.ClampToFloor()
+}
+
 // Decrement returns level-1 clamped to L0. Used by selector adjustments
 // that lower the intervention level; centralizing the guard prevents
 // underflow if multiple adjustments compose at the floor.
