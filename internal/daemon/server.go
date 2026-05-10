@@ -118,29 +118,23 @@ func NewServer(ctx context.Context, cfg ServerConfig) (*Server, error) {
 	// Initialize exercise loader
 	s.exerciseLoader = exercise.NewLoader(cfg.ExercisePath)
 
-	// Initialize runner (Docker executor)
-	if cfg.Config.Runner.Executor == "docker" {
-		dockerCfg := runner.DockerConfig{
-			BaseImage:  cfg.Config.Runner.Docker.Image,
-			MemoryMB:   int64(cfg.Config.Runner.Docker.MemoryMB),
-			CPULimit:   cfg.Config.Runner.Docker.CPULimit,
-			NetworkOff: cfg.Config.Runner.Docker.NetworkOff,
-			Timeout:    time.Duration(cfg.Config.Runner.Docker.TimeoutSeconds) * time.Second,
-		}
-		executor, err := runner.NewDockerExecutor(dockerCfg)
-		if err != nil {
-			if cfg.Config.Runner.AllowLocalFallback {
-				slog.Warn("Docker executor not available, using local executor", "error", err)
-				s.runnerExecutor = runner.NewLocalExecutor("")
-			} else {
-				return nil, fmt.Errorf("docker executor unavailable: %w", err)
-			}
-		} else {
-			s.runnerExecutor = executor
-		}
-	} else {
-		s.runnerExecutor = runner.NewLocalExecutor("")
+	// Initialize runner. Docker is mandatory: per-language sandboxing is
+	// only safe with the container boundary, and the multi-language
+	// dispatch table lives entirely in the docker executors. The previous
+	// LocalExecutor fallback was Go-only and silently produced incorrect
+	// results for Python/TS/Java/Rust/C exercises.
+	dockerCfg := runner.DockerConfig{
+		BaseImage:  cfg.Config.Runner.Docker.Image,
+		MemoryMB:   int64(cfg.Config.Runner.Docker.MemoryMB),
+		CPULimit:   cfg.Config.Runner.Docker.CPULimit,
+		NetworkOff: cfg.Config.Runner.Docker.NetworkOff,
+		Timeout:    time.Duration(cfg.Config.Runner.Docker.TimeoutSeconds) * time.Second,
 	}
+	executor, err := runner.NewDockerExecutor(dockerCfg)
+	if err != nil {
+		return nil, fmt.Errorf("docker executor unavailable (Docker is required; install Docker Desktop or run `colima start`): %w", err)
+	}
+	s.runnerExecutor = executor
 
 	// Get temper directory for data storage
 	temperDir, err := config.TemperDir()

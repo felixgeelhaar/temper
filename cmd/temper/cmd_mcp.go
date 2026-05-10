@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/felixgeelhaar/temper/internal/config"
 	"github.com/felixgeelhaar/temper/internal/exercise"
@@ -67,8 +68,19 @@ func cmdMCP() error {
 	exercisePath := filepath.Join(temperDir, "exercises")
 	loader := exercise.NewLoader(exercisePath)
 
-	// Initialize runner (local for MCP - Docker might not be available)
-	executor := runner.NewLocalExecutor("")
+	// Initialize runner. Docker is required (per-language sandbox safety
+	// is only ensured by the container boundary).
+	dockerCfg := runner.DockerConfig{
+		BaseImage:  cfg.Runner.Docker.Image,
+		MemoryMB:   int64(cfg.Runner.Docker.MemoryMB),
+		CPULimit:   cfg.Runner.Docker.CPULimit,
+		NetworkOff: cfg.Runner.Docker.NetworkOff,
+		Timeout:    time.Duration(cfg.Runner.Docker.TimeoutSeconds) * time.Second,
+	}
+	executor, err := runner.NewDockerExecutor(dockerCfg)
+	if err != nil {
+		return fmt.Errorf("docker executor unavailable (Docker is required): %w", err)
+	}
 
 	// Initialize session store
 	sessionsPath := filepath.Join(temperDir, "sessions")

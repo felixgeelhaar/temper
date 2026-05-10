@@ -13,6 +13,24 @@ import (
 	"github.com/felixgeelhaar/temper/internal/session"
 )
 
+// stubRunnerExecutor satisfies runner.Executor without needing Docker.
+// MCP tests don't exercise code execution; they only verify session +
+// pairing wiring.
+type stubRunnerExecutor struct{}
+
+func (stubRunnerExecutor) RunFormat(_ context.Context, _ map[string]string) (*runner.FormatResult, error) {
+	return &runner.FormatResult{OK: true}, nil
+}
+func (stubRunnerExecutor) RunFormatFix(_ context.Context, code map[string]string) (map[string]string, error) {
+	return code, nil
+}
+func (stubRunnerExecutor) RunBuild(_ context.Context, _ map[string]string) (*runner.BuildResult, error) {
+	return &runner.BuildResult{OK: true}, nil
+}
+func (stubRunnerExecutor) RunTests(_ context.Context, _ map[string]string, _ []string) (*runner.TestResult, error) {
+	return &runner.TestResult{OK: true}, nil
+}
+
 // setupTestServer creates a test MCP server with minimal configuration
 func setupTestServer(t *testing.T) (*Server, func()) {
 	t.Helper()
@@ -34,8 +52,8 @@ func setupTestServer(t *testing.T) (*Server, func()) {
 	exercisePath := filepath.Join(tmpDir, "exercises")
 	loader := exercise.NewLoader(exercisePath)
 
-	// Create executor
-	executor := runner.NewLocalExecutor("")
+	// Create executor (stub — MCP tests do not exercise code execution).
+	executor := stubRunnerExecutor{}
 
 	// Create session store and service
 	sessionsPath := filepath.Join(tmpDir, "sessions")

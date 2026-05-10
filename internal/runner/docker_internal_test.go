@@ -235,14 +235,3 @@ func TestRemoveTempDir(t *testing.T) {
 	}
 }
 
-func TestNewLocalExecutor_Internal(t *testing.T) {
-	workDir := t.TempDir()
-	exec := NewLocalExecutor(workDir)
-
-	if exec == nil {
-		t.Fatal("NewLocalExecutor should not return nil")
-	}
-	if exec.workDir != workDir {
-		t.Errorf("workDir = %s, want %s", exec.workDir, workDir)
-	}
-}

@@ -1206,16 +1206,6 @@ func TestHello(t *testing.T) {
 	}
 }
 
-func TestNewLocalExecutor(t *testing.T) {
-	exec := NewLocalExecutor("/tmp/test")
-	if exec == nil {
-		t.Fatal("NewLocalExecutor returned nil")
-	}
-	if exec.workDir != "/tmp/test" {
-		t.Errorf("workDir = %s, want /tmp/test", exec.workDir)
-	}
-}
-
 func TestParsePytestOutput(t *testing.T) {
 	tests := []struct {
 		name      string

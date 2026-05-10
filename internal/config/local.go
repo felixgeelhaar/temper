@@ -69,11 +69,12 @@ type TrackConfig struct {
 	CooldownSeconds int `yaml:"cooldown_seconds"`
 }
 
-// RunnerConfig holds code execution settings
+// RunnerConfig holds code execution settings. Docker is the only
+// supported executor; the legacy LocalExecutor fallback was Go-only and
+// produced silently-wrong results for Python/TS/Java/Rust/C packs.
 type RunnerConfig struct {
-	Executor           string             `yaml:"executor"`
-	AllowLocalFallback bool               `yaml:"allow_local_fallback"`
-	Docker             DockerRunnerConfig `yaml:"docker"`
+	Executor string             `yaml:"executor"`
+	Docker   DockerRunnerConfig `yaml:"docker"`
 }
 
 // DockerRunnerConfig holds Docker executor settings
@@ -188,8 +189,7 @@ func DefaultLocalConfig() *LocalConfig {
 			},
 		},
 		Runner: RunnerConfig{
-			Executor:           "docker",
-			AllowLocalFallback: false,
+			Executor: "docker",
 			Docker: DockerRunnerConfig{
 				Image:          "golang:1.23-alpine",
 				MemoryMB:       384,
