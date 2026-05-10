@@ -12,7 +12,7 @@ func TestDiscoverer_Discover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create docs/ directory
 	docsDir := filepath.Join(tmpDir, "docs")

@@ -24,7 +24,7 @@ func (idx *Index) SaveDocument(doc *domain.Document) error {
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Upsert document
 	_, err = tx.Exec(`
@@ -102,7 +102,7 @@ func (idx *Index) ListUnindexedSections() ([]SectionRow, error) {
 	if err != nil {
 		return nil, fmt.Errorf("query unindexed sections: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sections []SectionRow
 	for rows.Next() {
@@ -125,7 +125,7 @@ func (idx *Index) ListAllSectionsWithEmbeddings() ([]SectionRow, error) {
 	if err != nil {
 		return nil, fmt.Errorf("query sections: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sections []SectionRow
 	for rows.Next() {

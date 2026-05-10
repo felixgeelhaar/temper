@@ -1,9 +1,6 @@
 package config
 
-import (
-	"os"
-	"testing"
-)
+import "testing"
 
 func TestGetEnv(t *testing.T) {
 	tests := []struct {
@@ -21,8 +18,7 @@ func TestGetEnv(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.envValue != "" {
-				os.Setenv(tt.key, tt.envValue)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.envValue)
 			}
 
 			got := getEnv(tt.key, tt.defaultValue)
@@ -51,8 +47,7 @@ func TestGetEnvInt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.envValue != "" {
-				os.Setenv(tt.key, tt.envValue)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.envValue)
 			}
 
 			got := getEnvInt(tt.key, tt.defaultValue)
@@ -81,8 +76,7 @@ func TestGetEnvFloat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.envValue != "" {
-				os.Setenv(tt.key, tt.envValue)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.envValue)
 			}
 
 			got := getEnvFloat(tt.key, tt.defaultValue)
@@ -112,8 +106,7 @@ func TestGetEnvBool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.envValue != "" {
-				os.Setenv(tt.key, tt.envValue)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.envValue)
 			}
 
 			got := getEnvBool(tt.key, tt.defaultValue)
@@ -123,4 +116,3 @@ func TestGetEnvBool(t *testing.T) {
 		})
 	}
 }
-
