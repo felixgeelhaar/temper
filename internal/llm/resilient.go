@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/felixgeelhaar/fortify/bulkhead"
-	"github.com/felixgeelhaar/fortify/circuitbreaker"
-	"github.com/felixgeelhaar/fortify/ratelimit"
-	"github.com/felixgeelhaar/fortify/retry"
+	"go.klarlabs.de/fortify/bulkhead"
+	"go.klarlabs.de/fortify/circuitbreaker"
+	"go.klarlabs.de/fortify/ratelimit"
+	"go.klarlabs.de/fortify/retry"
 )
 
 // ResilientProvider wraps an LLM provider with resilience patterns from fortify
@@ -123,7 +123,7 @@ func NewResilientProvider(provider Provider, cfg ResilientConfig) *ResilientProv
 		if rate <= 0 {
 			rate = 2
 		}
-		rp.rateLimit = ratelimit.New(&ratelimit.Config{
+		rp.rateLimit = ratelimit.New(ratelimit.Config{
 			Rate:     rate,
 			Burst:    rate * 3,
 			Interval: time.Second,
@@ -166,7 +166,7 @@ func (p *ResilientProvider) Generate(ctx context.Context, req *Request) (*Respon
 	// Apply circuit breaker + retry
 	if p.circuitBreaker != nil && p.retrier != nil {
 		return p.circuitBreaker.Execute(ctx, func(ctx context.Context) (*Response, error) {
-			return p.retrier.Do(ctx, operation)
+			return p.retrier.Execute(ctx, operation)
 		})
 	}
 
@@ -175,7 +175,7 @@ func (p *ResilientProvider) Generate(ctx context.Context, req *Request) (*Respon
 	}
 
 	if p.retrier != nil {
-		return p.retrier.Do(ctx, operation)
+		return p.retrier.Execute(ctx, operation)
 	}
 
 	return operation(ctx)

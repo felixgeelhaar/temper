@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	mcp "github.com/felixgeelhaar/mcp-go"
-	"github.com/felixgeelhaar/mcp-go/server"
 	"github.com/felixgeelhaar/temper/internal/domain"
 	"github.com/felixgeelhaar/temper/internal/exercise"
 	"github.com/felixgeelhaar/temper/internal/pairing"
 	"github.com/felixgeelhaar/temper/internal/session"
 	"github.com/google/uuid"
+	mcp "go.klarlabs.de/mcp"
+	"go.klarlabs.de/mcp/server"
 )
 
 // Server wraps the MCP server with Temper functionality
