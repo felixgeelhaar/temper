@@ -31,11 +31,11 @@ jobs:
 
       - name: Install nox (pinned + sha256-verified binary)
         env:
-          NOX_VERSION: "1.7.0"
+          NOX_VERSION: "1.7.1"
           # SHA-256 of nox_1.7.0_linux_amd64.tar.gz. Pinning the checksum makes
           # the download tamper-evident: the gate never runs an unexpected
           # binary. Bump this deliberately, not transitively.
-          NOX_SHA256: "d4ddb89b07c68e767453518ba7358a5c9786ca93f0995143277426de208d4645"
+          NOX_SHA256: "3106ab3ce7197f43a45fc1128ea27112686421e8ec3eac9be356d4ca42ab4c89"
         run: |
           set -euo pipefail
           curl -sL -o nox.tar.gz \
