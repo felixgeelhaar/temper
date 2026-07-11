@@ -1,0 +1,8 @@
+extends: ''
+agent: auto
+hooks: {pre_commit: true, pre_push: true}
+commands: {gofmt: "gofmt -l .", govet: "go vet ./...", golangcilint: "golangci-lint run ./...", gotest: "go test -race ./...", gobuild: "go build ./..."}
+steps: {pre_commit: [gofmt, govet], pre_push: [rebase, gofmt, govet, golangcilint, gotest, gobuild]}
+risk: {diff_lines_high: 400, files_touched_high: 15}
+pr: {enabled: false}
+rules: []
