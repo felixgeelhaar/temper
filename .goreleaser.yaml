@@ -126,7 +126,7 @@ release:
     temper start   # Start daemon
     ```
 
-brews:
+homebrew_casks:
   - name: temper
     ids:
       - temper-archive
@@ -134,13 +134,6 @@ brews:
       owner: felixgeelhaar
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
     homepage: https://github.com/felixgeelhaar/temper
     description: Adaptive AI pairing for learning
     license: MIT
-    test: |
-      system "#{bin}/temper", "--version"
-    install: |
-      bin.install "temper"
-      bin.install "temperd"
-    skip_upload: auto
