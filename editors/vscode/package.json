@@ -116,7 +116,10 @@
         },
         "temper.learningTrack": {
           "type": "string",
-          "enum": ["practice", "interview-prep"],
+          "enum": [
+            "practice",
+            "interview-prep"
+          ],
           "default": "practice",
           "description": "Learning track (affects intervention level limits)"
         },
@@ -176,5 +179,9 @@
     "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^8.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "brace-expansion": "^5.0.9",
+    "js-yaml": "^4.3.2"
   }
 }
