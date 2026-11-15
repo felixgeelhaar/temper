@@ -20,9 +20,5 @@ RUN chown runner:runner /sandbox
 
 USER runner
 
-# The container runs one-shot commands via the entrypoint; it has no long-running
-# service to probe, so the healthcheck is disabled explicitly.
-HEALTHCHECK NONE
-
 # Default shell for executing commands
 ENTRYPOINT ["/bin/sh", "-c"]
