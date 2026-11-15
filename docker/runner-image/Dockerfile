@@ -1,6 +1,8 @@
 # Base image for running user Go code in sandbox
 FROM golang:1.26-alpine@sha256:30b1e546a9c7fa3b747c2bdba3a0c7bdf3a02ebb4c5b8405d2f948d7e8aac4ec
 
+LABEL org.opencontainers.image.authors="Felix Geelhaar"
+
 # Install additional tools for code analysis
 RUN apk add --no-cache git
 
@@ -17,6 +19,10 @@ WORKDIR /sandbox
 RUN chown runner:runner /sandbox
 
 USER runner
+
+# The container runs one-shot commands via the entrypoint; it has no long-running
+# service to probe, so the healthcheck is disabled explicitly.
+HEALTHCHECK NONE
 
 # Default shell for executing commands
 ENTRYPOINT ["/bin/sh", "-c"]
