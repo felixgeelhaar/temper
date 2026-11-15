@@ -183,5 +183,10 @@
   "dependencies": {
     "brace-expansion": "^1.1.21",
     "js-yaml": "^4.3.2"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    }
   }
 }
