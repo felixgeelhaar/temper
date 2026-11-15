@@ -1,5 +1,7 @@
 # Temper
 
+[![nox security grade](.github/nox-badge.svg)](.github/workflows/nox-scan.yml)
+
 Adaptive AI pairing for learning - a CLI-first tool that enforces a Learning Contract to build genuine skill.
 
 Like tempering steel, Temper strengthens skills through controlled, measured assistance. The AI leads when you're stuck, pairs during learning, and steps back as your skill increases.
