@@ -23968,6 +23968,230 @@
       "severity": "medium",
       "reason": "No fixed github.com/docker/docker v28 release exists (latest v28.5.2); affects the Docker daemon plugin/AuthZ path, which temper does not use (client SDK only).",
       "created_at": "2026-11-15T10:34:14.801835Z"
+    },
+    {
+      "fingerprint": "0e9246c0b10982ab889446a6095fc110d8a1add6bc5156173df3af7af0d50dcd",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/basics/objects.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "ebaae30b3d9b7f19a44e3473b5e464794154477d7f31402075d887800cdc0051",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/errors.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "0cf4c4d5bca40251dce3803d10d6c752224f810b9cf434786c365e3dd379e52a",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/interfaces.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "db45603b42f7c3d7a9567ba5f5361a5dc2c2eb243223ffe02fdfbafccb839050",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/interfaces.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.) (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "a7b353190859c3eb679d3c71a0025b80315d66f2ed2d9808192deb23ac7b763c",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/interfaces.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.) (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "58727bc1eb790dd2e71165b654469bd6c41b7e7ce5315613353adce5edb50ada",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/interfaces.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.) (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "a6e29ad5c34e544d7bca056f46cafbaa13324b27575debc8cb82b00e20d70d41",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/interfaces.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.) (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "d3a44b4eb8f05c4a51c51c3c3a5f5905def783bab47ad3256a1def609d1f03c0",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/intermediate/interfaces.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.) (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "575536f4582a5692c50686ee41ba9bde58a813c814f160953ccd39b608342716",
+      "rule_id": "DATA-001",
+      "file_path": "exercises/typescript-v1/testing/mocking.yaml",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "49fb7b9c248cf67dc86b4059ec6c7c4559be1c2f2afd9e85f88c556268c1271a",
+      "rule_id": "DATA-001",
+      "file_path": "internal/domain/value_objects_extra_test.go",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "5d904191d444bd2970b1e8cdf13380eb14ca93347503dca3d25060e5802fecb6",
+      "rule_id": "DATA-001",
+      "file_path": "internal/domain/value_objects_extra_test.go",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.) (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "4284e77b65e217a30a48eab7f50155dafa3ae773874da0bcefddf5aaf9d4335c",
+      "rule_id": "DATA-001",
+      "file_path": "internal/domain/value_objects_test.go",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "5d46717ad127cf30a057c28e0f48279e9b7a0b56dc64af4a8002e39d176e06bc",
+      "rule_id": "DATA-001",
+      "file_path": "internal/domain/value_objects_test.go",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "1750eb870362d63b27a8ad4c90a49eb4f594bdc73903a7336e542e407f26d8f8",
+      "rule_id": "DATA-001",
+      "file_path": "internal/domain/value_objects_test.go",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "045719e9e765a201d3271a9a9f89c00cc836e82ac518a2068bcb4d254d6a164e",
+      "rule_id": "DATA-001",
+      "file_path": "internal/domain/value_objects_test.go",
+      "severity": "medium",
+      "reason": "Placeholder/example addresses in demo seeds, exercise fixtures and tests; not real personal data. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "da00f38d2fa629a5bd2f680fbec9f4185ca1c903e5c44170bccf5fe28caf2280",
+      "rule_id": "DATA-005",
+      "file_path": "editors/nvim/lua/temper/client.lua",
+      "severity": "medium",
+      "reason": "127.0.0.1 is the loopback address of the local temper daemon default, not a public IP. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "cae5af6213f769e0222e6c3bee57f841202fa36a7949aa09a4f406edc932c79e",
+      "rule_id": "DATA-005",
+      "file_path": "editors/nvim/lua/temper/init.lua",
+      "severity": "medium",
+      "reason": "127.0.0.1 is the loopback address of the local temper daemon default, not a public IP. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "1fe6691c0856a4ba6cb8c02162abbf6ecae4c69dfd0d74edc0368947816260a3",
+      "rule_id": "DATA-005",
+      "file_path": "internal/daemon/middleware_test.go",
+      "severity": "medium",
+      "reason": "127.0.0.1:7432 is a loopback RemoteAddr in a middleware unit test, not a public IP. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "a3ad80aa18b130ebfc75364250d7169fd6fa5278201aabebcb3629f2c97984e0",
+      "rule_id": "IAC-194",
+      "file_path": "exercises/python-v1/intermediate/methods.yaml",
+      "severity": "medium",
+      "reason": "Learning-exercise YAML containing a Python class name (TestWithdraw); not an Ansible playbook. Misparsed as a raw module. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "28feb4bce289d8dfcaaa4d56e2793a202c7f988718a1299c81b8c0ce29f34845",
+      "rule_id": "IAC-310",
+      "file_path": ".github/workflows/nox-scan.yml",
+      "severity": "medium",
+      "reason": "Plugin registry 404s must not fail the scan; plugin presence is enforced separately. Workflow is replaced by the shared nox workflow in #59. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "a80dbf9da16b121940b6fc03fa1a57a479deff9a75b56df4b1e45df3a2af2726",
+      "rule_id": "IAC-310",
+      "file_path": ".github/workflows/vscode-release.yml",
+      "severity": "medium",
+      "reason": "Marketplace publish is intentionally non-blocking: VSCE_PAT is optional and the GitHub release asset has already been published. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "5d42aa528397c122187cfb145c08b4d6421c2c0649e938a328d599594bb804a8",
+      "rule_id": "SEC-082",
+      "file_path": "exercises/typescript-v1/advanced/http-fetch.yaml",
+      "severity": "medium",
+      "reason": "Placeholder 'Bearer token123' inside a teaching-exercise fixture, not a credential. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "cbd611ab7a8de2f7b3abb018f2ec2552baaafc38691bcdbdc4e87fb9fa45fd0d",
+      "rule_id": "SEC-161",
+      "file_path": "internal/storage/sqlite/db.go",
+      "severity": "medium",
+      "reason": "SQLite DSN format string (file:%s?_journal_mode=...), not a secret. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "8f85a67131d5909da04dedbb74b9310028e84decc4e54b645dca298357eb426e",
+      "rule_id": "SEC-162",
+      "file_path": "internal/storage/sqlite/db.go",
+      "severity": "medium",
+      "reason": "SQLite DSN format string (file:%s?_journal_mode=...), not a secret. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "c69ef8c8e30c69c71608b684686d41155da28f520d438f12a1501f90fac32ec5",
+      "rule_id": "SEC-163",
+      "file_path": "internal/storage/sqlite/db.go",
+      "severity": "medium",
+      "reason": "SQLite DSN format string (file:%s?_journal_mode=...), not a secret. (fingerprint for nox 1.7.1.)",
+      "created_at": "2026-11-15T10:52:18.317483Z"
+    },
+    {
+      "fingerprint": "070b24994217a8935586a6fae47df39e18a9b15c8346f64a7ad0c65e01a0ecaf",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "reason": "Docker daemon-side advisory in github.com/docker/docker (docker cp / archive endpoints); nox reachability reports it as not impacting this module, and no patched version exists on the v28 incompatible line. Revisit when moby publishes a fix.",
+      "created_at": "2026-11-15T10:53:50Z"
+    },
+    {
+      "fingerprint": "340a14f7a89718ee369bf8eb217a48027405a19f9c17cb15ab5c9fa9a3458e71",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "reason": "Docker daemon-side advisory in github.com/docker/docker (docker cp / archive endpoints); nox reachability reports it as not impacting this module, and no patched version exists on the v28 incompatible line. Revisit when moby publishes a fix.",
+      "created_at": "2026-11-15T10:53:50Z"
+    },
+    {
+      "fingerprint": "6cf0e0f4fce95165cb31d0112ff64f10a38e6e1261baf4d08a7fee63a83f24cb",
+      "rule_id": "VULN-001",
+      "file_path": "go.mod",
+      "severity": "info",
+      "reason": "Docker daemon-side advisory in github.com/docker/docker (docker cp / archive endpoints); nox reachability reports it as not impacting this module, and no patched version exists on the v28 incompatible line. Revisit when moby publishes a fix.",
+      "created_at": "2026-11-15T10:53:50Z"
     }
   ]
 }
