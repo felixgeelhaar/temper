@@ -25,6 +25,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    cpus: 1.0
     networks:
       - demo-net
 
@@ -44,6 +46,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    cpus: 1.0
     networks:
       - demo-net
 
@@ -73,17 +77,31 @@ services:
         condition: service_healthy
     volumes:
       - ./exercises:/app/exercises:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    cpus: 1.0
     networks:
       - demo-net
     restart: unless-stopped
 
   # Ollama for demo (local LLM)
   demo-ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.40.16
     ports:
       - "11435:11434"  # Different port for demo
     volumes:
       - demo_ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    mem_limit: 8g
+    cpus: 4.0
     networks:
       - demo-net
 

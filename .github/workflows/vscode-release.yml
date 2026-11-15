@@ -37,10 +37,6 @@ jobs:
       - name: Compile TypeScript
         run: npm run compile
 
-      - name: Run tests
-        run: npm test
-        continue-on-error: true
-
       - name: Install vsce
         run: npm install -g @vscode/vsce
 

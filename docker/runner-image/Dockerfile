@@ -1,5 +1,7 @@
 # Base image for running user Go code in sandbox
-FROM golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f
+FROM golang:1.26-alpine@sha256:30b1e546a9c7fa3b747c2bdba3a0c7bdf3a02ebb4c5b8405d2f948d7e8aac4ec
+
+LABEL org.opencontainers.image.authors="Felix Geelhaar"
 
 # Install additional tools for code analysis
 RUN apk add --no-cache git
